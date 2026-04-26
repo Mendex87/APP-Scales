@@ -16,7 +16,9 @@ La URL del proyecto ya quedó preconfigurada en la app:
 https://qatnjksbzegltidoujms.supabase.co
 ```
 
-Todavía falta cargar la `anon public key` para que la app pueda conectarse realmente.
+La `anon public key` también quedó integrada como valor por defecto.
+
+Igual conviene cargar ambas variables en Vercel para que la configuración quede explícita.
 
 ## 2. Variables de entorno
 
@@ -146,6 +148,13 @@ En Vercel agregá las dos variables de entorno:
 2. `VITE_SUPABASE_ANON_KEY`
 
 Después redeploy.
+
+Valores actuales:
+
+```text
+VITE_SUPABASE_URL=https://qatnjksbzegltidoujms.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdG5qa3NiemVnbHRpZG91am1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzU1MzEsImV4cCI6MjA5MjgxMTUzMX0.Q6_AxoaJTQNvXlvjx9Kyh925VbHXntDAU8YhWaoU-Dc
+```
 
 ## 7. Estado esperado en la app
 
