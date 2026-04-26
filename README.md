@@ -40,6 +40,21 @@ La app ya soporta:
 - reconstruccion de hojas operativas
 - dashboard visual
 
+## Supabase
+
+La app ahora puede usar `Supabase` como base principal de datos.
+
+Archivo de setup:
+
+- `SUPABASE-SETUP.md`
+
+Variables esperadas:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Si no están configuradas, la app entra en modo local y sigue permitiendo sincronizar a Google Sheets.
+
 ## Deploy recomendado
 
 La opcion mas simple es desplegar esta app en `Vercel` como sitio `Vite + React`.

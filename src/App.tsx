@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { loadAppData, saveCalibrationEventRecord, saveEquipmentRecord, updateCalibrationEventSync } from './repository'
 import { loadEquipment, loadEvents, loadSettings, saveEquipment, saveEvents, saveSettings } from './storage'
+import { isSupabaseConfigured } from './supabase'
 import type { CalibrationEvent, Equipment, SpeedSource, SyncStatus } from './types'
 import {
   buildSyncPayload,
@@ -71,6 +73,8 @@ function App() {
   const [syncNotice, setSyncNotice] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [loadingData, setLoadingData] = useState(true)
+  const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
 
   useEffect(() => {
     saveEquipment(equipment)
@@ -83,6 +87,40 @@ function App() {
   useEffect(() => {
     saveSettings(settings)
   }, [settings])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function initializeData() {
+      try {
+        const result = await loadAppData()
+        if (cancelled) return
+        setEquipment(result.equipment)
+        setEvents(result.events)
+        setDataSource(result.source)
+        if (result.source === 'supabase') {
+          setSyncNotice('Datos cargados desde Supabase.')
+        } else if (!isSupabaseConfigured) {
+          setSyncNotice('Supabase no está configurado. La app quedó en modo local.')
+        }
+      } catch (error) {
+        if (cancelled) return
+        const message = error instanceof Error ? error.message : 'No se pudo cargar la base remota.'
+        setDataSource('local')
+        setSyncNotice(`No se pudo conectar a Supabase: ${message}`)
+      } finally {
+        if (!cancelled) {
+          setLoadingData(false)
+        }
+      }
+    }
+
+    void initializeData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!selectedEquipmentId && equipment.length > 0) {
@@ -156,7 +194,7 @@ function App() {
     setScreen('nueva')
   }
 
-  function handleEquipmentSubmit(event: FormEvent) {
+  async function handleEquipmentSubmit(event: FormEvent) {
     event.preventDefault()
 
     const nextEquipment: Equipment = {
@@ -180,10 +218,19 @@ function App() {
 
     if (!nextEquipment.beltCode || !nextEquipment.scaleName || !nextEquipment.controllerModel) return
 
-    setEquipment((current) => [nextEquipment, ...current])
-    setSelectedEquipmentId(nextEquipment.id)
-    setEquipmentForm(defaultEquipmentForm)
-    setSyncNotice('Balanza guardada.')
+    try {
+      const result = await saveEquipmentRecord(nextEquipment)
+      setEquipment((current) => [nextEquipment, ...current.filter((item) => item.id !== nextEquipment.id)])
+      setSelectedEquipmentId(nextEquipment.id)
+      setEquipmentForm(defaultEquipmentForm)
+      setDataSource(result.source)
+      setSyncNotice(
+        result.source === 'supabase' ? 'Balanza guardada en Supabase.' : 'Balanza guardada solo localmente.',
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar la balanza.'
+      setSyncNotice(`Error al guardar balanza: ${message}`)
+    }
   }
 
   async function syncEventRecord(record: CalibrationEvent, equipmentItem: Equipment) {
@@ -296,13 +343,30 @@ function App() {
       return
     }
 
-    setEvents((current) => [record, ...current])
-    resetEventForm()
-    setScreen('historial')
-    setSyncNotice(`Evento ${record.id} guardado localmente.`)
+    try {
+      const result = await saveCalibrationEventRecord(record)
+      setEvents((current) => [record, ...current.filter((item) => item.id !== record.id)])
+      resetEventForm()
+      setScreen('historial')
+      setDataSource(result.source)
+      setSyncNotice(
+        result.source === 'supabase'
+          ? `Evento ${record.id} guardado en Supabase.`
+          : `Evento ${record.id} guardado solo localmente.`,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar el evento.'
+      setSyncNotice(`Error al guardar evento: ${message}`)
+      return
+    }
 
     try {
       await syncEventRecord(record, selectedEquipment)
+      await updateCalibrationEventSync(record.id, {
+        syncStatus: 'sincronizado',
+        syncMessage: 'Enviado a Google Sheets.',
+        syncedAt: new Date().toISOString(),
+      })
       setEvents((current) =>
         current.map((item) =>
           item.id === record.id
@@ -313,6 +377,15 @@ function App() {
       setSyncNotice(`Evento ${record.id} sincronizado.`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo sincronizar.'
+      try {
+        await updateCalibrationEventSync(record.id, {
+          syncStatus: 'error',
+          syncMessage: message,
+          syncedAt: '',
+        })
+      } catch {
+        // Keep local state updated even if remote sync status cannot be written.
+      }
       setEvents((current) =>
         current.map((item) =>
           item.id === record.id ? { ...item, syncStatus: 'error', syncMessage: message } : item,
@@ -338,6 +411,11 @@ function App() {
 
       try {
         await syncEventRecord(record, equipmentItem)
+        await updateCalibrationEventSync(record.id, {
+          syncStatus: 'sincronizado',
+          syncMessage: 'Enviado a Google Sheets.',
+          syncedAt: new Date().toISOString(),
+        })
         setEvents((current) =>
           current.map((item) =>
             item.id === record.id
@@ -347,6 +425,15 @@ function App() {
         )
       } catch (error) {
         const message = error instanceof Error ? error.message : 'No se pudo sincronizar.'
+        try {
+          await updateCalibrationEventSync(record.id, {
+            syncStatus: 'error',
+            syncMessage: message,
+            syncedAt: '',
+          })
+        } catch {
+          // Keep local state updated even if remote sync status cannot be written.
+        }
         setEvents((current) =>
           current.map((item) => (item.id === record.id ? { ...item, syncStatus: 'error', syncMessage: message } : item)),
         )
@@ -365,6 +452,9 @@ function App() {
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
         </div>
         <div className="topbar-actions">
+          <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
+            {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
+          </div>
           <div className="chip">Pendientes: {pendingCount}</div>
           <button className="secondary small" onClick={syncPendingEvents} disabled={syncing || pendingCount === 0}>
             {syncing ? 'Sincronizando...' : 'Sincronizar'}
@@ -373,6 +463,8 @@ function App() {
       </header>
 
       {syncNotice && <div className="notice">{syncNotice}</div>}
+
+      {loadingData && <div className="notice">Cargando datos...</div>}
 
       <main className="content">
         {screen === 'balanzas' && (
@@ -601,6 +693,8 @@ function App() {
 
             <div className="card stack">
               <h2>Resumen</h2>
+              <div className="result-row"><span>Base principal</span><strong>{dataSource === 'supabase' ? 'Supabase' : 'Local'}</strong></div>
+              <div className="result-row"><span>Supabase configurado</span><strong>{isSupabaseConfigured ? 'Si' : 'No'}</strong></div>
               <div className="result-row"><span>Balanzas</span><strong>{equipment.length}</strong></div>
               <div className="result-row"><span>Eventos</span><strong>{events.length}</strong></div>
               <div className="result-row"><span>Pendientes</span><strong>{pendingCount}</strong></div>
