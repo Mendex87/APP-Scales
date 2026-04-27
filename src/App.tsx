@@ -1,5 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-import { loadAppData, saveCalibrationEventRecord, saveEquipmentRecord, updateCalibrationEventSync } from './repository'
+import {
+  loadAppData,
+  saveCalibrationEventRecord,
+  saveEquipmentRecord,
+  testSupabaseConnection,
+  updateCalibrationEventSync,
+} from './repository'
 import { loadEquipment, loadEvents, loadSettings, saveEquipment, saveEvents, saveSettings } from './storage'
 import { isSupabaseConfigured } from './supabase'
 import type { CalibrationEvent, Equipment, SpeedSource, SyncStatus } from './types'
@@ -73,6 +79,7 @@ function App() {
   const [syncNotice, setSyncNotice] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [testingSupabase, setTestingSupabase] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
 
@@ -281,6 +288,21 @@ function App() {
       setSyncNotice(`Fallo la prueba de conexion: ${message}`)
     } finally {
       setTestingConnection(false)
+    }
+  }
+
+  async function handleTestSupabase() {
+    setTestingSupabase(true)
+    setSyncNotice('Probando conexion con Supabase...')
+
+    try {
+      const result = await testSupabaseConnection()
+      setSyncNotice(result.message)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo probar Supabase.'
+      setSyncNotice(`Fallo la prueba de Supabase: ${message}`)
+    } finally {
+      setTestingSupabase(false)
     }
   }
 
@@ -698,6 +720,9 @@ function App() {
               <div className="result-row"><span>Balanzas</span><strong>{equipment.length}</strong></div>
               <div className="result-row"><span>Eventos</span><strong>{events.length}</strong></div>
               <div className="result-row"><span>Pendientes</span><strong>{pendingCount}</strong></div>
+              <button className="secondary" onClick={handleTestSupabase} disabled={testingSupabase}>
+                {testingSupabase ? 'Probando Supabase...' : 'Probar Supabase'}
+              </button>
             </div>
           </section>
         )}

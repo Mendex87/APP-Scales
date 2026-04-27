@@ -76,6 +76,29 @@ export async function loadAppData() {
   }
 }
 
+export async function testSupabaseConnection() {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      ok: false,
+      message: 'Supabase no está configurado.',
+    }
+  }
+
+  const result = await supabase.from('equipments').select('id').limit(1)
+
+  if (result.error) {
+    return {
+      ok: false,
+      message: result.error.message,
+    }
+  }
+
+  return {
+    ok: true,
+    message: 'Conexion con Supabase OK.',
+  }
+}
+
 export async function saveEquipmentRecord(item: Equipment) {
   if (!isSupabaseConfigured || !supabase) {
     const next = [item, ...loadEquipment().filter((current) => current.id !== item.id)]
