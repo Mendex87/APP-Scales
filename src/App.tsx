@@ -366,6 +366,7 @@ function App() {
     }
 
     try {
+      await saveEquipmentRecord(selectedEquipment)
       const result = await saveCalibrationEventRecord(record)
       setEvents((current) => [record, ...current.filter((item) => item.id !== record.id)])
       resetEventForm()

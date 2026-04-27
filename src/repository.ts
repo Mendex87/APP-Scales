@@ -56,11 +56,11 @@ export async function loadAppData() {
   ])
 
   if (equipmentResult.error) {
-    throw equipmentResult.error
+    throw toError(equipmentResult.error)
   }
 
   if (eventsResult.error) {
-    throw eventsResult.error
+    throw toError(eventsResult.error)
   }
 
   const equipment = (equipmentResult.data || []).map(mapEquipmentRow)
@@ -108,7 +108,7 @@ export async function saveEquipmentRecord(item: Equipment) {
 
   const result = await supabase.from('equipments').upsert(toEquipmentRow(item))
   if (result.error) {
-    throw result.error
+    throw toError(result.error)
   }
 
   return { source: 'supabase' as const }
@@ -123,7 +123,7 @@ export async function saveCalibrationEventRecord(item: CalibrationEvent) {
 
   const result = await supabase.from('calibration_events').upsert(toEventRow(item))
   if (result.error) {
-    throw result.error
+    throw toError(result.error)
   }
 
   return { source: 'supabase' as const }
@@ -147,8 +147,24 @@ export async function updateCalibrationEventSync(
     .eq('id', eventId)
 
   if (result.error) {
-    throw result.error
+    throw toError(result.error)
   }
+}
+
+function toError(value: unknown) {
+  if (value instanceof Error) {
+    return value
+  }
+
+  if (value && typeof value === 'object' && 'message' in value) {
+    const message = String((value as { message: unknown }).message)
+    const details = 'details' in value ? String((value as { details?: unknown }).details || '') : ''
+    const hint = 'hint' in value ? String((value as { hint?: unknown }).hint || '') : ''
+    const fullMessage = [message, details, hint].filter(Boolean).join(' | ')
+    return new Error(fullMessage)
+  }
+
+  return new Error(String(value || 'Error desconocido'))
 }
 
 function mapEquipmentRow(row: EquipmentRow): Equipment {
