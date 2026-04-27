@@ -39,6 +39,8 @@ También te lo dejé en archivo listo para copiar:
 
 - `supabase/schema.sql`
 
+Ese archivo ya quedó preparado para poder correrse más de una vez sin fallar por policies existentes.
+
 ```sql
 create table if not exists public.equipments (
   id text primary key,

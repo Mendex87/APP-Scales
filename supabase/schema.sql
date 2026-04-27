@@ -47,6 +47,13 @@ create index if not exists calibration_events_event_date_idx
 alter table public.equipments enable row level security;
 alter table public.calibration_events enable row level security;
 
+drop policy if exists "public read equipments" on public.equipments;
+drop policy if exists "public insert equipments" on public.equipments;
+drop policy if exists "public update equipments" on public.equipments;
+drop policy if exists "public read calibration_events" on public.calibration_events;
+drop policy if exists "public insert calibration_events" on public.calibration_events;
+drop policy if exists "public update calibration_events" on public.calibration_events;
+
 create policy "public read equipments"
 on public.equipments for select
 to anon
