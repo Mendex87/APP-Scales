@@ -35,7 +35,7 @@ type EventRow = {
   notes: string
   sync_status: SyncStatus
   sync_message: string
-  synced_at: string
+  synced_at: string | null
 }
 
 export async function loadAppData() {
@@ -142,7 +142,7 @@ export async function updateCalibrationEventSync(
     .update({
       sync_status: values.syncStatus,
       sync_message: values.syncMessage,
-      synced_at: values.syncedAt,
+      synced_at: values.syncedAt || null,
     })
     .eq('id', eventId)
 
@@ -224,7 +224,7 @@ function mapEventRow(row: EventRow): CalibrationEvent {
     notes: row.notes,
     syncStatus: row.sync_status,
     syncMessage: row.sync_message,
-    syncedAt: row.synced_at,
+    syncedAt: row.synced_at || '',
   }
 }
 
@@ -243,6 +243,6 @@ function toEventRow(item: CalibrationEvent): EventRow {
     notes: item.notes,
     sync_status: item.syncStatus,
     sync_message: item.syncMessage,
-    synced_at: item.syncedAt,
+    synced_at: item.syncedAt || null,
   }
 }
