@@ -27,6 +27,8 @@ type EventRow = {
   created_at: string
   event_date: string
   tolerance_percent: number
+  precheck?: CalibrationEvent['precheck']
+  zero_check?: CalibrationEvent['zeroCheck']
   parameter_snapshot: CalibrationEvent['parameterSnapshot']
   chain_span: CalibrationEvent['chainSpan']
   material_validation: CalibrationEvent['materialValidation']
@@ -216,6 +218,23 @@ function mapEventRow(row: EventRow): CalibrationEvent {
     createdAt: row.created_at,
     eventDate: row.event_date,
     tolerancePercent: row.tolerance_percent,
+    precheck: row.precheck || {
+      beltEmpty: false,
+      beltClean: false,
+      noMaterialBuildup: false,
+      idlersOk: false,
+      structureOk: false,
+      speedSensorOk: false,
+      notes: '',
+    },
+    zeroCheck: row.zero_check || {
+      completed: false,
+      displayUnit: 'mV',
+      beforeValue: '',
+      afterValue: '',
+      adjusted: false,
+      notes: '',
+    },
     parameterSnapshot: row.parameter_snapshot,
     chainSpan: row.chain_span,
     materialValidation: row.material_validation,
@@ -235,6 +254,8 @@ function toEventRow(item: CalibrationEvent): EventRow {
     created_at: item.createdAt,
     event_date: item.eventDate,
     tolerance_percent: item.tolerancePercent,
+    precheck: item.precheck,
+    zero_check: item.zeroCheck,
     parameter_snapshot: item.parameterSnapshot,
     chain_span: item.chainSpan,
     material_validation: item.materialValidation,

@@ -44,6 +44,19 @@ const defaultEquipmentForm = {
 const defaultEventForm = {
   eventDate: nowLocalValue(),
   tolerancePercent: '1',
+  precheckBeltEmpty: false,
+  precheckBeltClean: false,
+  precheckNoMaterialBuildup: false,
+  precheckIdlersOk: false,
+  precheckStructureOk: false,
+  precheckSpeedSensorOk: false,
+  precheckNotes: '',
+  zeroCompleted: false,
+  zeroDisplayUnit: 'mV',
+  zeroBeforeValue: '',
+  zeroAfterValue: '',
+  zeroAdjusted: false,
+  zeroNotes: '',
   calibrationFactor: '',
   zeroValue: '',
   spanValue: '',
@@ -213,6 +226,24 @@ function App() {
   )
 
   const pendingCount = useMemo(() => events.filter((item) => item.syncStatus !== 'sincronizado').length, [events])
+
+  const precheckPassed = useMemo(
+    () =>
+      eventForm.precheckBeltEmpty &&
+      eventForm.precheckBeltClean &&
+      eventForm.precheckNoMaterialBuildup &&
+      eventForm.precheckIdlersOk &&
+      eventForm.precheckStructureOk &&
+      eventForm.precheckSpeedSensorOk,
+    [eventForm],
+  )
+
+  const zeroDrift = useMemo(() => {
+    const before = Number(eventForm.zeroBeforeValue)
+    const after = Number(eventForm.zeroAfterValue)
+    if (!Number.isFinite(before) || !Number.isFinite(after)) return null
+    return after - before
+  }, [eventForm.zeroBeforeValue, eventForm.zeroAfterValue])
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -466,6 +497,23 @@ function App() {
       createdAt: new Date().toISOString(),
       eventDate: new Date(eventForm.eventDate).toISOString(),
       tolerancePercent: Number(eventForm.tolerancePercent) || 1,
+      precheck: {
+        beltEmpty: eventForm.precheckBeltEmpty,
+        beltClean: eventForm.precheckBeltClean,
+        noMaterialBuildup: eventForm.precheckNoMaterialBuildup,
+        idlersOk: eventForm.precheckIdlersOk,
+        structureOk: eventForm.precheckStructureOk,
+        speedSensorOk: eventForm.precheckSpeedSensorOk,
+        notes: eventForm.precheckNotes.trim(),
+      },
+      zeroCheck: {
+        completed: eventForm.zeroCompleted,
+        displayUnit: eventForm.zeroDisplayUnit.trim(),
+        beforeValue: eventForm.zeroBeforeValue.trim(),
+        afterValue: eventForm.zeroAfterValue.trim(),
+        adjusted: eventForm.zeroAdjusted,
+        notes: eventForm.zeroNotes.trim(),
+      },
       parameterSnapshot: {
         calibrationFactor: Number(eventForm.calibrationFactor) || 0,
         zeroValue: Number(eventForm.zeroValue) || 0,
@@ -508,7 +556,18 @@ function App() {
       syncedAt: '',
     }
 
-    if (!record.approval.technician || !record.chainSpan.avgControllerReadingKgM || !record.materialValidation.externalWeightKg) {
+    if (
+      !record.approval.technician ||
+      !record.chainSpan.avgControllerReadingKgM ||
+      !record.materialValidation.externalWeightKg ||
+      !record.precheck.beltEmpty ||
+      !record.precheck.beltClean ||
+      !record.precheck.noMaterialBuildup ||
+      !record.precheck.idlersOk ||
+      !record.precheck.structureOk ||
+      !record.precheck.speedSensorOk ||
+      !record.zeroCheck.completed
+    ) {
       return
     }
 
@@ -733,6 +792,48 @@ function App() {
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
+              </div>
+
+              <div className="card stack">
+                <h2>Inspeccion previa</h2>
+                <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
+                <div className="grid two">
+                  <CheckField label="Banda vacia" checked={eventForm.precheckBeltEmpty} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltEmpty: checked }))} />
+                  <CheckField label="Banda limpia" checked={eventForm.precheckBeltClean} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltClean: checked }))} />
+                  <CheckField label="Sin acumulacion de material" checked={eventForm.precheckNoMaterialBuildup} onChange={(checked) => setEventForm((current) => ({ ...current, precheckNoMaterialBuildup: checked }))} />
+                  <CheckField label="Rolos e idlers OK" checked={eventForm.precheckIdlersOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckIdlersOk: checked }))} />
+                  <CheckField label="Estructura sin vibraciones anormales" checked={eventForm.precheckStructureOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckStructureOk: checked }))} />
+                  <CheckField label="Sensor de velocidad OK" checked={eventForm.precheckSpeedSensorOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckSpeedSensorOk: checked }))} />
+                </div>
+                <TextArea label="Observaciones de inspeccion" value={eventForm.precheckNotes} onChange={(value) => setEventForm((current) => ({ ...current, precheckNotes: value }))} />
+                <div className="result-row"><span>Estado inspeccion</span><strong>{precheckPassed ? 'Completa' : 'Incompleta'}</strong></div>
+              </div>
+
+              <div className="card stack">
+                <h2>Cero</h2>
+                <p className="hint">Siempre se realiza antes de calibrar. Si el controlador no muestra valor, registralo igual como completado y elegí la opcion correspondiente.</p>
+                <div className="grid two">
+                  <CheckField label="Cero realizado" checked={eventForm.zeroCompleted} onChange={(checked) => setEventForm((current) => ({ ...current, zeroCompleted: checked }))} />
+                  <CheckField label="Cero ajustado" checked={eventForm.zeroAdjusted} onChange={(checked) => setEventForm((current) => ({ ...current, zeroAdjusted: checked }))} />
+                  <div>
+                    <label className="label">Unidad / referencia visible</label>
+                    <select className="input" value={eventForm.zeroDisplayUnit} onChange={(e) => setEventForm((current) => ({ ...current, zeroDisplayUnit: e.target.value }))}>
+                      <option value="mV">mV</option>
+                      <option value="kg">kg</option>
+                      <option value="cuentas">Cuentas</option>
+                      <option value="no_visible">No visible en controlador</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <Field label="Valor antes del cero" value={eventForm.zeroBeforeValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroBeforeValue: value }))} />
+                  <Field label="Valor despues del cero" value={eventForm.zeroAfterValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroAfterValue: value }))} />
+                </div>
+                <div className="grid three compact-top">
+                  <Metric label="Unidad" value={eventForm.zeroDisplayUnit || '-'} />
+                  <Metric label="Deriva" value={zeroDrift === null ? '-' : String(round(zeroDrift, 6))} />
+                  <Metric label="Realizado" value={eventForm.zeroCompleted ? 'Si' : 'No'} />
+                </div>
+                <TextArea label="Observaciones de cero" value={eventForm.zeroNotes} onChange={(value) => setEventForm((current) => ({ ...current, zeroNotes: value }))} />
               </div>
 
               <div className="card">
@@ -997,6 +1098,15 @@ function TextArea({ label, value, onChange }: Omit<FieldProps, 'type'>) {
       <label className="label">{label}</label>
       <textarea className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={4} />
     </div>
+  )
+}
+
+function CheckField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="check-field">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <span>{label}</span>
+    </label>
   )
 }
 

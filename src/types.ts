@@ -34,6 +34,25 @@ export type ParameterSnapshot = {
   changedReason: string
 }
 
+export type Precheck = {
+  beltEmpty: boolean
+  beltClean: boolean
+  noMaterialBuildup: boolean
+  idlersOk: boolean
+  structureOk: boolean
+  speedSensorOk: boolean
+  notes: string
+}
+
+export type ZeroCheck = {
+  completed: boolean
+  displayUnit: string
+  beforeValue: string
+  afterValue: string
+  adjusted: boolean
+  notes: string
+}
+
 export type ChainSpan = {
   chainLinearKgM: number
   passCount: number
@@ -67,6 +86,8 @@ export type CalibrationEvent = {
   createdAt: string
   eventDate: string
   tolerancePercent: number
+  precheck: Precheck
+  zeroCheck: ZeroCheck
   parameterSnapshot: ParameterSnapshot
   chainSpan: ChainSpan
   materialValidation: MaterialValidation

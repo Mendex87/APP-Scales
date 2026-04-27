@@ -67,6 +67,8 @@ create table if not exists public.calibration_events (
   created_at timestamptz not null default now(),
   event_date timestamptz not null,
   tolerance_percent double precision not null default 1,
+  precheck jsonb not null default '{}'::jsonb,
+  zero_check jsonb not null default '{}'::jsonb,
   parameter_snapshot jsonb not null,
   chain_span jsonb not null,
   material_validation jsonb not null,
@@ -87,6 +89,12 @@ create index if not exists calibration_events_equipment_id_idx
 
 create index if not exists calibration_events_event_date_idx
   on public.calibration_events (event_date desc);
+
+alter table public.calibration_events
+  add column if not exists precheck jsonb not null default '{}'::jsonb;
+
+alter table public.calibration_events
+  add column if not exists zero_check jsonb not null default '{}'::jsonb;
 ```
 
 ## 4. RLS simple para arrancar
