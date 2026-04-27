@@ -21,7 +21,8 @@ import {
   round,
 } from './utils'
 
-type Screen = 'balanzas' | 'nueva' | 'historial' | 'sheets'
+type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'sheets'
+const APP_VERSION = 'v0.3.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -66,6 +67,29 @@ const defaultEventForm = {
   notes: '',
 }
 
+const defaultRpmToolForm = {
+  rpm: '',
+  indicatedSpeedMs: '',
+}
+
+const defaultLoopToolForm = {
+  loopTimeSeconds: '',
+  indicatedSpeedMs: '',
+}
+
+const defaultChainToolForm = {
+  chainLengthM: '',
+  chainWeightKg: '',
+  trainLengthM: '',
+  speedMs: '',
+}
+
+const defaultFactorToolForm = {
+  currentFactor: '',
+  controllerWeightKg: '',
+  realWeightKg: '',
+}
+
 function App() {
   const [screen, setScreen] = useState<Screen>('balanzas')
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
@@ -74,6 +98,10 @@ function App() {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState('')
   const [equipmentForm, setEquipmentForm] = useState(defaultEquipmentForm)
   const [eventForm, setEventForm] = useState(defaultEventForm)
+  const [rpmToolForm, setRpmToolForm] = useState(defaultRpmToolForm)
+  const [loopToolForm, setLoopToolForm] = useState(defaultLoopToolForm)
+  const [chainToolForm, setChainToolForm] = useState(defaultChainToolForm)
+  const [factorToolForm, setFactorToolForm] = useState(defaultFactorToolForm)
   const [historyEquipmentId, setHistoryEquipmentId] = useState('todos')
   const [historyStatus, setHistoryStatus] = useState('todos')
   const [syncNotice, setSyncNotice] = useState('')
@@ -140,6 +168,16 @@ function App() {
     [equipment, selectedEquipmentId],
   )
 
+  useEffect(() => {
+    if (!selectedEquipment) return
+
+    setChainToolForm((current) => ({
+      ...current,
+      trainLengthM: current.trainLengthM || String(selectedEquipment.bridgeLengthM || ''),
+      speedMs: current.speedMs || String(selectedEquipment.nominalSpeedMs || ''),
+    }))
+  }, [selectedEquipment])
+
   const equipmentWithLastEvent = useMemo(() => {
     return equipment.map((item) => {
       const lastEvent = events
@@ -176,6 +214,86 @@ function App() {
 
   const pendingCount = useMemo(() => events.filter((item) => item.syncStatus !== 'sincronizado').length, [events])
 
+  const rpmToolResult = useMemo(() => {
+    const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
+    const rpm = Number(rpmToolForm.rpm) || 0
+    const indicated = Number(rpmToolForm.indicatedSpeedMs) || 0
+    if (!diameterMm || !rpm) return null
+
+    const diameterM = diameterMm / 1000
+    const speedMs = (rpm * Math.PI * diameterM) / 60
+    const speedMmin = speedMs * 60
+    const speedMh = speedMs * 3600
+    const diff = indicated ? indicated - speedMs : 0
+    const errorPct = indicated ? (diff / speedMs) * 100 : 0
+
+    return {
+      speedMs,
+      speedMmin,
+      speedMh,
+      diff,
+      errorPct,
+    }
+  }, [rpmToolForm, selectedEquipment])
+
+  const loopToolResult = useMemo(() => {
+    const beltLengthM = selectedEquipment?.beltLengthM || 0
+    const loopTimeSeconds = Number(loopToolForm.loopTimeSeconds) || 0
+    const indicated = Number(loopToolForm.indicatedSpeedMs) || 0
+    if (!beltLengthM || !loopTimeSeconds) return null
+
+    const speedMs = beltLengthM / loopTimeSeconds
+    const speedMmin = speedMs * 60
+    const speedMh = speedMs * 3600
+    const diff = indicated ? indicated - speedMs : 0
+    const errorPct = indicated ? (diff / speedMs) * 100 : 0
+
+    return {
+      speedMs,
+      speedMmin,
+      speedMh,
+      diff,
+      errorPct,
+    }
+  }, [loopToolForm, selectedEquipment])
+
+  const chainToolResult = useMemo(() => {
+    const chainLengthM = Number(chainToolForm.chainLengthM) || 0
+    const chainWeightKg = Number(chainToolForm.chainWeightKg) || 0
+    const trainLengthM = Number(chainToolForm.trainLengthM) || 0
+    const speedMs = Number(chainToolForm.speedMs) || 0
+    if (!chainLengthM || !chainWeightKg || !trainLengthM || !speedMs) return null
+
+    const kgPerMeter = chainWeightKg / chainLengthM
+    const kgOnTrain = kgPerMeter * trainLengthM
+    const tph = kgOnTrain * speedMs * 3.6
+
+    return {
+      kgPerMeter,
+      kgOnTrain,
+      tph,
+    }
+  }, [chainToolForm])
+
+  const factorToolResult = useMemo(() => {
+    const currentFactor = Number(factorToolForm.currentFactor) || 0
+    const controllerWeightKg = Number(factorToolForm.controllerWeightKg) || 0
+    const realWeightKg = Number(factorToolForm.realWeightKg) || 0
+    if (!currentFactor || !controllerWeightKg || !realWeightKg) return null
+
+    const newFactor = currentFactor * (realWeightKg / controllerWeightKg)
+    const diffKg = realWeightKg - controllerWeightKg
+    const errorPct = (diffKg / realWeightKg) * 100
+    const recommendation = Math.abs(errorPct) < 0.5 ? 'Mantener factor' : errorPct > 0 ? 'Subir factor' : 'Bajar factor'
+
+    return {
+      newFactor,
+      diffKg,
+      errorPct,
+      recommendation,
+    }
+  }, [factorToolForm])
+
   const filteredEvents = useMemo(() => {
     return events
       .filter((item) => {
@@ -198,6 +316,35 @@ function App() {
       snapshotBridgeLengthM: String(item.bridgeLengthM || ''),
       snapshotNominalSpeedMs: String(item.nominalSpeedMs || ''),
     })
+    setScreen('nueva')
+  }
+
+  function applyMeasuredSpeed(speedMs: number) {
+    setEventForm((current) => ({
+      ...current,
+      measuredSpeedMs: String(round(speedMs, 6)),
+    }))
+    setScreen('nueva')
+  }
+
+  function applyChainToEvent() {
+    if (!chainToolResult) return
+    setEventForm((current) => ({
+      ...current,
+      chainLinearKgM: String(round(chainToolResult.kgPerMeter, 6)),
+      snapshotBridgeLengthM: current.snapshotBridgeLengthM || chainToolForm.trainLengthM,
+      snapshotNominalSpeedMs: current.snapshotNominalSpeedMs || chainToolForm.speedMs,
+    }))
+    setScreen('nueva')
+  }
+
+  function applyFactorToEvent() {
+    if (!factorToolResult) return
+    setEventForm((current) => ({
+      ...current,
+      finalFactor: String(round(factorToolResult.newFactor, 6)),
+      adjustmentReason: current.adjustmentReason || factorToolResult.recommendation,
+    }))
     setScreen('nueva')
   }
 
@@ -475,6 +622,7 @@ function App() {
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
         </div>
         <div className="topbar-actions">
+          <div className="chip version-chip">{APP_VERSION}</div>
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
@@ -646,6 +794,98 @@ function App() {
           </section>
         )}
 
+        {screen === 'herramientas' && (
+          <section className="stack">
+            <div className="card">
+              <label className="label">Balanza</label>
+              <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)}>
+                <option value="">Seleccionar balanza</option>
+                {equipment.map((item) => (
+                  <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
+                ))}
+              </select>
+              {selectedEquipment && (
+                <div className="grid four compact-top">
+                  <Metric label="Diametro RPM" value={`${selectedEquipment.rpmRollDiameterMm || 0} mm`} />
+                  <Metric label="Largo cinta" value={`${selectedEquipment.beltLengthM || 0} m`} />
+                  <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM || 0} m`} />
+                  <Metric label="Velocidad nominal" value={`${selectedEquipment.nominalSpeedMs || 0} m/s`} />
+                </div>
+              )}
+            </div>
+
+            <div className="card stack">
+              <h2>Velocidad por RPM</h2>
+              <div className="grid two">
+                <Field label="RPM del rolo" type="number" value={rpmToolForm.rpm} onChange={(value) => setRpmToolForm((current) => ({ ...current, rpm: value }))} />
+                <Field label="Velocidad indicada (m/s)" type="number" value={rpmToolForm.indicatedSpeedMs} onChange={(value) => setRpmToolForm((current) => ({ ...current, indicatedSpeedMs: value }))} />
+              </div>
+              <div className="grid four compact-top">
+                <Metric label="m/s" value={rpmToolResult ? String(round(rpmToolResult.speedMs, 6)) : '-'} />
+                <Metric label="m/min" value={rpmToolResult ? String(round(rpmToolResult.speedMmin, 3)) : '-'} />
+                <Metric label="m/h" value={rpmToolResult ? String(round(rpmToolResult.speedMh, 1)) : '-'} />
+                <Metric label="Error %" value={rpmToolResult && rpmToolForm.indicatedSpeedMs ? `${round(rpmToolResult.errorPct, 3)} %` : '-'} />
+              </div>
+              <button className="secondary" disabled={!rpmToolResult} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
+                Usar velocidad en evento
+              </button>
+            </div>
+
+            <div className="card stack">
+              <h2>Velocidad por vuelta completa</h2>
+              <div className="grid two">
+                <Field label="Tiempo por vuelta (s)" type="number" value={loopToolForm.loopTimeSeconds} onChange={(value) => setLoopToolForm((current) => ({ ...current, loopTimeSeconds: value }))} />
+                <Field label="Velocidad indicada (m/s)" type="number" value={loopToolForm.indicatedSpeedMs} onChange={(value) => setLoopToolForm((current) => ({ ...current, indicatedSpeedMs: value }))} />
+              </div>
+              <div className="grid four compact-top">
+                <Metric label="m/s" value={loopToolResult ? String(round(loopToolResult.speedMs, 6)) : '-'} />
+                <Metric label="m/min" value={loopToolResult ? String(round(loopToolResult.speedMmin, 3)) : '-'} />
+                <Metric label="m/h" value={loopToolResult ? String(round(loopToolResult.speedMh, 1)) : '-'} />
+                <Metric label="Error %" value={loopToolResult && loopToolForm.indicatedSpeedMs ? `${round(loopToolResult.errorPct, 3)} %` : '-'} />
+              </div>
+              <button className="secondary" disabled={!loopToolResult} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
+                Usar velocidad en evento
+              </button>
+            </div>
+
+            <div className="card stack">
+              <h2>Cadena de calibracion</h2>
+              <div className="grid two">
+                <Field label="Largo total cadena (m)" type="number" value={chainToolForm.chainLengthM} onChange={(value) => setChainToolForm((current) => ({ ...current, chainLengthM: value }))} />
+                <Field label="Peso total cadena (kg)" type="number" value={chainToolForm.chainWeightKg} onChange={(value) => setChainToolForm((current) => ({ ...current, chainWeightKg: value }))} />
+                <Field label="Largo tren pesaje (m)" type="number" value={chainToolForm.trainLengthM} onChange={(value) => setChainToolForm((current) => ({ ...current, trainLengthM: value }))} />
+                <Field label="Velocidad (m/s)" type="number" value={chainToolForm.speedMs} onChange={(value) => setChainToolForm((current) => ({ ...current, speedMs: value }))} />
+              </div>
+              <div className="grid three compact-top">
+                <Metric label="kg/m" value={chainToolResult ? String(round(chainToolResult.kgPerMeter, 6)) : '-'} />
+                <Metric label="kg sobre tren" value={chainToolResult ? String(round(chainToolResult.kgOnTrain, 3)) : '-'} />
+                <Metric label="Caudal esperado t/h" value={chainToolResult ? String(round(chainToolResult.tph, 3)) : '-'} />
+              </div>
+              <button className="secondary" disabled={!chainToolResult} onClick={applyChainToEvent}>
+                Usar datos en evento
+              </button>
+            </div>
+
+            <div className="card stack">
+              <h2>Factor de correccion</h2>
+              <div className="grid two">
+                <Field label="Factor actual" type="number" value={factorToolForm.currentFactor} onChange={(value) => setFactorToolForm((current) => ({ ...current, currentFactor: value }))} />
+                <Field label="Peso medido por balanza (kg)" type="number" value={factorToolForm.controllerWeightKg} onChange={(value) => setFactorToolForm((current) => ({ ...current, controllerWeightKg: value }))} />
+                <Field label="Peso real externo (kg)" type="number" value={factorToolForm.realWeightKg} onChange={(value) => setFactorToolForm((current) => ({ ...current, realWeightKg: value }))} />
+              </div>
+              <div className="grid four compact-top">
+                <Metric label="Factor nuevo" value={factorToolResult ? String(round(factorToolResult.newFactor, 6)) : '-'} />
+                <Metric label="Diferencia kg" value={factorToolResult ? String(round(factorToolResult.diffKg, 3)) : '-'} />
+                <Metric label="Error %" value={factorToolResult ? `${round(factorToolResult.errorPct, 3)} %` : '-'} />
+                <Metric label="Recomendacion" value={factorToolResult ? factorToolResult.recommendation : '-'} />
+              </div>
+              <button className="secondary" disabled={!factorToolResult} onClick={applyFactorToEvent}>
+                Usar factor en evento
+              </button>
+            </div>
+          </section>
+        )}
+
         {screen === 'historial' && (
           <section className="stack">
             <div className="card">
@@ -729,8 +969,9 @@ function App() {
         )}
       </main>
 
-      <nav className="bottom-nav four">
+      <nav className="bottom-nav five">
         <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>
+        <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}>Herramientas</button>
         <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>
         <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
         <button className={screen === 'sheets' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('sheets')}>Sheets</button>

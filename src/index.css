@@ -1,7 +1,7 @@
 :root {
   font-family: Inter, system-ui, sans-serif;
-  color: #e7edf5;
-  background: #07111e;
+  color: #eefbf3;
+  background: #06150d;
   line-height: 1.45;
   font-weight: 400;
 }
@@ -13,9 +13,10 @@
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.1), transparent 24%),
-    linear-gradient(180deg, #07111e 0%, #0b1526 100%);
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(74, 222, 128, 0.08), transparent 24%),
+    linear-gradient(180deg, #06150d 0%, #0a2013 100%);
 }
 
 button,
@@ -65,7 +66,7 @@ button {
 
 .topbar p,
 .hint {
-  color: #9fb0c4;
+  color: #a7c8b2;
 }
 
 .content,
@@ -75,8 +76,8 @@ button {
 }
 
 .card {
-  background: rgba(9, 18, 33, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(9, 28, 17, 0.9);
+  border: 1px solid rgba(96, 165, 116, 0.18);
   border-radius: 18px;
   padding: 1rem;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
@@ -101,7 +102,7 @@ button {
   display: block;
   margin-bottom: 0.35rem;
   font-size: 0.92rem;
-  color: #d4deea;
+  color: #d8f0df;
 }
 
 .input {
@@ -109,9 +110,9 @@ button {
   min-height: 48px;
   padding: 0.9rem 0.95rem;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: #08101b;
-  color: #f8fafc;
+  border: 1px solid rgba(96, 165, 116, 0.18);
+  background: #08170e;
+  color: #f3fff6;
 }
 
 .textarea {
@@ -129,14 +130,14 @@ button {
 
 .primary {
   width: 100%;
-  background: linear-gradient(135deg, #22c55e, #14b8a6);
-  color: #04130d;
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  color: #04210f;
   font-weight: 700;
 }
 
 .secondary {
-  background: #1d4ed8;
-  color: #eff6ff;
+  background: #14532d;
+  color: #ecfdf5;
   padding: 0 1rem;
 }
 
@@ -152,8 +153,8 @@ button {
 .metric,
 .result-row,
 .notice {
-  background: #08101b;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: #08170e;
+  border: 1px solid rgba(96, 165, 116, 0.12);
   border-radius: 14px;
 }
 
@@ -164,7 +165,7 @@ button {
 .metric span {
   display: block;
   margin-bottom: 0.3rem;
-  color: #9fb0c4;
+  color: #a7c8b2;
   font-size: 0.88rem;
 }
 
@@ -189,19 +190,24 @@ button {
   min-height: 32px;
   padding: 0 0.8rem;
   border-radius: 999px;
-  background: rgba(59, 130, 246, 0.18);
-  color: #bfdbfe;
+  background: rgba(74, 222, 128, 0.16);
+  color: #dcfce7;
   white-space: nowrap;
 }
 
+.chip.version-chip {
+  background: rgba(187, 247, 208, 0.12);
+  color: #bbf7d0;
+}
+
 .chip.pendiente {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fcd34d;
+  background: rgba(250, 204, 21, 0.16);
+  color: #fef08a;
 }
 
 .chip.sincronizado {
-  background: rgba(34, 197, 94, 0.18);
-  color: #86efac;
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
 }
 
 .chip.error {
@@ -217,7 +223,7 @@ button {
   display: grid;
   gap: 0.6rem;
   padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
-  background: rgba(4, 10, 20, 0.95);
+  background: rgba(4, 16, 10, 0.95);
   backdrop-filter: blur(12px);
 }
 
@@ -225,14 +231,18 @@ button {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.bottom-nav.five {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .nav-item {
-  background: #122034;
-  color: #a4b4c7;
+  background: #0f2417;
+  color: #b7d8c2;
 }
 
 .nav-item.active {
-  background: #0ea5e9;
-  color: #031018;
+  background: #22c55e;
+  color: #052012;
   font-weight: 700;
 }
 
