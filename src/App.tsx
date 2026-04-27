@@ -22,7 +22,15 @@ import {
 } from './utils'
 
 type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'sheets'
-const APP_VERSION = 'v0.3.0'
+type ToastTone = 'info' | 'success' | 'warning' | 'error'
+
+type Toast = {
+  id: string
+  message: string
+  tone: ToastTone
+}
+
+const APP_VERSION = 'v0.5.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -123,6 +131,7 @@ function App() {
   const [testingSupabase, setTestingSupabase] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
+  const [toasts, setToasts] = useState<Toast[]>([])
 
   useEffect(() => {
     saveEquipment(equipment)
@@ -135,6 +144,25 @@ function App() {
   useEffect(() => {
     saveSettings(settings)
   }, [settings])
+
+  useEffect(() => {
+    if (!syncNotice) return
+    const tone: ToastTone = /^error|fallo/i.test(syncNotice)
+      ? 'error'
+      : /pendiente|incompleta/i.test(syncNotice)
+        ? 'warning'
+        : /ok|sincronizado|guardada|guardado|cargados/i.test(syncNotice)
+          ? 'success'
+          : 'info'
+
+    const id = generateId()
+    setToasts((current) => [...current, { id, message: syncNotice, tone }])
+    const timeoutId = window.setTimeout(() => {
+      setToasts((current) => current.filter((item) => item.id !== id))
+    }, 4200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [syncNotice])
 
   useEffect(() => {
     let cancelled = false
@@ -226,6 +254,11 @@ function App() {
   )
 
   const pendingCount = useMemo(() => events.filter((item) => item.syncStatus !== 'sincronizado').length, [events])
+  const syncedCount = useMemo(() => events.filter((item) => item.syncStatus === 'sincronizado').length, [events])
+  const outOfToleranceCount = useMemo(
+    () => events.filter((item) => Math.abs(item.materialValidation.errorPct) > item.tolerancePercent).length,
+    [events],
+  )
 
   const precheckPassed = useMemo(
     () =>
@@ -244,6 +277,32 @@ function App() {
     if (!Number.isFinite(before) || !Number.isFinite(after)) return null
     return after - before
   }, [eventForm.zeroBeforeValue, eventForm.zeroAfterValue])
+
+  const equipmentBlockingIssues = useMemo(() => {
+    const issues: string[] = []
+    if (!equipmentForm.plant.trim()) issues.push('Falta planta.')
+    if (!equipmentForm.line.trim()) issues.push('Falta linea.')
+    if (!equipmentForm.beltCode.trim()) issues.push('Falta identificacion de cinta.')
+    if (!equipmentForm.scaleName.trim()) issues.push('Falta nombre de balanza.')
+    if (!equipmentForm.controllerModel.trim()) issues.push('Falta modelo de controlador.')
+    if (!(Number(equipmentForm.bridgeLengthM) > 0)) issues.push('La distancia de puente debe ser mayor a 0.')
+    if (!(Number(equipmentForm.nominalSpeedMs) > 0)) issues.push('La velocidad nominal debe ser mayor a 0.')
+    return issues
+  }, [equipmentForm])
+
+  const eventBlockingIssues = useMemo(() => {
+    const issues: string[] = []
+    if (!selectedEquipment) issues.push('Seleccioná una balanza.')
+    if (!precheckPassed) issues.push('Completá toda la inspeccion previa.')
+    if (!eventForm.zeroCompleted) issues.push('Debés registrar el cero antes de calibrar.')
+    if (!eventForm.technician.trim()) issues.push('Falta el tecnico responsable.')
+    if (!(Number(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
+    if (!(Number(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
+    if (!(Number(eventForm.externalWeightKg) > 0)) issues.push('Falta el peso real externo.')
+    if (!(Number(eventForm.beltWeightKg) > 0)) issues.push('Falta el peso medido por balanza.')
+    if (!(Number(eventForm.finalFactor || suggestedFactor) > 0)) issues.push('Falta el factor final o sugerido.')
+    return issues
+  }, [eventForm, precheckPassed, selectedEquipment, suggestedFactor])
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -676,7 +735,8 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div>
+        <div className="brand-block">
+          <div className="brand-kicker">Control Metrologico Industrial</div>
           <h1>Balanzas Dinamicas</h1>
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
         </div>
@@ -692,13 +752,50 @@ function App() {
         </div>
       </header>
 
+      <section className="hero-strip">
+        <div className="hero-panel hero-panel-primary">
+          <span>Base activa</span>
+          <strong>{dataSource === 'supabase' ? 'Supabase Online' : 'Modo Local'}</strong>
+          <p>{dataSource === 'supabase' ? 'Registro multi-dispositivo habilitado.' : 'Modo contingencia con almacenamiento local.'}</p>
+        </div>
+        <div className="hero-panel">
+          <span>Balanzas</span>
+          <strong>{equipment.length}</strong>
+          <p>Equipos listos para medición y trazabilidad.</p>
+        </div>
+        <div className="hero-panel">
+          <span>Eventos</span>
+          <strong>{events.length}</strong>
+          <p>Calibraciones registradas en el historial técnico.</p>
+        </div>
+        <div className="hero-panel alert-panel">
+          <span>Fuera de tolerancia</span>
+          <strong>{outOfToleranceCount}</strong>
+          <p>{syncedCount} eventos ya consolidados en la base.</p>
+        </div>
+      </section>
+
+      <section className="toast-stack" aria-live="polite" aria-atomic="true">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.tone}`}>
+            <span className="toast-dot" />
+            <p>{toast.message}</p>
+          </div>
+        ))}
+      </section>
+
       {syncNotice && <div className="notice">{syncNotice}</div>}
 
       {loadingData && <div className="notice">Cargando datos...</div>}
 
       <main className="content">
         {screen === 'balanzas' && (
-          <section className="stack">
+          <section className="stack screen-shell">
+            <div className="screen-banner">
+              <span className="section-kicker">Parque instalado</span>
+              <h2>Listado de balanzas y estado operativo</h2>
+              <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
+            </div>
             <div className="card stack">
               <div className="row wrap">
                 <div>
@@ -733,7 +830,17 @@ function App() {
                   <Field label="Diametro rolo RPM (mm)" type="number" value={equipmentForm.rpmRollDiameterMm} onChange={(value) => setEquipmentForm((current) => ({ ...current, rpmRollDiameterMm: value }))} />
                 </div>
                 <TextArea label="Observaciones del equipo" value={equipmentForm.notes} onChange={(value) => setEquipmentForm((current) => ({ ...current, notes: value }))} />
-                <button className="primary" type="submit">Guardar balanza</button>
+                {equipmentBlockingIssues.length > 0 && (
+                  <div className="warning-panel">
+                    <strong>Faltan datos para guardar la balanza</strong>
+                    <ul>
+                      {equipmentBlockingIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <button className="primary" type="submit" disabled={equipmentBlockingIssues.length > 0}>Guardar balanza</button>
               </form>
             </div>
 
@@ -766,7 +873,12 @@ function App() {
         )}
 
         {screen === 'nueva' && (
-          <section className="stack">
+          <section className="stack screen-shell">
+            <div className="screen-banner">
+              <span className="section-kicker">Evento de calibracion</span>
+              <h2>Secuencia real de trabajo</h2>
+              <p>Inspección previa, cero, parámetros, span con cadena, material real y ajuste final en un solo circuito técnico.</p>
+            </div>
             <div className="card">
               <label className="label">Balanza</label>
               <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)}>
@@ -787,6 +899,7 @@ function App() {
 
             <form className="stack" onSubmit={handleEventSubmit}>
               <div className="card">
+                <div className="card-tag">Paso 1</div>
                 <h2>Evento de calibracion</h2>
                 <div className="grid two">
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} />
@@ -795,6 +908,7 @@ function App() {
               </div>
 
               <div className="card stack">
+                <div className="card-tag">Paso 2</div>
                 <h2>Inspeccion previa</h2>
                 <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
                 <div className="grid two">
@@ -810,6 +924,7 @@ function App() {
               </div>
 
               <div className="card stack">
+                <div className="card-tag">Paso 3</div>
                 <h2>Cero</h2>
                 <p className="hint">Siempre se realiza antes de calibrar. Si el controlador no muestra valor, registralo igual como completado y elegí la opcion correspondiente.</p>
                 <div className="grid two">
@@ -837,6 +952,7 @@ function App() {
               </div>
 
               <div className="card">
+                <div className="card-tag">Paso 4</div>
                 <h2>Foto de parametros</h2>
                 <div className="grid two">
                   <Field label="Factor calibracion" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
@@ -854,6 +970,7 @@ function App() {
               </div>
 
               <div className="card">
+                <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
                   <Field label="Kg/m de cadena" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} />
@@ -869,6 +986,7 @@ function App() {
               </div>
 
               <div className="card">
+                <div className="card-tag">Paso 6</div>
                 <h2>Validacion con material real</h2>
                 <div className="grid two">
                   <Field label="Peso externo real (kg)" type="number" value={eventForm.externalWeightKg} onChange={(value) => setEventForm((current) => ({ ...current, externalWeightKg: value }))} />
@@ -882,6 +1000,7 @@ function App() {
               </div>
 
               <div className="card">
+                <div className="card-tag">Paso 7</div>
                 <h2>Ajuste final y aprobacion</h2>
                 <div className="grid two">
                   <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
@@ -889,14 +1008,29 @@ function App() {
                 </div>
                 <TextArea label="Motivo del ajuste" value={eventForm.adjustmentReason} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentReason: value }))} />
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
-                <button className="primary" type="submit" disabled={!selectedEquipment}>Guardar evento</button>
+                {eventBlockingIssues.length > 0 && (
+                  <div className="warning-panel">
+                    <strong>Faltan datos obligatorios para cerrar el evento</strong>
+                    <ul>
+                      {eventBlockingIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <button className="primary" type="submit" disabled={eventBlockingIssues.length > 0}>Guardar evento</button>
               </div>
             </form>
           </section>
         )}
 
         {screen === 'herramientas' && (
-          <section className="stack">
+          <section className="stack screen-shell">
+            <div className="screen-banner">
+              <span className="section-kicker">Calculadoras de campo</span>
+              <h2>Velocidad, cadena y factor</h2>
+              <p>Tomá datos en piso y trasladá resultados al evento sin rehacer cuentas manuales.</p>
+            </div>
             <div className="card">
               <label className="label">Balanza</label>
               <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)}>
@@ -988,7 +1122,12 @@ function App() {
         )}
 
         {screen === 'historial' && (
-          <section className="stack">
+          <section className="stack screen-shell">
+            <div className="screen-banner">
+              <span className="section-kicker">Trazabilidad</span>
+              <h2>Historial de calibraciones</h2>
+              <p>Leé eventos previos, errores, motivos de ajuste y estado de sincronización con precisión histórica.</p>
+            </div>
             <div className="card">
               <h2>Historial de eventos</h2>
               <div className="grid two">
@@ -1044,7 +1183,12 @@ function App() {
         )}
 
         {screen === 'sheets' && (
-          <section className="stack">
+          <section className="stack screen-shell">
+            <div className="screen-banner">
+              <span className="section-kicker">Integraciones</span>
+              <h2>Supabase y Google Sheets</h2>
+              <p>Validá conexiones, controlá sincronización y confirmá el estado de la base principal de la app.</p>
+            </div>
             <div className="card stack">
               <h2>Google Sheets</h2>
               <p className="hint">La sincronizacion manda cada evento a varias hojas: equipos, eventos, parametros, span, material real y ajustes.</p>
