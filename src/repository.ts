@@ -1,6 +1,6 @@
-import { loadEquipment, loadEvents, saveEquipment, saveEvents } from './storage'
+import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
-import type { CalibrationEvent, Equipment, SyncStatus } from './types'
+import type { CalibrationEvent, Chain, Equipment, SyncStatus } from './types'
 
 type EquipmentRow = {
   id: string
@@ -17,6 +17,9 @@ type EquipmentRow = {
   nominal_speed_ms: number
   speed_source: Equipment['speedSource']
   rpm_roll_diameter_mm: number
+  calibration_factor_current: number
+  adjustment_factor_current: number
+  totalizer_unit: string
   notes: string
   created_at: string
 }
@@ -31,29 +34,45 @@ type EventRow = {
   zero_check?: CalibrationEvent['zeroCheck']
   parameter_snapshot: CalibrationEvent['parameterSnapshot']
   chain_span: CalibrationEvent['chainSpan']
+  accumulated_check?: CalibrationEvent['accumulatedCheck']
   material_validation: CalibrationEvent['materialValidation']
   final_adjustment: CalibrationEvent['finalAdjustment']
   approval: CalibrationEvent['approval']
+  diagnosis?: string
   notes: string
   sync_status: SyncStatus
   sync_message: string
   synced_at: string | null
 }
 
+type ChainRow = {
+  id: string
+  plant: string
+  name: string
+  linear_weight_kg_m: number
+  total_length_m: number
+  total_weight_kg: number
+  notes: string
+  created_at: string
+}
+
 export async function loadAppData() {
   const cachedEquipment = loadEquipment()
+  const cachedChains = loadChains()
   const cachedEvents = loadEvents()
 
   if (!isSupabaseConfigured || !supabase) {
     return {
       equipment: cachedEquipment,
+      chains: cachedChains,
       events: cachedEvents,
       source: 'local' as const,
     }
   }
 
-  const [equipmentResult, eventsResult] = await Promise.all([
+  const [equipmentResult, chainsResult, eventsResult] = await Promise.all([
     supabase.from('equipments').select('*').order('created_at', { ascending: false }),
+    supabase.from('chains').select('*').order('created_at', { ascending: false }),
     supabase.from('calibration_events').select('*').order('event_date', { ascending: false }),
   ])
 
@@ -61,18 +80,25 @@ export async function loadAppData() {
     throw toError(equipmentResult.error)
   }
 
+  if (chainsResult.error) {
+    throw toError(chainsResult.error)
+  }
+
   if (eventsResult.error) {
     throw toError(eventsResult.error)
   }
 
   const equipment = (equipmentResult.data || []).map(mapEquipmentRow)
+  const chains = (chainsResult.data || []).map(mapChainRow)
   const events = (eventsResult.data || []).map(mapEventRow)
 
   saveEquipment(equipment)
+  saveChains(chains)
   saveEvents(events)
 
   return {
     equipment,
+    chains,
     events,
     source: 'supabase' as const,
   }
@@ -109,6 +135,21 @@ export async function saveEquipmentRecord(item: Equipment) {
   }
 
   const result = await supabase.from('equipments').upsert(toEquipmentRow(item))
+  if (result.error) {
+    throw toError(result.error)
+  }
+
+  return { source: 'supabase' as const }
+}
+
+export async function saveChainRecord(item: Chain) {
+  if (!isSupabaseConfigured || !supabase) {
+    const next = [item, ...loadChains().filter((current) => current.id !== item.id)]
+    saveChains(next)
+    return { source: 'local' as const }
+  }
+
+  const result = await supabase.from('chains').upsert(toChainRow(item))
   if (result.error) {
     throw toError(result.error)
   }
@@ -185,6 +226,9 @@ function mapEquipmentRow(row: EquipmentRow): Equipment {
     nominalSpeedMs: row.nominal_speed_ms,
     speedSource: row.speed_source,
     rpmRollDiameterMm: row.rpm_roll_diameter_mm,
+    calibrationFactorCurrent: row.calibration_factor_current,
+    adjustmentFactorCurrent: row.adjustment_factor_current,
+    totalizerUnit: row.totalizer_unit,
     notes: row.notes,
     createdAt: row.created_at,
   }
@@ -206,6 +250,35 @@ function toEquipmentRow(item: Equipment): EquipmentRow {
     nominal_speed_ms: item.nominalSpeedMs,
     speed_source: item.speedSource,
     rpm_roll_diameter_mm: item.rpmRollDiameterMm,
+    calibration_factor_current: item.calibrationFactorCurrent,
+    adjustment_factor_current: item.adjustmentFactorCurrent,
+    totalizer_unit: item.totalizerUnit,
+    notes: item.notes,
+    created_at: item.createdAt,
+  }
+}
+
+function mapChainRow(row: ChainRow): Chain {
+  return {
+    id: row.id,
+    plant: row.plant,
+    name: row.name,
+    linearWeightKgM: row.linear_weight_kg_m,
+    totalLengthM: row.total_length_m,
+    totalWeightKg: row.total_weight_kg,
+    notes: row.notes,
+    createdAt: row.created_at,
+  }
+}
+
+function toChainRow(item: Chain): ChainRow {
+  return {
+    id: item.id,
+    plant: item.plant,
+    name: item.name,
+    linear_weight_kg_m: item.linearWeightKgM,
+    total_length_m: item.totalLengthM,
+    total_weight_kg: item.totalWeightKg,
     notes: item.notes,
     created_at: item.createdAt,
   }
@@ -236,10 +309,28 @@ function mapEventRow(row: EventRow): CalibrationEvent {
       notes: '',
     },
     parameterSnapshot: row.parameter_snapshot,
-    chainSpan: row.chain_span,
+    chainSpan: {
+      chainId: row.chain_span?.chainId || '',
+      chainName: row.chain_span?.chainName || '',
+      chainLinearKgM: row.chain_span?.chainLinearKgM || 0,
+      passCount: row.chain_span?.passCount || 0,
+      avgControllerReadingKgM: row.chain_span?.avgControllerReadingKgM || 0,
+      avgErrorPct: row.chain_span?.avgErrorPct || 0,
+      provisionalFactor: row.chain_span?.provisionalFactor || 0,
+    },
+    accumulatedCheck: row.accumulated_check || {
+      expectedFlowTph: 0,
+      testMinutes: 0,
+      expectedTotal: 0,
+      indicatedTotal: 0,
+      errorPct: 0,
+      adjustmentFactorBefore: 0,
+      adjustmentFactorSuggested: 0,
+    },
     materialValidation: row.material_validation,
     finalAdjustment: row.final_adjustment,
     approval: row.approval,
+    diagnosis: row.diagnosis || '',
     notes: row.notes,
     syncStatus: row.sync_status,
     syncMessage: row.sync_message,
@@ -258,9 +349,11 @@ function toEventRow(item: CalibrationEvent): EventRow {
     zero_check: item.zeroCheck,
     parameter_snapshot: item.parameterSnapshot,
     chain_span: item.chainSpan,
+    accumulated_check: item.accumulatedCheck,
     material_validation: item.materialValidation,
     final_adjustment: item.finalAdjustment,
     approval: item.approval,
+    diagnosis: item.diagnosis,
     notes: item.notes,
     sync_status: item.syncStatus,
     sync_message: item.syncMessage,

@@ -54,6 +54,57 @@ body::before {
   position: relative;
 }
 
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  padding: 1.4rem;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(9, 28, 17, 0.94), rgba(7, 21, 12, 0.88));
+  border: 1px solid rgba(110, 231, 183, 0.16);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  animation: rise-in 0.5s ease both;
+}
+
+.auth-card h1,
+.auth-card p {
+  margin: 0;
+}
+
+.auth-card h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  margin-bottom: 0.4rem;
+}
+
+.auth-card p {
+  color: #bfd7c7;
+  margin-bottom: 1rem;
+}
+
+.hint-panel {
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(8, 23, 14, 0.88);
+  border: 1px solid rgba(96, 165, 116, 0.12);
+}
+
+.hint-panel strong {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: #d7f5e1;
+}
+
+.hint-panel p {
+  margin: 0.18rem 0;
+  color: #a7c8b2;
+}
+
 .topbar,
 .row,
 .topbar-actions {
@@ -484,6 +535,10 @@ body::before {
 
 .bottom-nav.five {
   grid-template-columns: repeat(5, 1fr);
+}
+
+.bottom-nav.two {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .nav-item {

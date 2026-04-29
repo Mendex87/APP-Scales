@@ -16,6 +16,20 @@ export type Equipment = {
   nominalSpeedMs: number
   speedSource: SpeedSource
   rpmRollDiameterMm: number
+  calibrationFactorCurrent: number
+  adjustmentFactorCurrent: number
+  totalizerUnit: string
+  notes: string
+  createdAt: string
+}
+
+export type Chain = {
+  id: string
+  plant: string
+  name: string
+  linearWeightKgM: number
+  totalLengthM: number
+  totalWeightKg: number
   notes: string
   createdAt: string
 }
@@ -54,6 +68,8 @@ export type ZeroCheck = {
 }
 
 export type ChainSpan = {
+  chainId: string
+  chainName: string
   chainLinearKgM: number
   passCount: number
   avgControllerReadingKgM: number
@@ -67,6 +83,16 @@ export type MaterialValidation = {
   errorPct: number
   factorBefore: number
   factorSuggested: number
+}
+
+export type AccumulatedCheck = {
+  expectedFlowTph: number
+  testMinutes: number
+  expectedTotal: number
+  indicatedTotal: number
+  errorPct: number
+  adjustmentFactorBefore: number
+  adjustmentFactorSuggested: number
 }
 
 export type FinalAdjustment = {
@@ -90,9 +116,11 @@ export type CalibrationEvent = {
   zeroCheck: ZeroCheck
   parameterSnapshot: ParameterSnapshot
   chainSpan: ChainSpan
+  accumulatedCheck: AccumulatedCheck
   materialValidation: MaterialValidation
   finalAdjustment: FinalAdjustment
   approval: Approval
+  diagnosis: string
   notes: string
   syncStatus: SyncStatus
   syncMessage: string

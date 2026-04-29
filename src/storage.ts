@@ -1,6 +1,7 @@
-import type { CalibrationEvent, Equipment, SyncSettings } from './types'
+import type { CalibrationEvent, Chain, Equipment, SyncSettings } from './types'
 
 const EQUIPMENT_KEY = 'balanzas-equipment-v2'
+const CHAINS_KEY = 'balanzas-chains-v1'
 const EVENTS_KEY = 'balanzas-events-v2'
 const SETTINGS_KEY = 'balanzas-settings-v2'
 const DEFAULT_GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGQ4PYavRs7B4YibAjYiKFXYjI8t6HvEcUja6fQ4ztot_pSIGpfMNHqei3rQTPsDR5/exec'
@@ -22,6 +23,14 @@ export function loadEquipment(): Equipment[] {
 
 export function saveEquipment(items: Equipment[]) {
   localStorage.setItem(EQUIPMENT_KEY, JSON.stringify(items))
+}
+
+export function loadChains(): Chain[] {
+  return parseStorage<Chain[]>(CHAINS_KEY, [])
+}
+
+export function saveChains(items: Chain[]) {
+  localStorage.setItem(CHAINS_KEY, JSON.stringify(items))
 }
 
 export function loadEvents(): CalibrationEvent[] {

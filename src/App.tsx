@@ -2,13 +2,14 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import {
   loadAppData,
   saveCalibrationEventRecord,
+  saveChainRecord,
   saveEquipmentRecord,
   testSupabaseConnection,
   updateCalibrationEventSync,
 } from './repository'
-import { loadEquipment, loadEvents, loadSettings, saveEquipment, saveEvents, saveSettings } from './storage'
+import { loadChains, loadEquipment, loadEvents, loadSettings, saveChains, saveEquipment, saveEvents, saveSettings } from './storage'
 import { isSupabaseConfigured } from './supabase'
-import type { CalibrationEvent, Equipment, SpeedSource, SyncStatus } from './types'
+import type { CalibrationEvent, Chain, Equipment, SpeedSource, SyncStatus } from './types'
 import {
   buildSyncPayload,
   computePercentError,
@@ -30,7 +31,21 @@ type Toast = {
   tone: ToastTone
 }
 
-const APP_VERSION = 'v0.5.0'
+type UserRole = 'admin' | 'viewer'
+
+type AuthUser = {
+  username: string
+  role: UserRole
+}
+
+const APP_USERS = [
+  { username: 'eze', password: 'admin', role: 'admin' as const },
+  { username: 'demo', password: '1234', role: 'viewer' as const },
+]
+
+const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
+
+const APP_VERSION = 'v0.6.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -46,6 +61,18 @@ const defaultEquipmentForm = {
   nominalSpeedMs: '',
   speedSource: 'automatica' as SpeedSource,
   rpmRollDiameterMm: '',
+  calibrationFactorCurrent: '',
+  adjustmentFactorCurrent: '1',
+  totalizerUnit: 'tn',
+  notes: '',
+}
+
+const defaultChainForm = {
+  plant: '',
+  name: '',
+  linearWeightKgM: '',
+  totalLengthM: '',
+  totalWeightKg: '',
   notes: '',
 }
 
@@ -76,10 +103,16 @@ const defaultEventForm = {
   extraParameters: '',
   changedBy: '',
   changedReason: '',
+  chainId: '',
+  chainName: '',
   chainLinearKgM: '',
   passCount: '',
   avgControllerReadingKgM: '',
   provisionalFactor: '',
+  expectedFlowTph: '',
+  accumulatedTestMinutes: '',
+  accumulatedIndicatedTotal: '',
+  adjustmentFactorBefore: '',
   externalWeightKg: '',
   beltWeightKg: '',
   finalFactor: '',
@@ -111,18 +144,29 @@ const defaultFactorToolForm = {
   realWeightKg: '',
 }
 
+const defaultAccumulatedToolForm = {
+  expectedFlowTph: '',
+  testMinutes: '',
+  indicatedTotal: '',
+  adjustmentFactorCurrent: '1',
+}
+
 function App() {
   const [screen, setScreen] = useState<Screen>('balanzas')
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
+  const [chains, setChains] = useState<Chain[]>(() => loadChains())
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
   const [settings, setSettings] = useState(() => loadSettings())
   const [selectedEquipmentId, setSelectedEquipmentId] = useState('')
+  const [selectedChainId, setSelectedChainId] = useState('')
   const [equipmentForm, setEquipmentForm] = useState(defaultEquipmentForm)
+  const [chainForm, setChainForm] = useState(defaultChainForm)
   const [eventForm, setEventForm] = useState(defaultEventForm)
   const [rpmToolForm, setRpmToolForm] = useState(defaultRpmToolForm)
   const [loopToolForm, setLoopToolForm] = useState(defaultLoopToolForm)
   const [chainToolForm, setChainToolForm] = useState(defaultChainToolForm)
   const [factorToolForm, setFactorToolForm] = useState(defaultFactorToolForm)
+  const [accumulatedToolForm, setAccumulatedToolForm] = useState(defaultAccumulatedToolForm)
   const [historyEquipmentId, setHistoryEquipmentId] = useState('todos')
   const [historyStatus, setHistoryStatus] = useState('todos')
   const [syncNotice, setSyncNotice] = useState('')
@@ -132,10 +176,25 @@ function App() {
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [loginUsername, setLoginUsername] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY)
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as AuthUser
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     saveEquipment(equipment)
   }, [equipment])
+
+  useEffect(() => {
+    saveChains(chains)
+  }, [chains])
 
   useEffect(() => {
     saveEvents(events)
@@ -144,6 +203,14 @@ function App() {
   useEffect(() => {
     saveSettings(settings)
   }, [settings])
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser))
+    } else {
+      localStorage.removeItem(AUTH_STORAGE_KEY)
+    }
+  }, [currentUser])
 
   useEffect(() => {
     if (!syncNotice) return
@@ -172,6 +239,7 @@ function App() {
         const result = await loadAppData()
         if (cancelled) return
         setEquipment(result.equipment)
+        setChains(result.chains || [])
         setEvents(result.events)
         setDataSource(result.source)
         if (result.source === 'supabase') {
@@ -204,10 +272,20 @@ function App() {
     }
   }, [equipment, selectedEquipmentId])
 
+  useEffect(() => {
+    if (!currentUser) return
+    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva' || screen === 'sheets')) {
+      setScreen('herramientas')
+    }
+  }, [currentUser, screen])
+
   const selectedEquipment = useMemo(
     () => equipment.find((item) => item.id === selectedEquipmentId),
     [equipment, selectedEquipmentId],
   )
+
+  const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
+  const canEdit = currentUser?.role === 'admin'
 
   useEffect(() => {
     if (!selectedEquipment) return
@@ -217,7 +295,30 @@ function App() {
       trainLengthM: current.trainLengthM || String(selectedEquipment.bridgeLengthM || ''),
       speedMs: current.speedMs || String(selectedEquipment.nominalSpeedMs || ''),
     }))
-  }, [selectedEquipment])
+    setFactorToolForm((current) => ({
+      ...current,
+      currentFactor: current.currentFactor || String(selectedEquipment.calibrationFactorCurrent || ''),
+    }))
+    setAccumulatedToolForm((current) => ({
+      ...current,
+      adjustmentFactorCurrent: current.adjustmentFactorCurrent || String(selectedEquipment.adjustmentFactorCurrent || 1),
+    }))
+    const plantChain = chains.find((item) => item.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
+    if (plantChain) {
+      setSelectedChainId((current) => current || plantChain.id)
+      setChainToolForm((current) => ({
+        ...current,
+        chainLengthM: current.chainLengthM || String(plantChain.totalLengthM || ''),
+        chainWeightKg: current.chainWeightKg || String(plantChain.totalWeightKg || ''),
+      }))
+      setEventForm((current) => ({
+        ...current,
+        chainId: current.chainId || plantChain.id,
+        chainName: current.chainName || plantChain.name,
+        chainLinearKgM: current.chainLinearKgM || String(plantChain.linearWeightKgM || ''),
+      }))
+    }
+  }, [selectedEquipment, chains])
 
   const equipmentWithLastEvent = useMemo(() => {
     return equipment.map((item) => {
@@ -384,6 +485,54 @@ function App() {
     }
   }, [factorToolForm])
 
+  const accumulatedToolResult = useMemo(() => {
+    const expectedFlowTph = Number(accumulatedToolForm.expectedFlowTph) || 0
+    const testMinutes = Number(accumulatedToolForm.testMinutes) || 0
+    const indicatedTotal = Number(accumulatedToolForm.indicatedTotal) || 0
+    const adjustmentFactorCurrent = Number(accumulatedToolForm.adjustmentFactorCurrent) || 0
+    if (!expectedFlowTph || !testMinutes || !indicatedTotal || !adjustmentFactorCurrent) return null
+
+    const expectedTotal = (expectedFlowTph * testMinutes) / 60
+    const errorPct = ((indicatedTotal - expectedTotal) / expectedTotal) * 100
+    const suggestedAdjustmentFactor = adjustmentFactorCurrent * (expectedTotal / indicatedTotal)
+
+    return {
+      expectedTotal,
+      errorPct,
+      suggestedAdjustmentFactor,
+    }
+  }, [accumulatedToolForm])
+
+  const automaticDiagnosis = useMemo(() => {
+    const messages: string[] = []
+    if (rpmToolResult && selectedEquipment?.nominalSpeedMs) {
+      const configuredDiffPct = ((rpmToolResult.speedMs - selectedEquipment.nominalSpeedMs) / selectedEquipment.nominalSpeedMs) * 100
+      if (Math.abs(configuredDiffPct) > 2) {
+        messages.push('La velocidad calculada por RPM no coincide con la velocidad configurada.')
+      }
+    }
+    if (chainToolResult && eventForm.avgControllerReadingKgM) {
+      if (Math.abs(avgErrorPct) > 2) {
+        messages.push('El caudal instantaneo o la lectura base difieren mas de 2%; revisar factor de calibracion, velocidad o mecanica.')
+      }
+    }
+    if (accumulatedToolResult) {
+      if (Math.abs(accumulatedToolResult.errorPct) > 2) {
+        messages.push('El acumulado difiere mas de 2%; revisar o corregir con factor de ajuste.')
+      }
+      if (Math.abs(accumulatedToolResult.errorPct) <= 2 && chainToolResult && Math.abs(avgErrorPct) <= 2) {
+        messages.push('Instantaneo y acumulado coherentes para la prueba realizada.')
+      }
+    }
+    if (chainToolResult && Math.abs(avgErrorPct) <= 2 && accumulatedToolResult && Math.abs(accumulatedToolResult.errorPct) > 2) {
+      messages.push('Si el instantaneo esta correcto y falla el acumulado, no tocar factor de calibracion. Corregir con factor de ajuste.')
+    }
+    if (!eventForm.zeroCompleted) {
+      messages.push('El cero no fue realizado antes de la prueba.')
+    }
+    return messages
+  }, [rpmToolResult, selectedEquipment, chainToolResult, eventForm.avgControllerReadingKgM, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted])
+
   const filteredEvents = useMemo(() => {
     return events
       .filter((item) => {
@@ -396,6 +545,26 @@ function App() {
 
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
+  }
+
+  function handleLogin(event: FormEvent) {
+    event.preventDefault()
+    const user = APP_USERS.find((item) => item.username === loginUsername.trim() && item.password === loginPassword)
+    if (!user) {
+      setSyncNotice('Error de acceso: usuario o contraseña inválidos.')
+      return
+    }
+    setCurrentUser({ username: user.username, role: user.role })
+    setLoginUsername('')
+    setLoginPassword('')
+    setScreen(user.role === 'admin' ? 'balanzas' : 'herramientas')
+    setSyncNotice(`Sesion iniciada como ${user.username}.`)
+  }
+
+  function handleLogout() {
+    setCurrentUser(null)
+    setScreen('balanzas')
+    setSyncNotice('Sesion cerrada.')
   }
 
   function primeEventForm(item: Equipment) {
@@ -421,7 +590,10 @@ function App() {
     if (!chainToolResult) return
     setEventForm((current) => ({
       ...current,
+      chainId: selectedChain?.id || current.chainId,
+      chainName: selectedChain?.name || current.chainName,
       chainLinearKgM: String(round(chainToolResult.kgPerMeter, 6)),
+      expectedFlowTph: String(round(chainToolResult.tph, 6)),
       snapshotBridgeLengthM: current.snapshotBridgeLengthM || chainToolForm.trainLengthM,
       snapshotNominalSpeedMs: current.snapshotNominalSpeedMs || chainToolForm.speedMs,
     }))
@@ -434,6 +606,18 @@ function App() {
       ...current,
       finalFactor: String(round(factorToolResult.newFactor, 6)),
       adjustmentReason: current.adjustmentReason || factorToolResult.recommendation,
+    }))
+    setScreen('nueva')
+  }
+
+  function applyAccumulatedToEvent() {
+    if (!accumulatedToolResult) return
+    setEventForm((current) => ({
+      ...current,
+      expectedFlowTph: current.expectedFlowTph || accumulatedToolForm.expectedFlowTph,
+      accumulatedTestMinutes: accumulatedToolForm.testMinutes,
+      accumulatedIndicatedTotal: accumulatedToolForm.indicatedTotal,
+      adjustmentFactorBefore: accumulatedToolForm.adjustmentFactorCurrent,
     }))
     setScreen('nueva')
   }
@@ -456,6 +640,9 @@ function App() {
       nominalSpeedMs: Number(equipmentForm.nominalSpeedMs) || 0,
       speedSource: equipmentForm.speedSource,
       rpmRollDiameterMm: Number(equipmentForm.rpmRollDiameterMm) || 0,
+      calibrationFactorCurrent: Number(equipmentForm.calibrationFactorCurrent) || 0,
+      adjustmentFactorCurrent: Number(equipmentForm.adjustmentFactorCurrent) || 1,
+      totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
       notes: equipmentForm.notes.trim(),
       createdAt: new Date().toISOString(),
     }
@@ -474,6 +661,38 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar la balanza.'
       setSyncNotice(`Error al guardar balanza: ${message}`)
+    }
+  }
+
+  async function handleChainSubmit(event: FormEvent) {
+    event.preventDefault()
+
+    const nextChain: Chain = {
+      id: generateId(),
+      plant: chainForm.plant.trim(),
+      name: chainForm.name.trim(),
+      linearWeightKgM: Number(chainForm.linearWeightKgM) || 0,
+      totalLengthM: Number(chainForm.totalLengthM) || 0,
+      totalWeightKg: Number(chainForm.totalWeightKg) || 0,
+      notes: chainForm.notes.trim(),
+      createdAt: new Date().toISOString(),
+    }
+
+    if (!nextChain.plant || !nextChain.name || !(nextChain.linearWeightKgM > 0)) {
+      setSyncNotice('Faltan datos de cadena para guardar.')
+      return
+    }
+
+    try {
+      const result = await saveChainRecord(nextChain)
+      setChains((current) => [nextChain, ...current.filter((item) => item.id !== nextChain.id)])
+      setSelectedChainId(nextChain.id)
+      setChainForm(defaultChainForm)
+      setDataSource(result.source)
+      setSyncNotice(result.source === 'supabase' ? 'Cadena guardada en Supabase.' : 'Cadena guardada solo localmente.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar la cadena.'
+      setSyncNotice(`Error al guardar cadena: ${message}`)
     }
   }
 
@@ -587,11 +806,38 @@ function App() {
         changedReason: eventForm.changedReason.trim(),
       },
       chainSpan: {
+        chainId: eventForm.chainId.trim(),
+        chainName: eventForm.chainName.trim(),
         chainLinearKgM: Number(eventForm.chainLinearKgM) || 0,
         passCount: Number(eventForm.passCount) || 0,
         avgControllerReadingKgM: Number(eventForm.avgControllerReadingKgM) || 0,
         avgErrorPct: round(avgErrorPct),
         provisionalFactor: Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0,
+      },
+      accumulatedCheck: {
+        expectedFlowTph: Number(eventForm.expectedFlowTph) || 0,
+        testMinutes: Number(eventForm.accumulatedTestMinutes) || 0,
+        expectedTotal: ((Number(eventForm.expectedFlowTph) || 0) * (Number(eventForm.accumulatedTestMinutes) || 0)) / 60,
+        indicatedTotal: Number(eventForm.accumulatedIndicatedTotal) || 0,
+        errorPct:
+          Number(eventForm.expectedFlowTph) > 0 && Number(eventForm.accumulatedTestMinutes) > 0 && Number(eventForm.accumulatedIndicatedTotal) > 0
+            ? round(
+                ((Number(eventForm.accumulatedIndicatedTotal) -
+                  ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) /
+                  ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) *
+                  100,
+              )
+            : 0,
+        adjustmentFactorBefore: Number(eventForm.adjustmentFactorBefore) || selectedEquipment.adjustmentFactorCurrent || 1,
+        adjustmentFactorSuggested:
+          Number(eventForm.expectedFlowTph) > 0 && Number(eventForm.accumulatedTestMinutes) > 0 && Number(eventForm.accumulatedIndicatedTotal) > 0
+            ? round(
+                (Number(eventForm.adjustmentFactorBefore) || selectedEquipment.adjustmentFactorCurrent || 1) *
+                  ((((Number(eventForm.expectedFlowTph) || 0) * (Number(eventForm.accumulatedTestMinutes) || 0)) / 60) /
+                    (Number(eventForm.accumulatedIndicatedTotal) || 1)),
+                6,
+              )
+            : 0,
       },
       materialValidation: {
         externalWeightKg: Number(eventForm.externalWeightKg) || 0,
@@ -609,6 +855,7 @@ function App() {
         technician: eventForm.technician.trim(),
         approvedAt: new Date(eventForm.eventDate).toISOString(),
       },
+      diagnosis: automaticDiagnosis.join(' '),
       notes: eventForm.notes.trim(),
       syncStatus: 'pendiente',
       syncMessage: '',
@@ -625,7 +872,10 @@ function App() {
       !record.precheck.idlersOk ||
       !record.precheck.structureOk ||
       !record.precheck.speedSensorOk ||
-      !record.zeroCheck.completed
+      !record.zeroCheck.completed ||
+      !record.accumulatedCheck.expectedFlowTph ||
+      !record.accumulatedCheck.testMinutes ||
+      !record.accumulatedCheck.indicatedTotal
     ) {
       return
     }
@@ -732,6 +982,28 @@ function App() {
     setSyncNotice('Sincronización finalizada.')
   }
 
+  if (!currentUser) {
+    return (
+      <div className="app-shell auth-shell">
+        <section className="auth-card">
+          <div className="brand-kicker">Acceso protegido</div>
+          <h1>CalibraCinta</h1>
+          <p>Ingresá para operar la plataforma de calibración y trazabilidad de balanzas dinámicas.</p>
+          <form className="stack" onSubmit={handleLogin}>
+            <Field label="Usuario" value={loginUsername} onChange={setLoginUsername} />
+            <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
+            <button className="primary" type="submit">Ingresar</button>
+          </form>
+          <div className="hint-panel">
+            <strong>Perfiles disponibles</strong>
+            <p>`eze / admin`: acceso total</p>
+            <p>`demo / 1234`: solo herramientas e historial</p>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -742,13 +1014,17 @@ function App() {
         </div>
         <div className="topbar-actions">
           <div className="chip version-chip">{APP_VERSION}</div>
+          <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : 'Consulta'}</div>
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
-          <div className="chip">Pendientes: {pendingCount}</div>
-          <button className="secondary small" onClick={syncPendingEvents} disabled={syncing || pendingCount === 0}>
-            {syncing ? 'Sincronizando...' : 'Sincronizar'}
-          </button>
+          {canEdit && <div className="chip">Pendientes: {pendingCount}</div>}
+          <button className="secondary small" onClick={handleLogout}>Salir</button>
+          {canEdit && (
+            <button className="secondary small" onClick={syncPendingEvents} disabled={syncing || pendingCount === 0}>
+              {syncing ? 'Sincronizando...' : 'Sincronizar'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -789,7 +1065,7 @@ function App() {
       {loadingData && <div className="notice">Cargando datos...</div>}
 
       <main className="content">
-        {screen === 'balanzas' && (
+        {screen === 'balanzas' && canEdit && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Parque instalado</span>
@@ -802,9 +1078,9 @@ function App() {
                   <h2>Listado de balanzas</h2>
                   <p className="hint">La app arranca mostrando equipos y su ultimo estado conocido.</p>
                 </div>
-                <button className="secondary" onClick={() => setScreen('nueva')}>
-                  Nueva calibracion
-                </button>
+                  <button className="secondary" onClick={() => setScreen('nueva')}>
+                    Nueva calibracion
+                  </button>
               </div>
               <form className="stack" onSubmit={handleEquipmentSubmit}>
                 <div className="grid two">
@@ -819,12 +1095,21 @@ function App() {
                   <Field label="Capacidad nominal (t/h)" type="number" value={equipmentForm.nominalCapacityTph} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalCapacityTph: value }))} />
                   <Field label="Distancia puente pesaje (m)" type="number" value={equipmentForm.bridgeLengthM} onChange={(value) => setEquipmentForm((current) => ({ ...current, bridgeLengthM: value }))} />
                   <Field label="Velocidad nominal (m/s)" type="number" value={equipmentForm.nominalSpeedMs} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalSpeedMs: value }))} />
+                  <Field label="Factor calibracion actual" type="number" value={equipmentForm.calibrationFactorCurrent} onChange={(value) => setEquipmentForm((current) => ({ ...current, calibrationFactorCurrent: value }))} />
+                  <Field label="Factor ajuste actual" type="number" value={equipmentForm.adjustmentFactorCurrent} onChange={(value) => setEquipmentForm((current) => ({ ...current, adjustmentFactorCurrent: value }))} />
                   <div>
                     <label className="label">Origen velocidad</label>
                     <select className="input" value={equipmentForm.speedSource} onChange={(e) => setEquipmentForm((current) => ({ ...current, speedSource: e.target.value as SpeedSource }))}>
                       <option value="automatica">Automatica</option>
                       <option value="calculada">Calculada</option>
                       <option value="rpm">RPM</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Unidad de acumulado</label>
+                    <select className="input" value={equipmentForm.totalizerUnit} onChange={(e) => setEquipmentForm((current) => ({ ...current, totalizerUnit: e.target.value }))}>
+                      <option value="tn">tn</option>
+                      <option value="kg">kg</option>
                     </select>
                   </div>
                   <Field label="Diametro rolo RPM (mm)" type="number" value={equipmentForm.rpmRollDiameterMm} onChange={(value) => setEquipmentForm((current) => ({ ...current, rpmRollDiameterMm: value }))} />
@@ -844,6 +1129,35 @@ function App() {
               </form>
             </div>
 
+            <div className="card stack">
+              <div className="row wrap">
+                <div>
+                  <h2>Cadenas de calibracion</h2>
+                  <p className="hint">Definí una cadena por planta y reutilizala en herramientas y eventos.</p>
+                </div>
+              </div>
+              <form className="stack" onSubmit={handleChainSubmit}>
+                <div className="grid two">
+                  <Field label="Planta" value={chainForm.plant} onChange={(value) => setChainForm((current) => ({ ...current, plant: value }))} />
+                  <Field label="Nombre de cadena" value={chainForm.name} onChange={(value) => setChainForm((current) => ({ ...current, name: value }))} />
+                  <Field label="Peso por metro (kg/m)" type="number" value={chainForm.linearWeightKgM} onChange={(value) => setChainForm((current) => ({ ...current, linearWeightKgM: value }))} />
+                  <Field label="Largo total (m)" type="number" value={chainForm.totalLengthM} onChange={(value) => setChainForm((current) => ({ ...current, totalLengthM: value }))} />
+                  <Field label="Peso total (kg)" type="number" value={chainForm.totalWeightKg} onChange={(value) => setChainForm((current) => ({ ...current, totalWeightKg: value }))} />
+                </div>
+                <TextArea label="Observaciones de cadena" value={chainForm.notes} onChange={(value) => setChainForm((current) => ({ ...current, notes: value }))} />
+                <button className="primary" type="submit">Guardar cadena</button>
+              </form>
+              <div className="stack compact-top">
+                {chains.map((item) => (
+                  <div className="result-row" key={item.id}>
+                    <span>{item.plant} / {item.name}</span>
+                    <strong>{item.linearWeightKgM} kg/m</strong>
+                  </div>
+                ))}
+                {chains.length === 0 && <div className="result-row"><span>No hay cadenas cargadas.</span><strong>-</strong></div>}
+              </div>
+            </div>
+
             <div className="stack">
               {equipmentWithLastEvent.map(({ item, lastEvent }) => {
                 const statusText = lastEvent
@@ -856,10 +1170,11 @@ function App() {
                         <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
                         <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
                       </div>
-                      <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
+                       <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
                     </div>
                     <div className="grid four compact-top">
                       <Metric label="Ultimo factor" value={lastEvent ? String(lastEvent.finalAdjustment.factorAfter) : '-'} />
+                      <Metric label="Factor ajuste" value={String(item.adjustmentFactorCurrent || 1)} />
                       <Metric label="Ultima calibracion" value={lastEvent ? formatDateTime(lastEvent.eventDate) : '-'} />
                       <Metric label="Ultimo error" value={lastEvent ? `${lastEvent.materialValidation.errorPct} %` : '-'} />
                       <Metric label="Estado" value={statusText} />
@@ -872,7 +1187,7 @@ function App() {
           </section>
         )}
 
-        {screen === 'nueva' && (
+        {screen === 'nueva' && canEdit && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Evento de calibracion</span>
@@ -893,6 +1208,40 @@ function App() {
                   <Metric label="Velocidad" value={`${selectedEquipment.nominalSpeedMs} m/s`} />
                   <Metric label="Capacidad" value={`${selectedEquipment.nominalCapacityTph} t/h`} />
                   <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
+                </div>
+              )}
+            </div>
+
+            <div className="card">
+              <label className="label">Cadena usada</label>
+              <select
+                className="input"
+                value={selectedChainId}
+                onChange={(e) => {
+                  const nextId = e.target.value
+                  setSelectedChainId(nextId)
+                  const chain = chains.find((item) => item.id === nextId)
+                  if (!chain) return
+                  setEventForm((current) => ({
+                    ...current,
+                    chainId: chain.id,
+                    chainName: chain.name,
+                    chainLinearKgM: current.chainLinearKgM || String(chain.linearWeightKgM),
+                  }))
+                }}
+              >
+                <option value="">Seleccionar cadena</option>
+                {chains
+                  .filter((item) => !selectedEquipment || item.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
+                  ))}
+              </select>
+              {selectedChain && (
+                <div className="grid three compact-top">
+                  <Metric label="Cadena" value={selectedChain.name} />
+                  <Metric label="kg/m" value={String(selectedChain.linearWeightKgM)} />
+                  <Metric label="Peso total" value={`${selectedChain.totalWeightKg} kg`} />
                 </div>
               )}
             </div>
@@ -987,6 +1336,23 @@ function App() {
 
               <div className="card">
                 <div className="card-tag">Paso 6</div>
+                <h2>Acumulado y factor de ajuste</h2>
+                <div className="grid two">
+                  <Field label="Caudal esperado (tn/h)" type="number" value={eventForm.expectedFlowTph} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: value }))} />
+                  <Field label="Tiempo de prueba (min)" type="number" value={eventForm.accumulatedTestMinutes} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedTestMinutes: value }))} />
+                  <Field label={`Acumulado indicado (${selectedEquipment?.totalizerUnit || 'tn'})`} type="number" value={eventForm.accumulatedIndicatedTotal} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedIndicatedTotal: value }))} />
+                  <Field label="Factor ajuste antes" type="number" value={eventForm.adjustmentFactorBefore} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentFactorBefore: value }))} />
+                </div>
+                <div className="grid four compact-top">
+                  <Metric label="Acumulado esperado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? String(round((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60, 6)) : '-'} />
+                  <Metric label="Error acumulado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal ? `${round((((Number(eventForm.accumulatedIndicatedTotal) - ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) / ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) * 100), 3)} %` : '-'} />
+                  <Metric label="Factor ajuste sugerido" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal && eventForm.adjustmentFactorBefore ? String(round(Number(eventForm.adjustmentFactorBefore) * ((((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60) / Number(eventForm.accumulatedIndicatedTotal))), 6)) : '-'} />
+                  <Metric label="Regla" value="Si el instantaneo esta bien, corregir con factor de ajuste" />
+                </div>
+              </div>
+
+              <div className="card">
+                <div className="card-tag">Paso 7</div>
                 <h2>Validacion con material real</h2>
                 <div className="grid two">
                   <Field label="Peso externo real (kg)" type="number" value={eventForm.externalWeightKg} onChange={(value) => setEventForm((current) => ({ ...current, externalWeightKg: value }))} />
@@ -1000,7 +1366,7 @@ function App() {
               </div>
 
               <div className="card">
-                <div className="card-tag">Paso 7</div>
+                <div className="card-tag">Paso 8</div>
                 <h2>Ajuste final y aprobacion</h2>
                 <div className="grid two">
                   <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
@@ -1008,6 +1374,16 @@ function App() {
                 </div>
                 <TextArea label="Motivo del ajuste" value={eventForm.adjustmentReason} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentReason: value }))} />
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
+                {automaticDiagnosis.length > 0 && (
+                  <div className="warning-panel">
+                    <strong>Diagnostico automatico</strong>
+                    <ul>
+                      {automaticDiagnosis.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {eventBlockingIssues.length > 0 && (
                   <div className="warning-panel">
                     <strong>Faltan datos obligatorios para cerrar el evento</strong>
@@ -1049,6 +1425,39 @@ function App() {
               )}
             </div>
 
+            <div className="card">
+              <label className="label">Cadena de calibracion</label>
+              <select
+                className="input"
+                value={selectedChainId}
+                onChange={(e) => {
+                  const nextId = e.target.value
+                  setSelectedChainId(nextId)
+                  const chain = chains.find((item) => item.id === nextId)
+                  if (!chain) return
+                  setChainToolForm((current) => ({
+                    ...current,
+                    chainLengthM: String(chain.totalLengthM || ''),
+                    chainWeightKg: String(chain.totalWeightKg || ''),
+                  }))
+                }}
+              >
+                <option value="">Seleccionar cadena</option>
+                {chains
+                  .filter((item) => !selectedEquipment || item.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
+                  ))}
+              </select>
+              {selectedChain && (
+                <div className="grid three compact-top">
+                  <Metric label="kg/m" value={String(selectedChain.linearWeightKgM)} />
+                  <Metric label="Largo total" value={`${selectedChain.totalLengthM} m`} />
+                  <Metric label="Peso total" value={`${selectedChain.totalWeightKg} kg`} />
+                </div>
+              )}
+            </div>
+
             <div className="card stack">
               <h2>Velocidad por RPM</h2>
               <div className="grid two">
@@ -1061,7 +1470,7 @@ function App() {
                 <Metric label="m/h" value={rpmToolResult ? String(round(rpmToolResult.speedMh, 1)) : '-'} />
                 <Metric label="Error %" value={rpmToolResult && rpmToolForm.indicatedSpeedMs ? `${round(rpmToolResult.errorPct, 3)} %` : '-'} />
               </div>
-              <button className="secondary" disabled={!rpmToolResult} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
+              <button className="secondary" disabled={!rpmToolResult || !canEdit} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
                 Usar velocidad en evento
               </button>
             </div>
@@ -1078,7 +1487,7 @@ function App() {
                 <Metric label="m/h" value={loopToolResult ? String(round(loopToolResult.speedMh, 1)) : '-'} />
                 <Metric label="Error %" value={loopToolResult && loopToolForm.indicatedSpeedMs ? `${round(loopToolResult.errorPct, 3)} %` : '-'} />
               </div>
-              <button className="secondary" disabled={!loopToolResult} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
+              <button className="secondary" disabled={!loopToolResult || !canEdit} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
                 Usar velocidad en evento
               </button>
             </div>
@@ -1096,8 +1505,27 @@ function App() {
                 <Metric label="kg sobre tren" value={chainToolResult ? String(round(chainToolResult.kgOnTrain, 3)) : '-'} />
                 <Metric label="Caudal esperado t/h" value={chainToolResult ? String(round(chainToolResult.tph, 3)) : '-'} />
               </div>
-              <button className="secondary" disabled={!chainToolResult} onClick={applyChainToEvent}>
+              <button className="secondary" disabled={!chainToolResult || !canEdit} onClick={applyChainToEvent}>
                 Usar datos en evento
+              </button>
+            </div>
+
+            <div className="card stack">
+              <h2>Acumulado</h2>
+              <div className="grid two">
+                <Field label="Caudal esperado (tn/h)" type="number" value={accumulatedToolForm.expectedFlowTph} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, expectedFlowTph: value }))} />
+                <Field label="Tiempo de prueba (min)" type="number" value={accumulatedToolForm.testMinutes} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, testMinutes: value }))} />
+                <Field label={`Acumulado indicado (${selectedEquipment?.totalizerUnit || 'tn'})`} type="number" value={accumulatedToolForm.indicatedTotal} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, indicatedTotal: value }))} />
+                <Field label="Factor ajuste actual" type="number" value={accumulatedToolForm.adjustmentFactorCurrent} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, adjustmentFactorCurrent: value }))} />
+              </div>
+              <div className="grid four compact-top">
+                <Metric label="Acumulado esperado" value={accumulatedToolResult ? String(round(accumulatedToolResult.expectedTotal, 6)) : '-'} />
+                <Metric label="Error %" value={accumulatedToolResult ? `${round(accumulatedToolResult.errorPct, 3)} %` : '-'} />
+                <Metric label="Factor ajuste sugerido" value={accumulatedToolResult ? String(round(accumulatedToolResult.suggestedAdjustmentFactor, 6)) : '-'} />
+                <Metric label="Diagnostico" value={accumulatedToolResult ? (Math.abs(accumulatedToolResult.errorPct) > 2 ? 'Revisar/ajustar acumulado' : 'Acumulado coherente') : '-'} />
+              </div>
+              <button className="secondary" disabled={!accumulatedToolResult || !canEdit} onClick={applyAccumulatedToEvent}>
+                Usar acumulado en evento
               </button>
             </div>
 
@@ -1114,7 +1542,7 @@ function App() {
                 <Metric label="Error %" value={factorToolResult ? `${round(factorToolResult.errorPct, 3)} %` : '-'} />
                 <Metric label="Recomendacion" value={factorToolResult ? factorToolResult.recommendation : '-'} />
               </div>
-              <button className="secondary" disabled={!factorToolResult} onClick={applyFactorToEvent}>
+              <button className="secondary" disabled={!factorToolResult || !canEdit} onClick={applyFactorToEvent}>
                 Usar factor en evento
               </button>
             </div>
@@ -1167,10 +1595,12 @@ function App() {
                   <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
                   <div className="grid four compact-top">
                     <Metric label="Error cadena" value={`${item.chainSpan.avgErrorPct} %`} />
+                    <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
                     <Metric label="Error material" value={`${item.materialValidation.errorPct} %`} />
                     <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
                     <Metric label="Estado" value={statusText} />
                   </div>
+                  {item.diagnosis && <p className="hint">Diagnostico: {item.diagnosis}</p>}
                   {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
                   {item.syncMessage && <p className="hint">{item.syncMessage}</p>}
                   {item.notes && <p>{item.notes}</p>}
@@ -1182,7 +1612,7 @@ function App() {
           </section>
         )}
 
-        {screen === 'sheets' && (
+        {screen === 'sheets' && canEdit && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Integraciones</span>
@@ -1214,12 +1644,12 @@ function App() {
         )}
       </main>
 
-      <nav className="bottom-nav five">
-        <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>
+      <nav className={`bottom-nav ${canEdit ? 'five' : 'two'}`}>
+        {canEdit && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>}
         <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}>Herramientas</button>
-        <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>
+        {canEdit && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>}
         <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
-        <button className={screen === 'sheets' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('sheets')}>Sheets</button>
+        {canEdit && <button className={screen === 'sheets' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('sheets')}>Sheets</button>}
       </nav>
     </div>
   )
