@@ -384,6 +384,97 @@ body::before {
   width: 3px;
 }
 
+.collapsible-card {
+  overflow: hidden;
+}
+
+.collapsible-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.collapsible-summary::-webkit-details-marker,
+.inline-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-summary strong {
+  display: block;
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: clamp(1.55rem, 4vw, 2.25rem);
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+}
+
+.collapsible-summary small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-grey-500);
+  font-size: 0.92rem;
+}
+
+.collapsible-indicator,
+.inline-details summary {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.collapsible-card[open] .collapsible-indicator {
+  background: var(--color-orange);
+  color: var(--color-ink);
+}
+
+.collapsible-card[open] .collapsible-indicator::before {
+  content: 'Cerrar';
+}
+
+.collapsible-card[open] .collapsible-indicator {
+  font-size: 0;
+}
+
+.collapsible-card[open] .collapsible-indicator::before {
+  font-size: 0.9rem;
+}
+
+.collapsible-body {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+  animation: rise-in 0.35s var(--ease) both;
+}
+
+.inline-details {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.inline-details summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.inline-details[open] summary {
+  background: var(--color-orange);
+  color: var(--color-ink);
+}
+
 .card h2 {
   font-size: clamp(1.7rem, 5vw, 2.5rem);
   line-height: 0.92;
@@ -508,6 +599,18 @@ body::before {
   background: var(--color-orange);
   color: var(--color-ink);
   border-color: var(--color-orange-dark);
+}
+
+.secondary.danger {
+  background: #ffe0dc;
+  color: #842118;
+  border-color: rgba(196, 59, 48, 0.35);
+}
+
+.secondary.danger:hover:enabled {
+  background: var(--color-error);
+  color: var(--color-white);
+  border-color: var(--color-error);
 }
 
 .primary:disabled,
@@ -819,6 +922,16 @@ body::before {
   }
 
   .row.wrap > button {
+    width: 100%;
+  }
+
+  .collapsible-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .collapsible-indicator,
+  .inline-details summary {
     width: 100%;
   }
 

@@ -97,6 +97,7 @@ drop policy if exists "public update chains" on public.chains;
 drop policy if exists "public read calibration_events" on public.calibration_events;
 drop policy if exists "public insert calibration_events" on public.calibration_events;
 drop policy if exists "public update calibration_events" on public.calibration_events;
+drop policy if exists "public delete calibration_events" on public.calibration_events;
 
 create policy "public read equipments"
 on public.equipments for select
@@ -145,3 +146,8 @@ on public.calibration_events for update
 to anon
 using (true)
 with check (true);
+
+create policy "public delete calibration_events"
+on public.calibration_events for delete
+to anon
+using (true);

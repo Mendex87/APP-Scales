@@ -1,5 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import {
+  deleteCalibrationEventRecord,
   loadAppData,
   saveCalibrationEventRecord,
   saveChainRecord,
@@ -42,7 +44,7 @@ const APP_USERS = [
 
 const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
 
-const APP_VERSION = 'v0.8.0'
+const APP_VERSION = 'v0.9.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -819,6 +821,21 @@ function App() {
 
   }
 
+  async function handleDeleteEvent(eventId: string) {
+    const confirmed = window.confirm(`Eliminar definitivamente el evento ${eventId}? Esta accion no se puede deshacer.`)
+    if (!confirmed) return
+
+    try {
+      const result = await deleteCalibrationEventRecord(eventId)
+      setEvents((current) => current.filter((item) => item.id !== eventId))
+      setDataSource(result.source)
+      setSyncNotice(`Evento ${eventId} eliminado.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo eliminar el evento.'
+      setSyncNotice(`Error al eliminar evento: ${message}`)
+    }
+  }
+
   if (!currentUser) {
     return (
       <div className="app-shell auth-shell">
@@ -903,7 +920,7 @@ function App() {
               <h2>Listado de balanzas y estado operativo</h2>
               <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
             </div>
-            <div className="card stack">
+            <CollapsibleCard title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." defaultOpen={equipment.length === 0}>
               <div className="row wrap">
                 <div>
                   <h2>Listado de balanzas</h2>
@@ -958,9 +975,9 @@ function App() {
                 )}
                 <button className="primary" type="submit" disabled={equipmentBlockingIssues.length > 0}>Guardar balanza</button>
               </form>
-            </div>
+            </CollapsibleCard>
 
-            <div className="card stack">
+            <CollapsibleCard title="Cadenas de calibracion" hint="Gestion de pesos patron reutilizables por planta." defaultOpen={chains.length === 0}>
               <div className="row wrap">
                 <div>
                   <h2>Cadenas de calibracion</h2>
@@ -987,7 +1004,7 @@ function App() {
                 ))}
                 {chains.length === 0 && <div className="result-row"><span>No hay cadenas cargadas.</span><strong>-</strong></div>}
               </div>
-            </div>
+            </CollapsibleCard>
 
             <div className="stack">
               {equipmentWithLastEvent.map(({ item, lastEvent }) => {
@@ -1087,7 +1104,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="card stack">
+              <CollapsibleCard title="Paso 2 · Inspeccion previa" hint="Checks obligatorios antes de calibrar." defaultOpen={false}>
                 <div className="card-tag">Paso 2</div>
                 <h2>Inspeccion previa</h2>
                 <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
@@ -1101,9 +1118,9 @@ function App() {
                 </div>
                 <TextArea label="Observaciones de inspeccion" value={eventForm.precheckNotes} onChange={(value) => setEventForm((current) => ({ ...current, precheckNotes: value }))} />
                 <div className="result-row"><span>Estado inspeccion</span><strong>{precheckPassed ? 'Completa' : 'Incompleta'}</strong></div>
-              </div>
+              </CollapsibleCard>
 
-              <div className="card stack">
+              <CollapsibleCard title="Paso 3 · Cero" hint="Registro de cero y deriva visible." defaultOpen={false}>
                 <div className="card-tag">Paso 3</div>
                 <h2>Cero</h2>
                 <p className="hint">Siempre se realiza antes de calibrar. Si el controlador no muestra valor, registralo igual como completado y elegí la opcion correspondiente.</p>
@@ -1129,9 +1146,9 @@ function App() {
                   <Metric label="Realizado" value={eventForm.zeroCompleted ? 'Si' : 'No'} />
                 </div>
                 <TextArea label="Observaciones de cero" value={eventForm.zeroNotes} onChange={(value) => setEventForm((current) => ({ ...current, zeroNotes: value }))} />
-              </div>
+              </CollapsibleCard>
 
-              <div className="card">
+              <CollapsibleCard title="Paso 4 · Foto de parametros" hint="Datos del controlador al momento de calibrar." defaultOpen={false}>
                 <div className="card-tag">Paso 4</div>
                 <h2>Foto de parametros</h2>
                 <div className="grid two">
@@ -1147,9 +1164,9 @@ function App() {
                 <TextArea label="Constantes internas" value={eventForm.internalConstants} onChange={(value) => setEventForm((current) => ({ ...current, internalConstants: value }))} />
                 <TextArea label="Parametros extra" value={eventForm.extraParameters} onChange={(value) => setEventForm((current) => ({ ...current, extraParameters: value }))} />
                 <TextArea label="Motivo del cambio de parametros" value={eventForm.changedReason} onChange={(value) => setEventForm((current) => ({ ...current, changedReason: value }))} />
-              </div>
+              </CollapsibleCard>
 
-              <div className="card">
+              <CollapsibleCard title="Paso 5 · Span con cadena" hint="Lectura promedio contra peso patron." defaultOpen={false}>
                 <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
@@ -1163,9 +1180,9 @@ function App() {
                   <Metric label="Referencia cadena" value={`${round(Number(eventForm.chainLinearKgM) || 0)} kg/m`} />
                   <Metric label="Promedio controlador" value={`${round(Number(eventForm.avgControllerReadingKgM) || 0)} kg/m`} />
                 </div>
-              </div>
+              </CollapsibleCard>
 
-              <div className="card">
+              <CollapsibleCard title="Paso 6 · Acumulado" hint="Control de totalizador y factor de ajuste." defaultOpen={false}>
                 <div className="card-tag">Paso 6</div>
                 <h2>Acumulado y factor de ajuste</h2>
                 <div className="grid two">
@@ -1180,9 +1197,9 @@ function App() {
                   <Metric label="Factor ajuste sugerido" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal && eventForm.adjustmentFactorBefore ? String(round(Number(eventForm.adjustmentFactorBefore) * ((((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60) / Number(eventForm.accumulatedIndicatedTotal))), 6)) : '-'} />
                   <Metric label="Regla" value="Si el instantaneo esta bien, corregir con factor de ajuste" />
                 </div>
-              </div>
+              </CollapsibleCard>
 
-              <div className="card">
+              <CollapsibleCard title="Paso 7 · Material real" hint="Validacion contra peso externo real." defaultOpen={false}>
                 <div className="card-tag">Paso 7</div>
                 <h2>Validacion con material real</h2>
                 <div className="grid two">
@@ -1194,7 +1211,7 @@ function App() {
                   <Metric label="Factor anterior" value={String(round(Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0, 6))} />
                   <Metric label="Factor sugerido" value={String(round(suggestedFactor, 6))} />
                 </div>
-              </div>
+              </CollapsibleCard>
 
               <div className="card">
                 <div className="card-tag">Paso 8</div>
@@ -1289,7 +1306,7 @@ function App() {
               )}
             </div>
 
-            <div className="card stack">
+            <CollapsibleCard title="Velocidad por RPM" hint="Calculo rapido desde RPM de rolo." defaultOpen={false}>
               <h2>Velocidad por RPM</h2>
               <div className="grid two">
                 <Field label="RPM del rolo" type="number" value={rpmToolForm.rpm} onChange={(value) => setRpmToolForm((current) => ({ ...current, rpm: value }))} />
@@ -1304,9 +1321,9 @@ function App() {
               <button className="secondary" disabled={!rpmToolResult || !canEdit} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
                 Usar velocidad en evento
               </button>
-            </div>
+            </CollapsibleCard>
 
-            <div className="card stack">
+            <CollapsibleCard title="Velocidad por vuelta completa" hint="Calculo desde largo de cinta y tiempo de vuelta." defaultOpen={false}>
               <h2>Velocidad por vuelta completa</h2>
               <div className="grid two">
                 <Field label="Tiempo por vuelta (s)" type="number" value={loopToolForm.loopTimeSeconds} onChange={(value) => setLoopToolForm((current) => ({ ...current, loopTimeSeconds: value }))} />
@@ -1321,9 +1338,9 @@ function App() {
               <button className="secondary" disabled={!loopToolResult || !canEdit} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
                 Usar velocidad en evento
               </button>
-            </div>
+            </CollapsibleCard>
 
-            <div className="card stack">
+            <CollapsibleCard title="Cadena de calibracion" hint="Caudal esperado y kg/m desde cadena patron." defaultOpen={false}>
               <h2>Cadena de calibracion</h2>
               <div className="grid two">
                 <Field label="Largo total cadena (m)" type="number" value={chainToolForm.chainLengthM} onChange={(value) => setChainToolForm((current) => ({ ...current, chainLengthM: value }))} />
@@ -1339,9 +1356,9 @@ function App() {
               <button className="secondary" disabled={!chainToolResult || !canEdit} onClick={applyChainToEvent}>
                 Usar datos en evento
               </button>
-            </div>
+            </CollapsibleCard>
 
-            <div className="card stack">
+            <CollapsibleCard title="Acumulado" hint="Control de totalizador y factor de ajuste." defaultOpen={false}>
               <h2>Acumulado</h2>
               <div className="grid two">
                 <Field label="Caudal esperado (tn/h)" type="number" value={accumulatedToolForm.expectedFlowTph} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, expectedFlowTph: value }))} />
@@ -1358,9 +1375,9 @@ function App() {
               <button className="secondary" disabled={!accumulatedToolResult || !canEdit} onClick={applyAccumulatedToEvent}>
                 Usar acumulado en evento
               </button>
-            </div>
+            </CollapsibleCard>
 
-            <div className="card stack">
+            <CollapsibleCard title="Factor de correccion" hint="Nuevo factor desde peso real contra peso indicado." defaultOpen={false}>
               <h2>Factor de correccion</h2>
               <div className="grid two">
                 <Field label="Factor actual" type="number" value={factorToolForm.currentFactor} onChange={(value) => setFactorToolForm((current) => ({ ...current, currentFactor: value }))} />
@@ -1376,7 +1393,7 @@ function App() {
               <button className="secondary" disabled={!factorToolResult || !canEdit} onClick={applyFactorToEvent}>
                 Usar factor en evento
               </button>
-            </div>
+            </CollapsibleCard>
           </section>
         )}
 
@@ -1412,18 +1429,26 @@ function App() {
                       <h3>{item.id}</h3>
                       <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
                     </div>
+                    {canEdit && (
+                      <button className="secondary small danger" onClick={() => handleDeleteEvent(item.id)}>
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                   <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
-                  <div className="grid four compact-top">
-                    <Metric label="Error cadena" value={`${item.chainSpan.avgErrorPct} %`} />
-                    <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
-                    <Metric label="Error material" value={`${item.materialValidation.errorPct} %`} />
-                    <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
-                    <Metric label="Estado" value={statusText} />
-                  </div>
-                  {item.diagnosis && <p className="hint">Diagnostico: {item.diagnosis}</p>}
-                  {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
-                  {item.notes && <p>{item.notes}</p>}
+                  <details className="inline-details">
+                    <summary>Ver detalle</summary>
+                    <div className="grid four compact-top">
+                      <Metric label="Error cadena" value={`${item.chainSpan.avgErrorPct} %`} />
+                      <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
+                      <Metric label="Error material" value={`${item.materialValidation.errorPct} %`} />
+                      <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
+                      <Metric label="Estado" value={statusText} />
+                    </div>
+                    {item.diagnosis && <p className="hint compact-top">Diagnostico: {item.diagnosis}</p>}
+                    {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
+                    {item.notes && <p>{item.notes}</p>}
+                  </details>
                 </div>
               )
             })}
@@ -1441,6 +1466,33 @@ function App() {
         <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
       </nav>
     </div>
+  )
+}
+
+function CollapsibleCard({
+  title,
+  hint,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  hint?: string
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details className="card stack collapsible-card" open={defaultOpen}>
+      <summary className="collapsible-summary">
+        <span>
+          <strong>{title}</strong>
+          {hint && <small>{hint}</small>}
+        </span>
+        <span className="collapsible-indicator">Abrir</span>
+      </summary>
+      <div className="collapsible-body">
+        {children}
+      </div>
+    </details>
   )
 }
 

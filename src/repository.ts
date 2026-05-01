@@ -172,6 +172,21 @@ export async function saveCalibrationEventRecord(item: CalibrationEvent) {
   return { source: 'supabase' as const }
 }
 
+export async function deleteCalibrationEventRecord(eventId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    saveEvents(loadEvents().filter((item) => item.id !== eventId))
+    return { source: 'local' as const }
+  }
+
+  const result = await supabase.from('calibration_events').delete().eq('id', eventId)
+  if (result.error) {
+    throw toError(result.error)
+  }
+
+  saveEvents(loadEvents().filter((item) => item.id !== eventId))
+  return { source: 'supabase' as const }
+}
+
 export async function updateCalibrationEventSync(
   eventId: string,
   values: Pick<CalibrationEvent, 'syncStatus' | 'syncMessage' | 'syncedAt'>,
