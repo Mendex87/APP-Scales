@@ -42,7 +42,7 @@ const APP_USERS = [
 
 const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
 
-const APP_VERSION = 'v0.7.0'
+const APP_VERSION = 'v0.8.0'
 
 const defaultEquipmentForm = {
   plant: '',
