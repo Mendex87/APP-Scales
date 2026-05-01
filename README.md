@@ -10,8 +10,8 @@ Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamic
 - `Span con peso patron (cadena)`
 - validacion con material real
 - ajuste final y aprobacion tecnica
-- sincronizacion con Google Sheets
-- dashboard operativo dentro de Google Sheets
+- almacenamiento local o en Supabase
+- historial tecnico de calibraciones
 
 ## Desarrollo local
 
@@ -28,17 +28,14 @@ npm run build
 
 ## Google Sheets
 
-Archivos relacionados:
+La integracion con Google Sheets queda pausada temporalmente.
+
+El objetivo para la proxima etapa es redisenarla para enviar solo datos relevantes de calibracion y estado operativo de balanzas, en lugar del evento tecnico completo.
+
+Archivos historicos conservados como referencia:
 
 - `GOOGLE-SHEETS-SETUP.md`
 - `GOOGLE-SHEETS-DASHBOARD.gs`
-
-La app ya soporta:
-
-- prueba de conexion por `ping`
-- sincronizacion de eventos
-- reconstruccion de hojas operativas
-- dashboard visual
 
 ## Supabase
 
@@ -53,7 +50,7 @@ Variables esperadas:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Si no están configuradas, la app entra en modo local y sigue permitiendo sincronizar a Google Sheets.
+Si no están configuradas, la app entra en modo local.
 
 ## Deploy recomendado
 

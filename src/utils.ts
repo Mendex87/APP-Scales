@@ -1,4 +1,4 @@
-import type { CalibrationEvent, Equipment, SheetsSyncPayload } from './types'
+import type { CalibrationEvent } from './types'
 
 export const round = (value: number, digits = 3) => {
   if (!Number.isFinite(value)) return 0
@@ -42,8 +42,3 @@ export const generateEventCode = (dateValue: string, existingEvents: Calibration
   return `${prefix}${String(count).padStart(4, '0')}`
 }
 
-export const buildSyncPayload = (equipment: Equipment, event: CalibrationEvent): SheetsSyncPayload => ({
-  action: 'syncCalibrationEvent',
-  equipment,
-  event,
-})

@@ -4,14 +4,11 @@ import {
   saveCalibrationEventRecord,
   saveChainRecord,
   saveEquipmentRecord,
-  testSupabaseConnection,
-  updateCalibrationEventSync,
 } from './repository'
-import { loadChains, loadEquipment, loadEvents, loadSettings, saveChains, saveEquipment, saveEvents, saveSettings } from './storage'
+import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured } from './supabase'
-import type { CalibrationEvent, Chain, Equipment, SpeedSource, SyncStatus } from './types'
+import type { CalibrationEvent, Chain, Equipment, SpeedSource } from './types'
 import {
-  buildSyncPayload,
   computePercentError,
   computeStatusLabel,
   computeSuggestedFactor,
@@ -22,7 +19,7 @@ import {
   round,
 } from './utils'
 
-type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'sheets'
+type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 
 type Toast = {
@@ -45,7 +42,7 @@ const APP_USERS = [
 
 const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
 
-const APP_VERSION = 'v0.6.0'
+const APP_VERSION = 'v0.7.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -156,7 +153,6 @@ function App() {
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
   const [chains, setChains] = useState<Chain[]>(() => loadChains())
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
-  const [settings, setSettings] = useState(() => loadSettings())
   const [selectedEquipmentId, setSelectedEquipmentId] = useState('')
   const [selectedChainId, setSelectedChainId] = useState('')
   const [equipmentForm, setEquipmentForm] = useState(defaultEquipmentForm)
@@ -168,11 +164,7 @@ function App() {
   const [factorToolForm, setFactorToolForm] = useState(defaultFactorToolForm)
   const [accumulatedToolForm, setAccumulatedToolForm] = useState(defaultAccumulatedToolForm)
   const [historyEquipmentId, setHistoryEquipmentId] = useState('todos')
-  const [historyStatus, setHistoryStatus] = useState('todos')
   const [syncNotice, setSyncNotice] = useState('')
-  const [syncing, setSyncing] = useState(false)
-  const [testingConnection, setTestingConnection] = useState(false)
-  const [testingSupabase, setTestingSupabase] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -199,10 +191,6 @@ function App() {
   useEffect(() => {
     saveEvents(events)
   }, [events])
-
-  useEffect(() => {
-    saveSettings(settings)
-  }, [settings])
 
   useEffect(() => {
     if (currentUser) {
@@ -274,7 +262,7 @@ function App() {
 
   useEffect(() => {
     if (!currentUser) return
-    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva' || screen === 'sheets')) {
+    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
       setScreen('herramientas')
     }
   }, [currentUser, screen])
@@ -354,8 +342,6 @@ function App() {
     ],
   )
 
-  const pendingCount = useMemo(() => events.filter((item) => item.syncStatus !== 'sincronizado').length, [events])
-  const syncedCount = useMemo(() => events.filter((item) => item.syncStatus === 'sincronizado').length, [events])
   const outOfToleranceCount = useMemo(
     () => events.filter((item) => Math.abs(item.materialValidation.errorPct) > item.tolerancePercent).length,
     [events],
@@ -537,11 +523,10 @@ function App() {
     return events
       .filter((item) => {
         const matchesEquipment = historyEquipmentId === 'todos' || item.equipmentId === historyEquipmentId
-        const matchesStatus = historyStatus === 'todos' || item.syncStatus === historyStatus
-        return matchesEquipment && matchesStatus
+        return matchesEquipment
       })
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
-  }, [events, historyEquipmentId, historyStatus])
+  }, [events, historyEquipmentId])
 
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
@@ -696,72 +681,6 @@ function App() {
     }
   }
 
-  async function syncEventRecord(record: CalibrationEvent, equipmentItem: Equipment) {
-    if (!settings.googleScriptUrl.trim()) {
-      throw new Error('Configurá la URL del Apps Script.')
-    }
-
-    const response = await fetch(settings.googleScriptUrl.trim(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(buildSyncPayload(equipmentItem, record)),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Google Sheets devolvió ${response.status}.`)
-    }
-  }
-
-  async function testSheetsConnection() {
-    if (!settings.googleScriptUrl.trim()) {
-      setSyncNotice('Pegá primero la URL de Apps Script.')
-      return
-    }
-
-    setTestingConnection(true)
-    setSyncNotice('Probando conexion con Google Sheets...')
-
-    try {
-      const response = await fetch(settings.googleScriptUrl.trim(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'ping' }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Google Sheets devolvió ${response.status}.`)
-      }
-
-      const text = await response.text()
-      const payload = JSON.parse(text) as { ok?: boolean; message?: string }
-      if (!payload.ok) {
-        throw new Error(payload.message || 'La conexion no fue aceptada por Apps Script.')
-      }
-
-      setSyncNotice('Conexion con Google Sheets OK.')
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo conectar.'
-      setSyncNotice(`Fallo la prueba de conexion: ${message}`)
-    } finally {
-      setTestingConnection(false)
-    }
-  }
-
-  async function handleTestSupabase() {
-    setTestingSupabase(true)
-    setSyncNotice('Probando conexion con Supabase...')
-
-    try {
-      const result = await testSupabaseConnection()
-      setSyncNotice(result.message)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo probar Supabase.'
-      setSyncNotice(`Fallo la prueba de Supabase: ${message}`)
-    } finally {
-      setTestingSupabase(false)
-    }
-  }
-
   async function handleEventSubmit(event: FormEvent) {
     event.preventDefault()
     if (!selectedEquipment) return
@@ -898,88 +817,6 @@ function App() {
       return
     }
 
-    try {
-      await syncEventRecord(record, selectedEquipment)
-      await updateCalibrationEventSync(record.id, {
-        syncStatus: 'sincronizado',
-        syncMessage: 'Enviado a Google Sheets.',
-        syncedAt: new Date().toISOString(),
-      })
-      setEvents((current) =>
-        current.map((item) =>
-          item.id === record.id
-            ? { ...item, syncStatus: 'sincronizado', syncMessage: 'Enviado a Google Sheets.', syncedAt: new Date().toISOString() }
-            : item,
-        ),
-      )
-      setSyncNotice(`Evento ${record.id} sincronizado.`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo sincronizar.'
-      try {
-        await updateCalibrationEventSync(record.id, {
-          syncStatus: 'error',
-          syncMessage: message,
-          syncedAt: '',
-        })
-      } catch {
-        // Keep local state updated even if remote sync status cannot be written.
-      }
-      setEvents((current) =>
-        current.map((item) =>
-          item.id === record.id ? { ...item, syncStatus: 'error', syncMessage: message } : item,
-        ),
-      )
-      setSyncNotice(`Evento ${record.id} quedó pendiente: ${message}`)
-    }
-  }
-
-  async function syncPendingEvents() {
-    if (!settings.googleScriptUrl.trim()) {
-      setScreen('sheets')
-      setSyncNotice('Falta configurar la URL de Apps Script.')
-      return
-    }
-
-    setSyncing(true)
-    setSyncNotice('Sincronizando eventos pendientes...')
-
-    for (const record of events.filter((item) => item.syncStatus !== 'sincronizado')) {
-      const equipmentItem = equipment.find((item) => item.id === record.equipmentId)
-      if (!equipmentItem) continue
-
-      try {
-        await syncEventRecord(record, equipmentItem)
-        await updateCalibrationEventSync(record.id, {
-          syncStatus: 'sincronizado',
-          syncMessage: 'Enviado a Google Sheets.',
-          syncedAt: new Date().toISOString(),
-        })
-        setEvents((current) =>
-          current.map((item) =>
-            item.id === record.id
-              ? { ...item, syncStatus: 'sincronizado', syncMessage: 'Enviado a Google Sheets.', syncedAt: new Date().toISOString() }
-              : item,
-          ),
-        )
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'No se pudo sincronizar.'
-        try {
-          await updateCalibrationEventSync(record.id, {
-            syncStatus: 'error',
-            syncMessage: message,
-            syncedAt: '',
-          })
-        } catch {
-          // Keep local state updated even if remote sync status cannot be written.
-        }
-        setEvents((current) =>
-          current.map((item) => (item.id === record.id ? { ...item, syncStatus: 'error', syncMessage: message } : item)),
-        )
-      }
-    }
-
-    setSyncing(false)
-    setSyncNotice('Sincronización finalizada.')
   }
 
   if (!currentUser) {
@@ -1018,13 +855,7 @@ function App() {
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
-          {canEdit && <div className="chip">Pendientes: {pendingCount}</div>}
           <button className="secondary small" onClick={handleLogout}>Salir</button>
-          {canEdit && (
-            <button className="secondary small" onClick={syncPendingEvents} disabled={syncing || pendingCount === 0}>
-              {syncing ? 'Sincronizando...' : 'Sincronizar'}
-            </button>
-          )}
         </div>
       </header>
 
@@ -1047,7 +878,7 @@ function App() {
         <div className="hero-panel alert-panel">
           <span>Fuera de tolerancia</span>
           <strong>{outOfToleranceCount}</strong>
-          <p>{syncedCount} eventos ya consolidados en la base.</p>
+          <p>Eventos que requieren revisión técnica o seguimiento operativo.</p>
         </div>
       </section>
 
@@ -1554,7 +1385,7 @@ function App() {
             <div className="screen-banner">
               <span className="section-kicker">Trazabilidad</span>
               <h2>Historial de calibraciones</h2>
-              <p>Leé eventos previos, errores, motivos de ajuste y estado de sincronización con precisión histórica.</p>
+              <p>Leé eventos previos, errores, motivos de ajuste y estado operativo con precisión histórica.</p>
             </div>
             <div className="card">
               <h2>Historial de eventos</h2>
@@ -1566,15 +1397,6 @@ function App() {
                     {equipment.map((item) => (
                       <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
                     ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Sincronizacion</label>
-                  <select className="input" value={historyStatus} onChange={(e) => setHistoryStatus(e.target.value)}>
-                    <option value="todos">Todos</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="sincronizado">Sincronizado</option>
-                    <option value="error">Error</option>
                   </select>
                 </div>
               </div>
@@ -1590,7 +1412,6 @@ function App() {
                       <h3>{item.id}</h3>
                       <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
                     </div>
-                    <StatusBadge status={item.syncStatus} />
                   </div>
                   <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
                   <div className="grid four compact-top">
@@ -1602,7 +1423,6 @@ function App() {
                   </div>
                   {item.diagnosis && <p className="hint">Diagnostico: {item.diagnosis}</p>}
                   {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
-                  {item.syncMessage && <p className="hint">{item.syncMessage}</p>}
                   {item.notes && <p>{item.notes}</p>}
                 </div>
               )
@@ -1612,44 +1432,13 @@ function App() {
           </section>
         )}
 
-        {screen === 'sheets' && canEdit && (
-          <section className="stack screen-shell">
-            <div className="screen-banner">
-              <span className="section-kicker">Integraciones</span>
-              <h2>Supabase y Google Sheets</h2>
-              <p>Validá conexiones, controlá sincronización y confirmá el estado de la base principal de la app.</p>
-            </div>
-            <div className="card stack">
-              <h2>Google Sheets</h2>
-              <p className="hint">La sincronizacion manda cada evento a varias hojas: equipos, eventos, parametros, span, material real y ajustes.</p>
-              <Field label="URL de Apps Script" value={settings.googleScriptUrl} onChange={(value) => setSettings((current) => ({ ...current, googleScriptUrl: value }))} />
-              <button className="secondary" onClick={testSheetsConnection} disabled={testingConnection}>
-                {testingConnection ? 'Probando...' : 'Probar conexion'}
-              </button>
-              <button className="primary" onClick={syncPendingEvents} disabled={syncing || pendingCount === 0}>{syncing ? 'Sincronizando...' : 'Enviar pendientes'}</button>
-            </div>
-
-            <div className="card stack">
-              <h2>Resumen</h2>
-              <div className="result-row"><span>Base principal</span><strong>{dataSource === 'supabase' ? 'Supabase' : 'Local'}</strong></div>
-              <div className="result-row"><span>Supabase configurado</span><strong>{isSupabaseConfigured ? 'Si' : 'No'}</strong></div>
-              <div className="result-row"><span>Balanzas</span><strong>{equipment.length}</strong></div>
-              <div className="result-row"><span>Eventos</span><strong>{events.length}</strong></div>
-              <div className="result-row"><span>Pendientes</span><strong>{pendingCount}</strong></div>
-              <button className="secondary" onClick={handleTestSupabase} disabled={testingSupabase}>
-                {testingSupabase ? 'Probando Supabase...' : 'Probar Supabase'}
-              </button>
-            </div>
-          </section>
-        )}
       </main>
 
-      <nav className={`bottom-nav ${canEdit ? 'five' : 'two'}`}>
+      <nav className={`bottom-nav ${canEdit ? 'four' : 'two'}`}>
         {canEdit && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>}
         <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}>Herramientas</button>
         {canEdit && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>}
         <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
-        {canEdit && <button className={screen === 'sheets' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('sheets')}>Sheets</button>}
       </nav>
     </div>
   )
@@ -1691,10 +1480,6 @@ function Metric({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   )
-}
-
-function StatusBadge({ status }: { status: SyncStatus }) {
-  return <span className={`chip ${status}`}>{status}</span>
 }
 
 export default App

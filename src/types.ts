@@ -127,12 +127,3 @@ export type CalibrationEvent = {
   syncedAt: string
 }
 
-export type SyncSettings = {
-  googleScriptUrl: string
-}
-
-export type SheetsSyncPayload = {
-  action: 'syncCalibrationEvent' | 'ping'
-  equipment: Equipment
-  event: CalibrationEvent
-}
