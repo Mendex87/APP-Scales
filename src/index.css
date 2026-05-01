@@ -153,6 +153,11 @@ body::before {
   flex-wrap: wrap;
 }
 
+.compact-actions {
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
 .topbar {
   margin-bottom: 1rem;
   padding: clamp(1rem, 3vw, 1.35rem);
@@ -921,8 +926,14 @@ body::before {
     align-items: stretch;
   }
 
-  .row.wrap > button {
+  .row.wrap > button,
+  .compact-actions,
+  .compact-actions > button {
     width: 100%;
+  }
+
+  .compact-actions {
+    flex-direction: column;
   }
 
   .collapsible-summary {

@@ -91,6 +91,7 @@ alter table public.calibration_events enable row level security;
 drop policy if exists "public read equipments" on public.equipments;
 drop policy if exists "public insert equipments" on public.equipments;
 drop policy if exists "public update equipments" on public.equipments;
+drop policy if exists "public delete equipments" on public.equipments;
 drop policy if exists "public read chains" on public.chains;
 drop policy if exists "public insert chains" on public.chains;
 drop policy if exists "public update chains" on public.chains;
@@ -114,6 +115,11 @@ on public.equipments for update
 to anon
 using (true)
 with check (true);
+
+create policy "public delete equipments"
+on public.equipments for delete
+to anon
+using (true);
 
 create policy "public read chains"
 on public.chains for select

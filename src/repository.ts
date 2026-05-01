@@ -142,6 +142,23 @@ export async function saveEquipmentRecord(item: Equipment) {
   return { source: 'supabase' as const }
 }
 
+export async function deleteEquipmentRecord(equipmentId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    saveEquipment(loadEquipment().filter((item) => item.id !== equipmentId))
+    saveEvents(loadEvents().filter((item) => item.equipmentId !== equipmentId))
+    return { source: 'local' as const }
+  }
+
+  const result = await supabase.from('equipments').delete().eq('id', equipmentId)
+  if (result.error) {
+    throw toError(result.error)
+  }
+
+  saveEquipment(loadEquipment().filter((item) => item.id !== equipmentId))
+  saveEvents(loadEvents().filter((item) => item.equipmentId !== equipmentId))
+  return { source: 'supabase' as const }
+}
+
 export async function saveChainRecord(item: Chain) {
   if (!isSupabaseConfigured || !supabase) {
     const next = [item, ...loadChains().filter((current) => current.id !== item.id)]

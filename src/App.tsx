@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
   deleteCalibrationEventRecord,
+  deleteEquipmentRecord,
   loadAppData,
   saveCalibrationEventRecord,
   saveChainRecord,
@@ -44,7 +45,7 @@ const APP_USERS = [
 
 const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
 
-const APP_VERSION = 'v0.9.0'
+const APP_VERSION = 'v0.10.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -836,6 +837,30 @@ function App() {
     }
   }
 
+  async function handleDeleteEquipment(item: Equipment) {
+    const relatedEvents = events.filter((eventItem) => eventItem.equipmentId === item.id).length
+    const confirmed = window.confirm(
+      `Dar de baja definitivamente la balanza ${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}?` +
+        (relatedEvents > 0 ? ` Tambien se eliminaran ${relatedEvents} eventos asociados.` : '') +
+        ' Esta accion no se puede deshacer.',
+    )
+    if (!confirmed) return
+
+    try {
+      const result = await deleteEquipmentRecord(item.id)
+      setEquipment((current) => current.filter((currentItem) => currentItem.id !== item.id))
+      setEvents((current) => current.filter((eventItem) => eventItem.equipmentId !== item.id))
+      if (selectedEquipmentId === item.id) {
+        setSelectedEquipmentId('')
+      }
+      setDataSource(result.source)
+      setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo dar de baja la balanza.'
+      setSyncNotice(`Error al dar de baja balanza: ${message}`)
+    }
+  }
+
   if (!currentUser) {
     return (
       <div className="app-shell auth-shell">
@@ -1018,7 +1043,10 @@ function App() {
                         <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
                         <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
                       </div>
-                       <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
+                      <div className="row compact-actions">
+                        <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
+                        <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}>Dar de baja</button>
+                      </div>
                     </div>
                     <div className="grid four compact-top">
                       <Metric label="Ultimo factor" value={lastEvent ? String(lastEvent.finalAdjustment.factorAfter) : '-'} />
