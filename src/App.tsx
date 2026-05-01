@@ -31,7 +31,7 @@ type Toast = {
   tone: ToastTone
 }
 
-type UserRole = 'admin' | 'viewer'
+type UserRole = 'admin' | 'supervisor' | 'viewer'
 
 type AuthUser = {
   username: string
@@ -40,12 +40,13 @@ type AuthUser = {
 
 const APP_USERS = [
   { username: 'eze', password: 'admin', role: 'admin' as const },
+  { username: 'supervisor', password: 'demo2026', role: 'supervisor' as const },
   { username: 'demo', password: '1234', role: 'viewer' as const },
 ]
 
 const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
 
-const APP_VERSION = 'v0.10.0'
+const APP_VERSION = 'v0.11.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -276,7 +277,8 @@ function App() {
   )
 
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
-  const canEdit = currentUser?.role === 'admin'
+  const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'supervisor'
+  const canDelete = currentUser?.role === 'admin'
 
   useEffect(() => {
     if (!selectedEquipment) return
@@ -545,7 +547,7 @@ function App() {
     setCurrentUser({ username: user.username, role: user.role })
     setLoginUsername('')
     setLoginPassword('')
-    setScreen(user.role === 'admin' ? 'balanzas' : 'herramientas')
+    setScreen(user.role === 'viewer' ? 'herramientas' : 'balanzas')
     setSyncNotice(`Sesion iniciada como ${user.username}.`)
   }
 
@@ -873,11 +875,6 @@ function App() {
             <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
             <button className="primary" type="submit">Ingresar</button>
           </form>
-          <div className="hint-panel">
-            <strong>Perfiles disponibles</strong>
-            <p>`eze / admin`: acceso total</p>
-            <p>`demo / 1234`: solo herramientas e historial</p>
-          </div>
         </section>
       </div>
     )
@@ -893,7 +890,7 @@ function App() {
         </div>
         <div className="topbar-actions">
           <div className="chip version-chip">{APP_VERSION}</div>
-          <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : 'Consulta'}</div>
+          <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'supervisor' ? 'Supervisor' : 'Consulta'}</div>
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
@@ -1045,7 +1042,7 @@ function App() {
                       </div>
                       <div className="row compact-actions">
                         <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
-                        <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}>Dar de baja</button>
+                        {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}>Dar de baja</button>}
                       </div>
                     </div>
                     <div className="grid four compact-top">
@@ -1457,7 +1454,7 @@ function App() {
                       <h3>{item.id}</h3>
                       <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
                     </div>
-                    {canEdit && (
+                    {canDelete && (
                       <button className="secondary small danger" onClick={() => handleDeleteEvent(item.id)}>
                         Eliminar
                       </button>
