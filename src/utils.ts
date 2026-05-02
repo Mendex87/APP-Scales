@@ -20,6 +20,14 @@ export const formatDateTime = (value: string) => {
 
 export const generateId = () => crypto.randomUUID()
 
+export const normalizeDecimalInput = (value: string) => value.replace(/,/g, '.')
+
+export const toNumber = (value: string | number | null | undefined, fallback = 0) => {
+  const normalized = typeof value === 'string' ? normalizeDecimalInput(value).trim() : value
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
 export const computePercentError = (reference: number, measured: number) => {
   if (!reference || !measured) return 0
   return ((measured - reference) / reference) * 100

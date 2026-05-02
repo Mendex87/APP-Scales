@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.15 - Decimales con coma o punto
+
+- Se permite cargar valores numericos con coma o punto decimal en formularios y herramientas.
+- La app normaliza internamente la coma decimal como punto antes de calcular, validar y guardar.
+
 ## v1.1.14 - Frontend operativo
 
 - Se agrego landing publica con acceso a manuales e ingreso protegido.

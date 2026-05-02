@@ -35,8 +35,10 @@ import {
   formatDateTime,
   generateEventCode,
   generateId,
+  normalizeDecimalInput,
   nowLocalValue,
   round,
+  toNumber,
 } from './utils'
 
 type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
@@ -70,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.14'
+const APP_VERSION = 'v1.1.15'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -668,33 +670,33 @@ function App() {
   }, [equipment, events])
 
   const avgErrorPct = useMemo(
-    () => computePercentError(Number(eventForm.chainLinearKgM) || 0, Number(eventForm.avgControllerReadingKgM) || 0),
+    () => computePercentError(toNumber(eventForm.chainLinearKgM) || 0, toNumber(eventForm.avgControllerReadingKgM) || 0),
     [eventForm.chainLinearKgM, eventForm.avgControllerReadingKgM],
   )
 
-  const materialFactorBefore = Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0
+  const materialFactorBefore = toNumber(eventForm.provisionalFactor) || toNumber(eventForm.calibrationFactor) || 0
 
   const materialPasses = useMemo<MaterialPass[]>(() => {
     const rawPasses = [
       {
         index: 1,
-        externalWeightKg: Number(eventForm.materialPass1ExternalWeightKg || eventForm.externalWeightKg) || 0,
-        beltWeightKg: Number(eventForm.materialPass1BeltWeightKg || eventForm.beltWeightKg) || 0,
-        factorUsed: Number(eventForm.materialPass1Factor) || materialFactorBefore,
+        externalWeightKg: toNumber(eventForm.materialPass1ExternalWeightKg || eventForm.externalWeightKg) || 0,
+        beltWeightKg: toNumber(eventForm.materialPass1BeltWeightKg || eventForm.beltWeightKg) || 0,
+        factorUsed: toNumber(eventForm.materialPass1Factor) || materialFactorBefore,
         notes: eventForm.materialPass1Notes.trim(),
       },
       {
         index: 2,
-        externalWeightKg: Number(eventForm.materialPass2ExternalWeightKg) || 0,
-        beltWeightKg: Number(eventForm.materialPass2BeltWeightKg) || 0,
-        factorUsed: Number(eventForm.materialPass2Factor) || 0,
+        externalWeightKg: toNumber(eventForm.materialPass2ExternalWeightKg) || 0,
+        beltWeightKg: toNumber(eventForm.materialPass2BeltWeightKg) || 0,
+        factorUsed: toNumber(eventForm.materialPass2Factor) || 0,
         notes: eventForm.materialPass2Notes.trim(),
       },
       {
         index: 3,
-        externalWeightKg: Number(eventForm.materialPass3ExternalWeightKg) || 0,
-        beltWeightKg: Number(eventForm.materialPass3BeltWeightKg) || 0,
-        factorUsed: Number(eventForm.materialPass3Factor) || 0,
+        externalWeightKg: toNumber(eventForm.materialPass3ExternalWeightKg) || 0,
+        beltWeightKg: toNumber(eventForm.materialPass3BeltWeightKg) || 0,
+        factorUsed: toNumber(eventForm.materialPass3Factor) || 0,
         notes: eventForm.materialPass3Notes.trim(),
       },
     ]
@@ -719,13 +721,13 @@ function App() {
   )
 
   const materialAdjustmentApplied = useMemo(() => {
-    const finalFactor = Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || materialFactorBefore
+    const finalFactor = toNumber(eventForm.finalFactor) || finalMaterialPass?.factorUsed || materialFactorBefore
     return completeMaterialPasses.length > 1 || Math.abs(finalFactor - materialFactorBefore) > 0.000001
   }, [completeMaterialPasses.length, eventForm.finalFactor, finalMaterialPass, materialFactorBefore])
 
   const materialOutcome = useMemo<MaterialOutcome>(() => {
     if (!finalMaterialPass) return 'fuera_tolerancia'
-    if (Math.abs(finalMaterialPass.errorPct) > (Number(eventForm.tolerancePercent) || 1)) return 'fuera_tolerancia'
+    if (Math.abs(finalMaterialPass.errorPct) > (toNumber(eventForm.tolerancePercent) || 1)) return 'fuera_tolerancia'
     return materialAdjustmentApplied ? 'calibrada_ajustada' : 'control_conforme'
   }, [eventForm.tolerancePercent, finalMaterialPass, materialAdjustmentApplied])
 
@@ -761,8 +763,8 @@ function App() {
   )
 
   const zeroDrift = useMemo(() => {
-    const before = Number(eventForm.zeroBeforeValue)
-    const after = Number(eventForm.zeroAfterValue)
+    const before = toNumber(eventForm.zeroBeforeValue)
+    const after = toNumber(eventForm.zeroAfterValue)
     if (!Number.isFinite(before) || !Number.isFinite(after)) return null
     return after - before
   }, [eventForm.zeroBeforeValue, eventForm.zeroAfterValue])
@@ -774,8 +776,8 @@ function App() {
     if (!equipmentForm.beltCode.trim()) issues.push('Falta identificacion de cinta.')
     if (!equipmentForm.scaleName.trim()) issues.push('Falta nombre de balanza.')
     if (!equipmentForm.controllerModel.trim()) issues.push('Falta modelo de controlador.')
-    if (!(Number(equipmentForm.bridgeLengthM) > 0)) issues.push('La distancia de puente debe ser mayor a 0.')
-    if (!(Number(equipmentForm.nominalSpeedMs) > 0)) issues.push('La velocidad nominal debe ser mayor a 0.')
+    if (!(toNumber(equipmentForm.bridgeLengthM) > 0)) issues.push('La distancia de puente debe ser mayor a 0.')
+    if (!(toNumber(equipmentForm.nominalSpeedMs) > 0)) issues.push('La velocidad nominal debe ser mayor a 0.')
     return issues
   }, [equipmentForm])
 
@@ -783,7 +785,7 @@ function App() {
     const issues: string[] = []
     if (!chainForm.plant.trim()) issues.push('Falta planta.')
     if (!chainForm.name.trim()) issues.push('Falta nombre de cadena.')
-    if (!(Number(chainForm.linearWeightKgM) > 0)) issues.push('El peso por metro debe ser mayor a 0.')
+    if (!(toNumber(chainForm.linearWeightKgM) > 0)) issues.push('El peso por metro debe ser mayor a 0.')
     return issues
   }, [chainForm])
 
@@ -794,35 +796,35 @@ function App() {
     if (!eventForm.zeroCompleted) issues.push('Debés registrar el cero antes de calibrar.')
     if (!currentUser?.username.trim()) issues.push('Falta usuario responsable logueado.')
     if (requiresFullCalibration) {
-      if (!(Number(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
-      if (!(Number(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
-      if (!(Number(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
-      if (!(Number(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
-      if (!(Number(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
+      if (!(toNumber(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
+      if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
+      if (!(toNumber(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
+      if (!(toNumber(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
+      if (!(toNumber(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
     }
     if (!finalMaterialPass) issues.push('Falta una pasada completa con material real.')
     if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) issues.push('Falta el factor usado en una verificacion post-ajuste.')
     if (materialAdjustmentApplied && completeMaterialPasses.length < 2) issues.push('Si se ajusta el factor, falta una pasada posterior de verificacion.')
-    if (!(Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || materialFactorBefore)) issues.push('Falta el factor final o usado en la pasada final.')
+    if (!(toNumber(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || materialFactorBefore)) issues.push('Falta el factor final o usado en la pasada final.')
     return issues
   }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, requiresFullCalibration, selectedEquipment, suggestedFactor])
 
   const calibrationStepStates = useMemo(() => {
     const fullCalibrationReady = !requiresFullCalibration || (
-      Number(eventForm.chainLinearKgM) > 0 &&
-      Number(eventForm.avgControllerReadingKgM) > 0 &&
-      Number(eventForm.expectedFlowTph) > 0 &&
-      Number(eventForm.accumulatedTestMinutes) > 0 &&
-      Number(eventForm.accumulatedIndicatedTotal) > 0
+      toNumber(eventForm.chainLinearKgM) > 0 &&
+      toNumber(eventForm.avgControllerReadingKgM) > 0 &&
+      toNumber(eventForm.expectedFlowTph) > 0 &&
+      toNumber(eventForm.accumulatedTestMinutes) > 0 &&
+      toNumber(eventForm.accumulatedIndicatedTotal) > 0
     )
     return calibrationSteps.map((step, index) => {
       const complete = [
-        Boolean(selectedEquipment && eventForm.eventDate && Number(eventForm.tolerancePercent) > 0),
+        Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0),
         precheckPassed,
         eventForm.zeroCompleted,
-        Boolean(Number(eventForm.calibrationFactor) || Number(eventForm.zeroValue) || Number(eventForm.spanValue) || eventForm.extraParameters.trim()),
-        !requiresFullCalibration || (Number(eventForm.chainLinearKgM) > 0 && Number(eventForm.avgControllerReadingKgM) > 0),
-        !requiresFullCalibration || (Number(eventForm.expectedFlowTph) > 0 && Number(eventForm.accumulatedTestMinutes) > 0 && Number(eventForm.accumulatedIndicatedTotal) > 0),
+        Boolean(toNumber(eventForm.calibrationFactor) || toNumber(eventForm.zeroValue) || toNumber(eventForm.spanValue) || eventForm.extraParameters.trim()),
+        !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0),
+        !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
         Boolean(finalMaterialPass),
         eventBlockingIssues.length === 0,
       ][index]
@@ -833,8 +835,8 @@ function App() {
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
-    const rpm = Number(rpmToolForm.rpm) || 0
-    const indicated = Number(rpmToolForm.indicatedSpeedMs) || 0
+    const rpm = toNumber(rpmToolForm.rpm) || 0
+    const indicated = toNumber(rpmToolForm.indicatedSpeedMs) || 0
     if (!diameterMm || !rpm) return null
 
     const diameterM = diameterMm / 1000
@@ -855,8 +857,8 @@ function App() {
 
   const loopToolResult = useMemo(() => {
     const beltLengthM = selectedEquipment?.beltLengthM || 0
-    const loopTimeSeconds = Number(loopToolForm.loopTimeSeconds) || 0
-    const indicated = Number(loopToolForm.indicatedSpeedMs) || 0
+    const loopTimeSeconds = toNumber(loopToolForm.loopTimeSeconds) || 0
+    const indicated = toNumber(loopToolForm.indicatedSpeedMs) || 0
     if (!beltLengthM || !loopTimeSeconds) return null
 
     const speedMs = beltLengthM / loopTimeSeconds
@@ -875,10 +877,10 @@ function App() {
   }, [loopToolForm, selectedEquipment])
 
   const chainToolResult = useMemo(() => {
-    const chainLengthM = Number(chainToolForm.chainLengthM) || 0
-    const chainWeightKg = Number(chainToolForm.chainWeightKg) || 0
-    const trainLengthM = Number(chainToolForm.trainLengthM) || 0
-    const speedMs = Number(chainToolForm.speedMs) || 0
+    const chainLengthM = toNumber(chainToolForm.chainLengthM) || 0
+    const chainWeightKg = toNumber(chainToolForm.chainWeightKg) || 0
+    const trainLengthM = toNumber(chainToolForm.trainLengthM) || 0
+    const speedMs = toNumber(chainToolForm.speedMs) || 0
     if (!chainLengthM || !chainWeightKg || !trainLengthM || !speedMs) return null
 
     const kgPerMeter = chainWeightKg / chainLengthM
@@ -893,9 +895,9 @@ function App() {
   }, [chainToolForm])
 
   const factorToolResult = useMemo(() => {
-    const currentFactor = Number(factorToolForm.currentFactor) || 0
-    const controllerWeightKg = Number(factorToolForm.controllerWeightKg) || 0
-    const realWeightKg = Number(factorToolForm.realWeightKg) || 0
+    const currentFactor = toNumber(factorToolForm.currentFactor) || 0
+    const controllerWeightKg = toNumber(factorToolForm.controllerWeightKg) || 0
+    const realWeightKg = toNumber(factorToolForm.realWeightKg) || 0
     if (!currentFactor || !controllerWeightKg || !realWeightKg) return null
 
     const newFactor = currentFactor * (realWeightKg / controllerWeightKg)
@@ -912,10 +914,10 @@ function App() {
   }, [factorToolForm])
 
   const accumulatedToolResult = useMemo(() => {
-    const expectedFlowTph = Number(accumulatedToolForm.expectedFlowTph) || 0
-    const testMinutes = Number(accumulatedToolForm.testMinutes) || 0
-    const indicatedTotal = Number(accumulatedToolForm.indicatedTotal) || 0
-    const adjustmentFactorCurrent = Number(accumulatedToolForm.adjustmentFactorCurrent) || 0
+    const expectedFlowTph = toNumber(accumulatedToolForm.expectedFlowTph) || 0
+    const testMinutes = toNumber(accumulatedToolForm.testMinutes) || 0
+    const indicatedTotal = toNumber(accumulatedToolForm.indicatedTotal) || 0
+    const adjustmentFactorCurrent = toNumber(accumulatedToolForm.adjustmentFactorCurrent) || 0
     if (!expectedFlowTph || !testMinutes || !indicatedTotal || !adjustmentFactorCurrent) return null
 
     const expectedTotal = (expectedFlowTph * testMinutes) / 60
@@ -1289,15 +1291,15 @@ function App() {
         scaleName: equipmentForm.scaleName.trim(),
         controllerModel: equipmentForm.controllerModel.trim(),
         controllerSerial: equipmentForm.controllerSerial.trim(),
-        beltWidthMm: Number(equipmentForm.beltWidthMm) || 0,
-        beltLengthM: Number(equipmentForm.beltLengthM) || 0,
-        nominalCapacityTph: Number(equipmentForm.nominalCapacityTph) || 0,
-        bridgeLengthM: Number(equipmentForm.bridgeLengthM) || 0,
-        nominalSpeedMs: Number(equipmentForm.nominalSpeedMs) || 0,
+        beltWidthMm: toNumber(equipmentForm.beltWidthMm) || 0,
+        beltLengthM: toNumber(equipmentForm.beltLengthM) || 0,
+        nominalCapacityTph: toNumber(equipmentForm.nominalCapacityTph) || 0,
+        bridgeLengthM: toNumber(equipmentForm.bridgeLengthM) || 0,
+        nominalSpeedMs: toNumber(equipmentForm.nominalSpeedMs) || 0,
         speedSource: equipmentForm.speedSource,
-        rpmRollDiameterMm: Number(equipmentForm.rpmRollDiameterMm) || 0,
-        calibrationFactorCurrent: Number(equipmentForm.calibrationFactorCurrent) || 0,
-        adjustmentFactorCurrent: Number(equipmentForm.adjustmentFactorCurrent) || 1,
+        rpmRollDiameterMm: toNumber(equipmentForm.rpmRollDiameterMm) || 0,
+        calibrationFactorCurrent: toNumber(equipmentForm.calibrationFactorCurrent) || 0,
+        adjustmentFactorCurrent: toNumber(equipmentForm.adjustmentFactorCurrent) || 1,
         totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
         photoPath,
         notes: equipmentForm.notes.trim(),
@@ -1331,9 +1333,9 @@ function App() {
       id: generateId(),
       plant: chainForm.plant.trim(),
       name: chainForm.name.trim(),
-      linearWeightKgM: Number(chainForm.linearWeightKgM) || 0,
-      totalLengthM: Number(chainForm.totalLengthM) || 0,
-      totalWeightKg: Number(chainForm.totalWeightKg) || 0,
+      linearWeightKgM: toNumber(chainForm.linearWeightKgM) || 0,
+      totalLengthM: toNumber(chainForm.totalLengthM) || 0,
+      totalWeightKg: toNumber(chainForm.totalWeightKg) || 0,
       notes: chainForm.notes.trim(),
       createdAt: new Date().toISOString(),
     }
@@ -1361,14 +1363,14 @@ function App() {
     const factorBeforeAdjustment = materialFactorBefore
     const factorAfterAdjustment = materialOutcome === 'control_conforme'
       ? factorBeforeAdjustment
-      : Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || factorBeforeAdjustment
+      : toNumber(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || factorBeforeAdjustment
 
     const record: CalibrationEvent = {
       id: generateEventCode(eventForm.eventDate, events),
       equipmentId: selectedEquipment.id,
       createdAt: new Date().toISOString(),
       eventDate: new Date(eventForm.eventDate).toISOString(),
-      tolerancePercent: Number(eventForm.tolerancePercent) || 1,
+      tolerancePercent: toNumber(eventForm.tolerancePercent) || 1,
       precheck: {
         beltEmpty: eventForm.precheckBeltEmpty,
         beltClean: eventForm.precheckBeltClean,
@@ -1387,12 +1389,12 @@ function App() {
         notes: eventForm.zeroNotes.trim(),
       },
       parameterSnapshot: {
-        calibrationFactor: Number(eventForm.calibrationFactor) || 0,
-        zeroValue: Number(eventForm.zeroValue) || 0,
-        spanValue: Number(eventForm.spanValue) || 0,
+        calibrationFactor: toNumber(eventForm.calibrationFactor) || 0,
+        zeroValue: toNumber(eventForm.zeroValue) || 0,
+        spanValue: toNumber(eventForm.spanValue) || 0,
         filterValue: eventForm.filterValue.trim(),
-        bridgeLengthM: Number(eventForm.snapshotBridgeLengthM) || 0,
-        nominalSpeedMs: Number(eventForm.snapshotNominalSpeedMs) || 0,
+        bridgeLengthM: toNumber(eventForm.snapshotBridgeLengthM) || 0,
+        nominalSpeedMs: toNumber(eventForm.snapshotNominalSpeedMs) || 0,
         units: eventForm.units.trim(),
         internalConstants: eventForm.internalConstants.trim(),
         extraParameters: eventForm.extraParameters.trim(),
@@ -1402,33 +1404,33 @@ function App() {
       chainSpan: {
         chainId: eventForm.chainId.trim(),
         chainName: eventForm.chainName.trim(),
-        chainLinearKgM: Number(eventForm.chainLinearKgM) || 0,
-        passCount: Number(eventForm.passCount) || 0,
-        avgControllerReadingKgM: Number(eventForm.avgControllerReadingKgM) || 0,
+        chainLinearKgM: toNumber(eventForm.chainLinearKgM) || 0,
+        passCount: toNumber(eventForm.passCount) || 0,
+        avgControllerReadingKgM: toNumber(eventForm.avgControllerReadingKgM) || 0,
         avgErrorPct: round(avgErrorPct),
-        provisionalFactor: Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0,
+        provisionalFactor: toNumber(eventForm.provisionalFactor) || toNumber(eventForm.calibrationFactor) || 0,
       },
       accumulatedCheck: {
-        expectedFlowTph: Number(eventForm.expectedFlowTph) || 0,
-        testMinutes: Number(eventForm.accumulatedTestMinutes) || 0,
-        expectedTotal: ((Number(eventForm.expectedFlowTph) || 0) * (Number(eventForm.accumulatedTestMinutes) || 0)) / 60,
-        indicatedTotal: Number(eventForm.accumulatedIndicatedTotal) || 0,
+        expectedFlowTph: toNumber(eventForm.expectedFlowTph) || 0,
+        testMinutes: toNumber(eventForm.accumulatedTestMinutes) || 0,
+        expectedTotal: ((toNumber(eventForm.expectedFlowTph) || 0) * (toNumber(eventForm.accumulatedTestMinutes) || 0)) / 60,
+        indicatedTotal: toNumber(eventForm.accumulatedIndicatedTotal) || 0,
         errorPct:
-          Number(eventForm.expectedFlowTph) > 0 && Number(eventForm.accumulatedTestMinutes) > 0 && Number(eventForm.accumulatedIndicatedTotal) > 0
+          toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0
             ? round(
-                ((Number(eventForm.accumulatedIndicatedTotal) -
-                  ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) /
-                  ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) *
+                ((toNumber(eventForm.accumulatedIndicatedTotal) -
+                  ((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60)) /
+                  ((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60)) *
                   100,
               )
             : 0,
-        adjustmentFactorBefore: Number(eventForm.adjustmentFactorBefore) || selectedEquipment.adjustmentFactorCurrent || 1,
+        adjustmentFactorBefore: toNumber(eventForm.adjustmentFactorBefore) || selectedEquipment.adjustmentFactorCurrent || 1,
         adjustmentFactorSuggested:
-          Number(eventForm.expectedFlowTph) > 0 && Number(eventForm.accumulatedTestMinutes) > 0 && Number(eventForm.accumulatedIndicatedTotal) > 0
+          toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0
             ? round(
-                (Number(eventForm.adjustmentFactorBefore) || selectedEquipment.adjustmentFactorCurrent || 1) *
-                  ((((Number(eventForm.expectedFlowTph) || 0) * (Number(eventForm.accumulatedTestMinutes) || 0)) / 60) /
-                    (Number(eventForm.accumulatedIndicatedTotal) || 1)),
+                (toNumber(eventForm.adjustmentFactorBefore) || selectedEquipment.adjustmentFactorCurrent || 1) *
+                  ((((toNumber(eventForm.expectedFlowTph) || 0) * (toNumber(eventForm.accumulatedTestMinutes) || 0)) / 60) /
+                    (toNumber(eventForm.accumulatedIndicatedTotal) || 1)),
                 6,
               )
             : 0,
@@ -2204,8 +2206,8 @@ function App() {
                 </div>
                 <div className="grid three compact-top">
                   <Metric label="Error promedio" value={`${round(avgErrorPct)} %`} />
-                  <Metric label="Referencia cadena" value={`${round(Number(eventForm.chainLinearKgM) || 0)} kg/m`} />
-                  <Metric label="Promedio controlador" value={`${round(Number(eventForm.avgControllerReadingKgM) || 0)} kg/m`} />
+                  <Metric label="Referencia cadena" value={`${round(toNumber(eventForm.chainLinearKgM) || 0)} kg/m`} />
+                  <Metric label="Promedio controlador" value={`${round(toNumber(eventForm.avgControllerReadingKgM) || 0)} kg/m`} />
                 </div>
               </CollapsibleCard>}
 
@@ -2219,9 +2221,9 @@ function App() {
                   <Field label="Factor ajuste antes" type="number" value={eventForm.adjustmentFactorBefore} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentFactorBefore: value }))} />
                 </div>
                 <div className="grid four compact-top">
-                  <Metric label="Acumulado esperado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? String(round((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60, 6)) : '-'} />
-                  <Metric label="Error acumulado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal ? `${round((((Number(eventForm.accumulatedIndicatedTotal) - ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) / ((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60)) * 100), 3)} %` : '-'} />
-                  <Metric label="Factor ajuste sugerido" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal && eventForm.adjustmentFactorBefore ? String(round(Number(eventForm.adjustmentFactorBefore) * ((((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60) / Number(eventForm.accumulatedIndicatedTotal))), 6)) : '-'} />
+                  <Metric label="Acumulado esperado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? String(round((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60, 6)) : '-'} />
+                  <Metric label="Error acumulado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal ? `${round((((toNumber(eventForm.accumulatedIndicatedTotal) - ((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60)) / ((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60)) * 100), 3)} %` : '-'} />
+                  <Metric label="Factor ajuste sugerido" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal && eventForm.adjustmentFactorBefore ? String(round(toNumber(eventForm.adjustmentFactorBefore) * ((((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60) / toNumber(eventForm.accumulatedIndicatedTotal))), 6)) : '-'} />
                   <Metric label="Regla" value="Si el instantaneo esta bien, corregir con factor de ajuste" />
                 </div>
               </CollapsibleCard>}
@@ -2241,7 +2243,7 @@ function App() {
                           <span className="section-kicker">{passNumber === 1 ? 'Control inicial' : 'Verificacion post-ajuste'}</span>
                           <h3>Pasada {passNumber}</h3>
                         </div>
-                        <strong className={Math.abs(pass.errorPct) <= Number(eventForm.tolerancePercent || 1) && pass.externalWeightKg && pass.beltWeightKg ? 'status-pill success' : 'status-pill'}>
+                        <strong className={Math.abs(pass.errorPct) <= toNumber(eventForm.tolerancePercent || 1) && pass.externalWeightKg && pass.beltWeightKg ? 'status-pill success' : 'status-pill'}>
                           {pass.externalWeightKg && pass.beltWeightKg ? `${round(pass.errorPct)} %` : 'Pendiente'}
                         </strong>
                       </div>
@@ -2710,11 +2712,15 @@ function EquipmentPhoto({
 type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string }
 
 function Field({ label, value, onChange, type = 'text' }: FieldProps) {
+  const inputType = type === 'number' ? 'text' : type
   const inputMode = type === 'number' ? 'decimal' : type === 'email' ? 'email' : undefined
+  const handleChange = (rawValue: string) => {
+    onChange(type === 'number' ? normalizeDecimalInput(rawValue) : rawValue)
+  }
   return (
     <div>
       <label className="label">{label}</label>
-      <input className="input" type={type} inputMode={inputMode} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} />
     </div>
   )
 }
@@ -2747,3 +2753,4 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 export default App
+
