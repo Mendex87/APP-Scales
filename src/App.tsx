@@ -33,6 +33,14 @@ type Toast = {
   tone: ToastTone
 }
 
+type ConfirmDialog = {
+  title: string
+  message: string
+  detail?: string
+  confirmLabel: string
+  onConfirm: () => void | Promise<void>
+}
+
 type UserRole = 'admin' | 'tecnico' | 'supervisor' | 'viewer'
 
 type AuthUser = {
@@ -46,7 +54,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.0'
+const APP_VERSION = 'v1.0.1'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -180,6 +188,7 @@ function App() {
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
@@ -266,6 +275,7 @@ function App() {
 
     const id = generateId()
     setToasts((current) => [...current, { id, message: syncNotice, tone }])
+    setSyncNotice('')
     const timeoutId = window.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== id))
     }, 4200)
@@ -766,6 +776,13 @@ function App() {
     setPhotoViewer({ src, title: `${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}` })
   }
 
+  function handleConfirmDialog() {
+    if (!confirmDialog) return
+    const action = confirmDialog.onConfirm
+    setConfirmDialog(null)
+    void action()
+  }
+
   async function resizeImage(file: File) {
     const image = new Image()
     const objectUrl = URL.createObjectURL(file)
@@ -1072,65 +1089,74 @@ function App() {
   }
 
   async function handleDeleteEvent(eventId: string) {
-    const confirmed = window.confirm(`Eliminar definitivamente el evento ${eventId}? Esta accion no se puede deshacer.`)
-    if (!confirmed) return
-
-    try {
-      const result = await deleteCalibrationEventRecord(eventId)
-      setEvents((current) => current.filter((item) => item.id !== eventId))
-      setDataSource(result.source)
-      setSyncNotice(`Evento ${eventId} eliminado.`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo eliminar el evento.'
-      setSyncNotice(`Error al eliminar evento: ${message}`)
-    }
+    setConfirmDialog({
+      title: 'Eliminar evento',
+      message: `Eliminar definitivamente el evento ${eventId}?`,
+      detail: 'Esta accion no se puede deshacer.',
+      confirmLabel: 'Eliminar evento',
+      onConfirm: async () => {
+        try {
+          const result = await deleteCalibrationEventRecord(eventId)
+          setEvents((current) => current.filter((item) => item.id !== eventId))
+          setDataSource(result.source)
+          setSyncNotice(`Evento ${eventId} eliminado.`)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'No se pudo eliminar el evento.'
+          setSyncNotice(`Error al eliminar evento: ${message}`)
+        }
+      },
+    })
   }
 
   async function handleDeleteEquipment(item: Equipment) {
     const relatedEvents = events.filter((eventItem) => eventItem.equipmentId === item.id).length
-    const confirmed = window.confirm(
-      `Dar de baja definitivamente la balanza ${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}?` +
-        (relatedEvents > 0 ? ` Tambien se eliminaran ${relatedEvents} eventos asociados.` : '') +
-        ' Esta accion no se puede deshacer.',
-    )
-    if (!confirmed) return
-
-    try {
-      const result = await deleteEquipmentRecord(item.id)
-      setEquipment((current) => current.filter((currentItem) => currentItem.id !== item.id))
-      setEvents((current) => current.filter((eventItem) => eventItem.equipmentId !== item.id))
-      if (selectedEquipmentId === item.id) {
-        setSelectedEquipmentId('')
-      }
-      setDataSource(result.source)
-      setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo dar de baja la balanza.'
-      setSyncNotice(`Error al dar de baja balanza: ${message}`)
-    }
+    setConfirmDialog({
+      title: 'Dar de baja balanza',
+      message: `${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}`,
+      detail: `${relatedEvents > 0 ? `Tambien se eliminaran ${relatedEvents} eventos asociados. ` : ''}Esta accion no se puede deshacer.`,
+      confirmLabel: 'Dar de baja',
+      onConfirm: async () => {
+        try {
+          const result = await deleteEquipmentRecord(item.id)
+          setEquipment((current) => current.filter((currentItem) => currentItem.id !== item.id))
+          setEvents((current) => current.filter((eventItem) => eventItem.equipmentId !== item.id))
+          if (selectedEquipmentId === item.id) {
+            setSelectedEquipmentId('')
+          }
+          setDataSource(result.source)
+          setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'No se pudo dar de baja la balanza.'
+          setSyncNotice(`Error al dar de baja balanza: ${message}`)
+        }
+      },
+    })
   }
 
   async function handleDeleteChain(item: Chain) {
-    const confirmed = window.confirm(
-      `Eliminar definitivamente la cadena ${item.plant} / ${item.name}? Los eventos historicos conservaran el nombre y kg/m registrados. Esta accion no se puede deshacer.`,
-    )
-    if (!confirmed) return
-
-    try {
-      const result = await deleteChainRecord(item.id)
-      setChains((current) => current.filter((currentItem) => currentItem.id !== item.id))
-      if (selectedChainId === item.id) {
-        setSelectedChainId('')
-      }
-      if (eventForm.chainId === item.id) {
-        setEventForm((current) => ({ ...current, chainId: '', chainName: '', chainLinearKgM: '' }))
-      }
-      setDataSource(result.source)
-      setSyncNotice(`Cadena ${item.name} eliminada.`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo eliminar la cadena.'
-      setSyncNotice(`Error al eliminar cadena: ${message}`)
-    }
+    setConfirmDialog({
+      title: 'Eliminar cadena',
+      message: `${item.plant} / ${item.name}`,
+      detail: 'Los eventos historicos conservaran el nombre y kg/m registrados. Esta accion no se puede deshacer.',
+      confirmLabel: 'Eliminar cadena',
+      onConfirm: async () => {
+        try {
+          const result = await deleteChainRecord(item.id)
+          setChains((current) => current.filter((currentItem) => currentItem.id !== item.id))
+          if (selectedChainId === item.id) {
+            setSelectedChainId('')
+          }
+          if (eventForm.chainId === item.id) {
+            setEventForm((current) => ({ ...current, chainId: '', chainName: '', chainLinearKgM: '' }))
+          }
+          setDataSource(result.source)
+          setSyncNotice(`Cadena ${item.name} eliminada.`)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'No se pudo eliminar la cadena.'
+          setSyncNotice(`Error al eliminar cadena: ${message}`)
+        }
+      },
+    })
   }
 
   async function loadManagedUsers() {
@@ -1173,27 +1199,33 @@ function App() {
 
   async function handleDeleteUser(user: ManagedUser) {
     if (!supabase || !canManageUsers) return
+    const client = supabase
     if (user.id === currentUser?.id) {
       setSyncNotice('No podés eliminar tu propio usuario activo.')
       return
     }
-    const confirmed = window.confirm(`Eliminar definitivamente el usuario ${user.email}? Esta accion no se puede deshacer.`)
-    if (!confirmed) return
-
-    setUserManagementLoading(true)
-    try {
-      const { error } = await supabase.functions.invoke('manage-users', {
-        body: { action: 'delete', userId: user.id },
-      })
-      if (error) throw error
-      setSyncNotice(`Usuario ${user.email} eliminado.`)
-      await loadManagedUsers()
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo eliminar el usuario.'
-      setSyncNotice(`Error al eliminar usuario: ${message}`)
-    } finally {
-      setUserManagementLoading(false)
-    }
+    setConfirmDialog({
+      title: 'Eliminar usuario',
+      message: user.email,
+      detail: 'Esta accion no se puede deshacer.',
+      confirmLabel: 'Eliminar usuario',
+      onConfirm: async () => {
+        setUserManagementLoading(true)
+        try {
+          const { error } = await client.functions.invoke('manage-users', {
+            body: { action: 'delete', userId: user.id },
+          })
+          if (error) throw error
+          setSyncNotice(`Usuario ${user.email} eliminado.`)
+          await loadManagedUsers()
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'No se pudo eliminar el usuario.'
+          setSyncNotice(`Error al eliminar usuario: ${message}`)
+        } finally {
+          setUserManagementLoading(false)
+        }
+      },
+    })
   }
 
   if (authLoading) {
@@ -1291,7 +1323,21 @@ function App() {
         </div>
       )}
 
-      {syncNotice && <div className="notice">{syncNotice}</div>}
+      {confirmDialog && (
+        <div className="confirm-modal" role="dialog" aria-modal="true" aria-label={confirmDialog.title}>
+          <button className="confirm-modal-backdrop" type="button" onClick={() => setConfirmDialog(null)} aria-label="Cancelar accion" />
+          <div className="confirm-modal-card">
+            <span className="section-kicker">Accion destructiva</span>
+            <h2>{confirmDialog.title}</h2>
+            <p className="confirm-message">{confirmDialog.message}</p>
+            {confirmDialog.detail && <p className="confirm-detail">{confirmDialog.detail}</p>}
+            <div className="row compact-actions confirm-actions">
+              <button className="secondary" type="button" onClick={() => setConfirmDialog(null)}>Cancelar</button>
+              <button className="secondary danger" type="button" onClick={handleConfirmDialog}>{confirmDialog.confirmLabel}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loadingData && <div className="notice">Cargando datos...</div>}
 

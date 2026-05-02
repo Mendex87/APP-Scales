@@ -288,7 +288,8 @@ body::before {
   font-size: 0.64rem;
 }
 
-.photo-modal {
+.photo-modal,
+.confirm-modal {
   position: fixed;
   inset: 0;
   z-index: 90;
@@ -297,7 +298,8 @@ body::before {
   padding: 1rem;
 }
 
-.photo-modal-backdrop {
+.photo-modal-backdrop,
+.confirm-modal-backdrop {
   position: absolute;
   inset: 0;
   border: 0;
@@ -305,7 +307,8 @@ body::before {
   backdrop-filter: blur(10px);
 }
 
-.photo-modal-card {
+.photo-modal-card,
+.confirm-modal-card {
   position: relative;
   z-index: 1;
   width: min(880px, 100%);
@@ -328,6 +331,42 @@ body::before {
   line-height: 0.95;
   letter-spacing: -0.03em;
   text-transform: uppercase;
+}
+
+.confirm-modal-card {
+  width: min(520px, 100%);
+  border-top: 4px solid var(--color-error);
+}
+
+.confirm-modal-card h2 {
+  margin: 0;
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.confirm-message,
+.confirm-detail {
+  margin: 0;
+}
+
+.confirm-message {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.confirm-detail {
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--radius);
+  background: #ffe0dc;
+  color: #842118;
+  border: 1px solid rgba(196, 59, 48, 0.35);
+}
+
+.confirm-actions {
+  justify-content: flex-end;
 }
 
 .photo-modal-card img {

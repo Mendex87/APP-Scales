@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## v1.0.1 - Confirmaciones y avisos
 
 - Se agrego eliminacion de cadenas de calibracion solo para administradores.
 - Se ajusto la seleccion de cadena en nueva calibracion para precargar siempre el kg/m de la cadena elegida, manteniendo el campo editable.
 - Se documento el plan de reordenamiento de nueva calibracion hacia un flujo por contexto, inspeccion, cero, parametros, span, acumulado, material real y cierre.
+- Se reemplazaron las confirmaciones nativas del navegador por un modal propio de la app para acciones destructivas.
+- Se elimino el aviso persistente de `syncNotice` para que los mensajes operativos aparezcan como toasts temporales.
 
 ## v1.0.0 - Punto base operativo
 
