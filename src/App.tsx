@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -54,7 +54,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.3'
+const APP_VERSION = 'v1.0.4'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -189,6 +189,7 @@ function App() {
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
+  const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
@@ -756,7 +757,7 @@ function App() {
       notes: item.notes,
     })
     setScreen('balanzas')
-    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
+    window.setTimeout(() => equipmentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
   function resetEquipmentForm() {
@@ -1350,6 +1351,7 @@ function App() {
               <h2>Listado de balanzas y estado operativo</h2>
               <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
             </div>
+            <div ref={equipmentFormRef} className="scroll-anchor">
             <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
                   <div>
@@ -1430,6 +1432,7 @@ function App() {
                 </div>
               </form>}
             </CollapsibleCard>
+            </div>
 
             <CollapsibleCard title="Cadenas de calibracion" hint="Gestion de pesos patron reutilizables por planta." defaultOpen={chains.length === 0}>
               <div className="row wrap">

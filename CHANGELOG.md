@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.4 - Interacciones visuales
+
+- Se ajusto el scroll de `Editar` para llevar directamente al formulario de balanza.
+- Se mejoraron los efectos hover/active de botones con transiciones visuales mas industriales.
+
 ## v1.0.3 - Edicion de balanzas
 
 - Se ajusto el boton `Editar` para abrir automaticamente el formulario de balanza y llevar al usuario al inicio de la pantalla.
