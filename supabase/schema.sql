@@ -24,7 +24,7 @@ create table if not exists public.equipments (
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text not null default '',
-  role text not null check (role in ('admin', 'supervisor', 'viewer')),
+  role text not null,
   created_at timestamptz not null default now()
 );
 
@@ -37,6 +37,13 @@ stable
 as $$
   select role from public.profiles where id = auth.uid()
 $$;
+
+alter table public.profiles
+  drop constraint if exists profiles_role_check;
+
+alter table public.profiles
+  add constraint profiles_role_check
+  check (role in ('admin', 'tecnico', 'supervisor', 'viewer'));
 
 create table if not exists public.chains (
   id text primary key,
@@ -140,7 +147,7 @@ using (true);
 create policy "public insert equipments"
 on public.equipments for insert
 to authenticated
-with check (public.current_user_role() in ('admin', 'supervisor'));
+with check (public.current_user_role() in ('admin', 'tecnico'));
 
 create policy "public update equipments"
 on public.equipments for update
@@ -161,13 +168,13 @@ using (true);
 create policy "public insert chains"
 on public.chains for insert
 to authenticated
-with check (public.current_user_role() in ('admin', 'supervisor'));
+with check (public.current_user_role() in ('admin', 'tecnico'));
 
 create policy "public update chains"
 on public.chains for update
 to authenticated
-using (public.current_user_role() in ('admin', 'supervisor'))
-with check (public.current_user_role() in ('admin', 'supervisor'));
+using (public.current_user_role() in ('admin', 'tecnico'))
+with check (public.current_user_role() in ('admin', 'tecnico'));
 
 create policy "public read calibration_events"
 on public.calibration_events for select
@@ -177,13 +184,13 @@ using (true);
 create policy "public insert calibration_events"
 on public.calibration_events for insert
 to authenticated
-with check (public.current_user_role() in ('admin', 'supervisor'));
+with check (public.current_user_role() in ('admin', 'tecnico'));
 
 create policy "public update calibration_events"
 on public.calibration_events for update
 to authenticated
-using (public.current_user_role() in ('admin', 'supervisor'))
-with check (public.current_user_role() in ('admin', 'supervisor'));
+using (public.current_user_role() in ('admin', 'tecnico'))
+with check (public.current_user_role() in ('admin', 'tecnico'));
 
 create policy "public delete calibration_events"
 on public.calibration_events for delete
@@ -214,5 +221,5 @@ using (bucket_id = 'equipment-photos');
 create policy "equipment photos write"
 on storage.objects for all
 to authenticated
-using (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'supervisor'))
-with check (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'supervisor'));
+using (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'tecnico'))
+with check (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'tecnico'));

@@ -805,10 +805,32 @@ body::before {
 
 .metric,
 .result-row,
-.notice {
+.notice,
+.system-field {
   background: #e5e2da;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+}
+
+.system-field {
+  min-height: 50px;
+  padding: 0.85rem 0.9rem;
+}
+
+.system-field span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--color-grey-500);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.system-field strong {
+  display: block;
+  color: var(--color-ink);
 }
 
 .metric {
@@ -1016,6 +1038,10 @@ body::before {
 
 .bottom-nav.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bottom-nav.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .nav-item {

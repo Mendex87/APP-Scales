@@ -32,7 +32,7 @@ type Toast = {
   tone: ToastTone
 }
 
-type UserRole = 'admin' | 'supervisor' | 'viewer'
+type UserRole = 'admin' | 'tecnico' | 'supervisor' | 'viewer'
 
 type AuthUser = {
   id: string
@@ -45,7 +45,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v0.13.0'
+const APP_VERSION = 'v0.14.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -325,11 +325,14 @@ function App() {
 
   useEffect(() => {
     if (!currentUser) return
-    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva' || screen === 'usuarios')) {
+    if (currentUser.role !== 'admin' && screen === 'usuarios') {
+      setScreen(currentUser.role === 'viewer' ? 'herramientas' : 'balanzas')
+    }
+    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
       setScreen('herramientas')
     }
-    if (currentUser.role === 'supervisor' && screen === 'usuarios') {
-      setScreen('herramientas')
+    if (currentUser.role === 'supervisor' && screen === 'nueva') {
+      setScreen('balanzas')
     }
   }, [currentUser, screen])
 
@@ -350,7 +353,8 @@ function App() {
     : 'Sin calibrar'
 
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
-  const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'supervisor'
+  const canOperate = currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
+  const canReview = currentUser?.role === 'admin' || currentUser?.role === 'tecnico' || currentUser?.role === 'supervisor'
   const canDelete = currentUser?.role === 'admin'
   const canManageUsers = currentUser?.role === 'admin'
 
@@ -475,7 +479,7 @@ function App() {
     if (!selectedEquipment) issues.push('Seleccioná una balanza.')
     if (!precheckPassed) issues.push('Completá toda la inspeccion previa.')
     if (!eventForm.zeroCompleted) issues.push('Debés registrar el cero antes de calibrar.')
-    if (!eventForm.technician.trim()) issues.push('Falta el tecnico responsable.')
+    if (!currentUser?.username.trim()) issues.push('Falta usuario responsable logueado.')
     if (!(Number(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
     if (!(Number(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
     if (!(Number(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
@@ -485,7 +489,7 @@ function App() {
     if (!(Number(eventForm.beltWeightKg) > 0)) issues.push('Falta el peso medido por balanza.')
     if (!(Number(eventForm.finalFactor || suggestedFactor) > 0)) issues.push('Falta el factor final o sugerido.')
     return issues
-  }, [eventForm, precheckPassed, selectedEquipment, suggestedFactor])
+  }, [currentUser, eventForm, precheckPassed, selectedEquipment, suggestedFactor])
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -951,7 +955,7 @@ function App() {
         units: eventForm.units.trim(),
         internalConstants: eventForm.internalConstants.trim(),
         extraParameters: eventForm.extraParameters.trim(),
-        changedBy: eventForm.changedBy.trim(),
+        changedBy: currentUser?.username || '',
         changedReason: eventForm.changedReason.trim(),
       },
       chainSpan: {
@@ -1001,7 +1005,7 @@ function App() {
         reason: eventForm.adjustmentReason.trim(),
       },
       approval: {
-        technician: eventForm.technician.trim(),
+        technician: currentUser?.username || '',
         approvedAt: new Date(eventForm.eventDate).toISOString(),
       },
       diagnosis: automaticDiagnosis.join(' '),
@@ -1190,7 +1194,7 @@ function App() {
         </div>
         <div className="topbar-actions">
           <div className="chip version-chip">{APP_VERSION}</div>
-          <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'supervisor' ? 'Supervisor' : 'Consulta'}</div>
+          <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'tecnico' ? 'Tecnico' : currentUser.role === 'supervisor' ? 'Supervisor' : 'Consulta'}</div>
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
@@ -1251,7 +1255,7 @@ function App() {
       {loadingData && <div className="notice">Cargando datos...</div>}
 
       <main className="content">
-        {screen === 'balanzas' && canEdit && (
+        {screen === 'balanzas' && canReview && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Parque instalado</span>
@@ -1264,11 +1268,11 @@ function App() {
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
                     <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : 'La app arranca mostrando equipos y su ultimo estado conocido.'}</p>
                   </div>
-                  <button className="secondary" onClick={() => setScreen('nueva')}>
+                  {canOperate && <button className="secondary" onClick={() => setScreen('nueva')}>
                     Nueva calibracion
-                  </button>
+                  </button>}
               </div>
-              <form className="stack" onSubmit={handleEquipmentSubmit}>
+              {canOperate && <form className="stack" onSubmit={handleEquipmentSubmit}>
                 <div className="grid two">
                   <Field label="Planta" value={equipmentForm.plant} onChange={(value) => setEquipmentForm((current) => ({ ...current, plant: value }))} />
                   <Field label="Linea" value={equipmentForm.line} onChange={(value) => setEquipmentForm((current) => ({ ...current, line: value }))} />
@@ -1336,7 +1340,7 @@ function App() {
                   <button className="primary" type="submit">{editingEquipmentId ? 'Actualizar balanza' : 'Guardar balanza'}</button>
                   {editingEquipmentId && <button className="secondary" type="button" onClick={resetEquipmentForm}>Cancelar edicion</button>}
                 </div>
-              </form>
+              </form>}
             </CollapsibleCard>
 
             <CollapsibleCard title="Cadenas de calibracion" hint="Gestion de pesos patron reutilizables por planta." defaultOpen={chains.length === 0}>
@@ -1346,7 +1350,7 @@ function App() {
                   <p className="hint">Definí una cadena por planta y reutilizala en herramientas y eventos.</p>
                 </div>
               </div>
-              <form className="stack" onSubmit={handleChainSubmit}>
+              {canOperate && <form className="stack" onSubmit={handleChainSubmit}>
                 <div className="grid two">
                   <Field label="Planta" value={chainForm.plant} onChange={(value) => setChainForm((current) => ({ ...current, plant: value }))} />
                   <Field label="Nombre de cadena" value={chainForm.name} onChange={(value) => setChainForm((current) => ({ ...current, name: value }))} />
@@ -1366,7 +1370,7 @@ function App() {
                   </div>
                 )}
                 <button className="primary" type="submit">Guardar cadena</button>
-              </form>
+              </form>}
               <div className="stack compact-top">
                 {chains.map((item) => (
                   <div className="result-row" key={item.id}>
@@ -1400,7 +1404,7 @@ function App() {
                         </div>
                       </div>
                       <div className="row compact-actions">
-                        <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
+                        {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>}
                         {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}>Editar</button>}
                         {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}>Dar de baja</button>}
                       </div>
@@ -1420,7 +1424,7 @@ function App() {
           </section>
         )}
 
-        {screen === 'nueva' && canEdit && (
+        {screen === 'nueva' && canOperate && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Evento de calibracion</span>
@@ -1552,7 +1556,10 @@ function App() {
                   <Field label="Puente pesaje (m)" type="number" value={eventForm.snapshotBridgeLengthM} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: value }))} />
                   <Field label="Velocidad nominal (m/s)" type="number" value={eventForm.snapshotNominalSpeedMs} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: value }))} />
                   <Field label="Unidades" value={eventForm.units} onChange={(value) => setEventForm((current) => ({ ...current, units: value }))} />
-                  <Field label="Quien cambio" value={eventForm.changedBy} onChange={(value) => setEventForm((current) => ({ ...current, changedBy: value }))} />
+                  <div className="system-field">
+                    <span>Cambio registrado por</span>
+                    <strong>{currentUser.username}</strong>
+                  </div>
                 </div>
                 <TextArea label="Constantes internas" value={eventForm.internalConstants} onChange={(value) => setEventForm((current) => ({ ...current, internalConstants: value }))} />
                 <TextArea label="Parametros extra" value={eventForm.extraParameters} onChange={(value) => setEventForm((current) => ({ ...current, extraParameters: value }))} />
@@ -1611,7 +1618,10 @@ function App() {
                 <h2>Ajuste final y aprobacion</h2>
                 <div className="grid two">
                   <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
-                  <Field label="Tecnico" value={eventForm.technician} onChange={(value) => setEventForm((current) => ({ ...current, technician: value }))} />
+                  <div className="system-field">
+                    <span>Responsable tecnico</span>
+                    <strong>{currentUser.username}</strong>
+                  </div>
                 </div>
                 <TextArea label="Motivo del ajuste" value={eventForm.adjustmentReason} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentReason: value }))} />
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
@@ -1719,7 +1729,7 @@ function App() {
                 <Metric label="m/h" value={rpmToolResult ? String(round(rpmToolResult.speedMh, 1)) : '-'} />
                 <Metric label="Error %" value={rpmToolResult && rpmToolForm.indicatedSpeedMs ? `${round(rpmToolResult.errorPct, 3)} %` : '-'} />
               </div>
-              <button className="secondary" disabled={!rpmToolResult || !canEdit} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
+              <button className="secondary" disabled={!rpmToolResult || !canOperate} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
                 Usar velocidad en evento
               </button>
             </CollapsibleCard>
@@ -1736,7 +1746,7 @@ function App() {
                 <Metric label="m/h" value={loopToolResult ? String(round(loopToolResult.speedMh, 1)) : '-'} />
                 <Metric label="Error %" value={loopToolResult && loopToolForm.indicatedSpeedMs ? `${round(loopToolResult.errorPct, 3)} %` : '-'} />
               </div>
-              <button className="secondary" disabled={!loopToolResult || !canEdit} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
+              <button className="secondary" disabled={!loopToolResult || !canOperate} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
                 Usar velocidad en evento
               </button>
             </CollapsibleCard>
@@ -1754,7 +1764,7 @@ function App() {
                 <Metric label="kg sobre tren" value={chainToolResult ? String(round(chainToolResult.kgOnTrain, 3)) : '-'} />
                 <Metric label="Caudal esperado t/h" value={chainToolResult ? String(round(chainToolResult.tph, 3)) : '-'} />
               </div>
-              <button className="secondary" disabled={!chainToolResult || !canEdit} onClick={applyChainToEvent}>
+              <button className="secondary" disabled={!chainToolResult || !canOperate} onClick={applyChainToEvent}>
                 Usar datos en evento
               </button>
             </CollapsibleCard>
@@ -1773,7 +1783,7 @@ function App() {
                 <Metric label="Factor ajuste sugerido" value={accumulatedToolResult ? String(round(accumulatedToolResult.suggestedAdjustmentFactor, 6)) : '-'} />
                 <Metric label="Diagnostico" value={accumulatedToolResult ? (Math.abs(accumulatedToolResult.errorPct) > 2 ? 'Revisar/ajustar acumulado' : 'Acumulado coherente') : '-'} />
               </div>
-              <button className="secondary" disabled={!accumulatedToolResult || !canEdit} onClick={applyAccumulatedToEvent}>
+              <button className="secondary" disabled={!accumulatedToolResult || !canOperate} onClick={applyAccumulatedToEvent}>
                 Usar acumulado en evento
               </button>
             </CollapsibleCard>
@@ -1791,7 +1801,7 @@ function App() {
                 <Metric label="Error %" value={factorToolResult ? `${round(factorToolResult.errorPct, 3)} %` : '-'} />
                 <Metric label="Recomendacion" value={factorToolResult ? factorToolResult.recommendation : '-'} />
               </div>
-              <button className="secondary" disabled={!factorToolResult || !canEdit} onClick={applyFactorToEvent}>
+              <button className="secondary" disabled={!factorToolResult || !canOperate} onClick={applyFactorToEvent}>
                 Usar factor en evento
               </button>
             </CollapsibleCard>
@@ -1887,6 +1897,7 @@ function App() {
                     <label className="label">Rol</label>
                     <select className="input" value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value as UserRole }))}>
                       <option value="viewer">Consulta</option>
+                      <option value="tecnico">Tecnico</option>
                       <option value="supervisor">Supervisor</option>
                       <option value="admin">Admin</option>
                     </select>
@@ -1916,10 +1927,10 @@ function App() {
 
       </main>
 
-      <nav className={`bottom-nav ${canManageUsers ? 'five' : canEdit ? 'four' : 'two'}`}>
-        {canEdit && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>}
+      <nav className={`bottom-nav ${canManageUsers ? 'five' : canOperate ? 'four' : canReview ? 'three' : 'two'}`}>
+        {canReview && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>}
         <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}>Herramientas</button>
-        {canEdit && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>}
+        {canOperate && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>}
         <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
         {canManageUsers && <button className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('usuarios')}>Usuarios</button>}
       </nav>

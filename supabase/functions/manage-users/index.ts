@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.1'
 
-type UserRole = 'admin' | 'supervisor' | 'viewer'
+type UserRole = 'admin' | 'tecnico' | 'supervisor' | 'viewer'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       const role = String(body.role || 'viewer') as UserRole
 
       if (!email || !password) throw new Error('Email and password are required.')
-      if (!['admin', 'supervisor', 'viewer'].includes(role)) throw new Error('Invalid role.')
+      if (!['admin', 'tecnico', 'supervisor', 'viewer'].includes(role)) throw new Error('Invalid role.')
 
       const { data, error } = await adminClient.auth.admin.createUser({
         email,
