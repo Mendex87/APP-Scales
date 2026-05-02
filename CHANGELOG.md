@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.13 - SEO tecnico
+
+- Se agregaron metadatos SEO, Open Graph, canonical y datos estructurados para la app y manuales web.
+- Se publicaron `robots.txt` y `sitemap.xml` para indexacion de la pagina principal y manuales.
+
 ## v1.1.12 - Descarga PDF desde manual web
 
 - Se agrego descarga directa del PDF correspondiente dentro de cada manual HTML.
