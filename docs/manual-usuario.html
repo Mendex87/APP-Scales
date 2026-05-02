@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manual de Usuario - Calibra Cinta</title>
+  <style>
+    :root {
+      --orange: #ff5949;
+      --orange-dark: #d94135;
+      --ink: #0c0b11;
+      --paper: #f0efeb;
+      --paper-strong: #faf9f6;
+      --grey-100: #bebdbf;
+      --grey-300: #737074;
+      --grey-500: #2e2930;
+      --success: #1f8f5f;
+      --warning: #c98500;
+      --error: #c43b30;
+      --border: rgba(12, 11, 17, 0.16);
+      --border-strong: rgba(12, 11, 17, 0.32);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    .page {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0 64px;
+    }
+
+    .cover {
+      min-height: 88vh;
+      display: grid;
+      align-content: space-between;
+      padding: 42px;
+      color: var(--paper-strong);
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        radial-gradient(circle at top left, rgba(255, 89, 73, 0.52), transparent 420px),
+        linear-gradient(135deg, #0c0b11, #19171a 72%, #2e2930);
+      background-size: 26px 26px, 26px 26px, auto, auto;
+      border: 1px solid var(--ink);
+    }
+
+    .cover h1 {
+      margin: 18px 0 16px;
+      max-width: 820px;
+      font-family: "Barlow Condensed", Impact, Arial Narrow, sans-serif;
+      font-size: clamp(54px, 11vw, 118px);
+      line-height: 0.86;
+      letter-spacing: -0.055em;
+      text-transform: uppercase;
+    }
+
+    .cover .subtitle {
+      max-width: 680px;
+      color: #e8e5de;
+      font-size: 19px;
+    }
+
+    .kicker {
+      display: inline-block;
+      color: var(--orange);
+      font-family: "Barlow Condensed", Impact, Arial Narrow, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .cover-meta div,
+    .card,
+    .toc,
+    .callout,
+    .checklist,
+    table {
+      border: 1px solid var(--border);
+      background: var(--paper-strong);
+    }
+
+    .cover-meta div {
+      padding: 14px;
+      color: var(--paper-strong);
+      background: rgba(250, 249, 246, 0.08);
+      border-color: rgba(250, 249, 246, 0.2);
+    }
+
+    .cover-meta span,
+    .metric span,
+    .card-label {
+      display: block;
+      color: var(--grey-300);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .cover-meta strong,
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+
+    section {
+      margin-top: 36px;
+      break-inside: avoid-page;
+    }
+
+    h2,
+    h3,
+    h4 {
+      font-family: "Barlow Condensed", Impact, Arial Narrow, sans-serif;
+      letter-spacing: -0.025em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid var(--orange);
+      font-size: 42px;
+      line-height: 0.95;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    h4 {
+      margin: 18px 0 8px;
+      font-size: 21px;
+    }
+
+    p { margin: 8px 0; }
+
+    a { color: var(--orange-dark); }
+
+    .toc {
+      padding: 22px;
+    }
+
+    .toc ol {
+      columns: 2;
+      column-gap: 36px;
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    .toc li { margin: 7px 0; break-inside: avoid; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card,
+    .metric,
+    .callout,
+    .checklist {
+      padding: 16px;
+      border-radius: 4px;
+    }
+
+    .metric {
+      min-height: 96px;
+      background: #e5e2da;
+      border: 1px solid var(--border);
+    }
+
+    .metric strong { font-size: 20px; }
+
+    .callout {
+      margin: 14px 0;
+      border-left: 6px solid var(--orange);
+    }
+
+    .callout.warning { border-left-color: var(--warning); }
+    .callout.success { border-left-color: var(--success); }
+    .callout.error { border-left-color: var(--error); }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 9px;
+      color: var(--ink);
+      background: var(--orange);
+      border: 1px solid var(--orange-dark);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .tag.dark { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+    .tag.success { background: rgba(31, 143, 95, 0.15); border-color: var(--success); }
+    .tag.warning { background: rgba(201, 133, 0, 0.16); border-color: var(--warning); }
+    .tag.error { color: #fff; background: var(--error); border-color: var(--error); }
+
+    ul,
+    ol { padding-left: 22px; }
+
+    li { margin: 5px 0; }
+
+    table {
+      width: 100%;
+      margin: 14px 0;
+      border-collapse: collapse;
+      break-inside: avoid;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--paper-strong);
+      background: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    code {
+      padding: 2px 5px;
+      background: #e5e2da;
+      border: 1px solid var(--border);
+      font-family: Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 14px;
+      margin: 12px 0;
+      padding: 14px;
+      background: var(--paper-strong);
+      border: 1px solid var(--border);
+    }
+
+    .step-number {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      color: var(--ink);
+      background: var(--orange);
+      border: 1px solid var(--orange-dark);
+      border-radius: 50%;
+      font-weight: 800;
+    }
+
+    .step h4 { margin-top: 0; }
+
+    .footer-note {
+      margin-top: 40px;
+      padding: 18px;
+      color: var(--paper);
+      background: var(--ink);
+    }
+
+    .page-break { break-before: page; }
+
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      body { background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .page { width: 100%; padding: 0; }
+      .cover { min-height: 270mm; }
+      section { margin-top: 18px; }
+      h2 { font-size: 34px; }
+      h3 { font-size: 23px; }
+      a { color: var(--ink); text-decoration: none; }
+      .toc ol { columns: 2; }
+    }
+
+    @media (max-width: 780px) {
+      .cover,
+      .card,
+      .callout { padding: 18px; }
+      .cover-meta,
+      .grid,
+      .grid.two,
+      .grid.four { grid-template-columns: 1fr; }
+      .toc ol { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="cover">
+      <div>
+        <span class="kicker">Manual de usuario</span>
+        <h1>Calibra Cinta</h1>
+        <p class="subtitle">Guia completa de uso para gestion de balanzas dinamicas, cadenas patron, calibraciones, controles preventivos, historial, reportes, herramientas tecnicas y administracion de usuarios.</p>
+      </div>
+      <div class="cover-meta">
+        <div><span>Version documentada</span><strong>v1.1.5</strong></div>
+        <div><span>Alcance</span><strong>Operacion completa</strong></div>
+        <div><span>Uso recomendado</span><strong>Campo + supervision</strong></div>
+      </div>
+    </header>
+
+    <section id="indice" class="page-break">
+      <h2>Indice</h2>
+      <div class="toc">
+        <ol>
+          <li><a href="#proposito">Proposito de la aplicacion</a></li>
+          <li><a href="#conceptos">Conceptos principales</a></li>
+          <li><a href="#roles">Roles y permisos</a></li>
+          <li><a href="#inicio">Ingreso y pantalla inicial</a></li>
+          <li><a href="#balanzas">Gestion de balanzas</a></li>
+          <li><a href="#cadenas">Gestion de cadenas patron</a></li>
+          <li><a href="#nueva-calibracion">Nueva calibracion paso a paso</a></li>
+          <li><a href="#controles-preventivos">Controles preventivos con material</a></li>
+          <li><a href="#borradores">Borradores locales</a></li>
+          <li><a href="#herramientas">Herramientas tecnicas</a></li>
+          <li><a href="#historial">Historial y reportes</a></li>
+          <li><a href="#usuarios">Usuarios y permisos</a></li>
+          <li><a href="#datos">Persistencia y sincronizacion</a></li>
+          <li><a href="#buenas-practicas">Buenas practicas de campo</a></li>
+          <li><a href="#problemas">Problemas frecuentes</a></li>
+          <li><a href="#glosario">Glosario</a></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="proposito">
+      <h2>1. Proposito de la aplicacion</h2>
+      <p>Calibra Cinta centraliza la operacion de calibracion y control de balanzas dinamicas instaladas en cintas transportadoras. La app esta pensada para el tecnico que trabaja en planta, el supervisor que revisa resultados y el administrador que mantiene usuarios, equipos y datos maestros.</p>
+      <div class="grid four">
+        <div class="metric"><span>Equipo</span><strong>Balanzas dinamicas</strong></div>
+        <div class="metric"><span>Patron</span><strong>Cadenas calibradas</strong></div>
+        <div class="metric"><span>Prueba final</span><strong>Material real pesado</strong></div>
+        <div class="metric"><span>Salida</span><strong>Historial + PDF</strong></div>
+      </div>
+      <p>La aplicacion no reemplaza el criterio tecnico. Su funcion es ordenar el procedimiento, evitar omisiones, conservar trazabilidad y mostrar con claridad si un evento fue una calibracion con ajuste, un control preventivo conforme o una condicion fuera de tolerancia.</p>
+      <div class="callout success"><strong>Objetivo operativo:</strong> que cualquier evento quede registrado con responsable, fecha, equipo, prechequeos, cero, parametros relevantes, prueba con cadena cuando corresponde, pasadas con material real y resultado final.</div>
+    </section>
+
+    <section id="conceptos">
+      <h2>2. Conceptos principales</h2>
+      <h3>Balanza</h3>
+      <p>Representa el equipo instalado en una cinta. Incluye planta, linea, codigo de cinta, nombre, controlador, dimensiones, velocidad nominal, factores actuales, unidad del totalizador, foto y notas.</p>
+      <h3>Cadena patron</h3>
+      <p>Es el peso patron usado para simular carga sobre la cinta. Cada cadena tiene planta, nombre, peso lineal en kg/m, largo total, peso total y observaciones. La app filtra cadenas por planta cuando corresponde, pero si una balanza pertenece a una planta sin cadenas, permite elegir entre todas las cadenas disponibles.</p>
+      <h3>Evento de calibracion</h3>
+      <p>Es el registro de trabajo realizado sobre una balanza en una fecha determinada. Puede ser una calibracion inicial completa, una recalibracion con ajuste o un control preventivo con material.</p>
+      <h3>Control preventivo</h3>
+      <p>Es un evento donde la balanza ya tiene calibracion previa y se verifica con material real. Si la primera pasada esta dentro de tolerancia y no se modifica el factor, el resultado queda como <strong>Control conforme</strong>.</p>
+      <h3>Pasadas con material</h3>
+      <p>Son comparaciones entre el peso obtenido en una balanza de piso certificada y el peso indicado por el controlador. La app toma la ultima pasada completa como resultado final del evento.</p>
+    </section>
+
+    <section id="roles" class="page-break">
+      <h2>3. Roles y permisos</h2>
+      <table>
+        <thead><tr><th>Rol</th><th>Uso previsto</th><th>Permisos principales</th><th>Restricciones</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag dark">Admin</span></td><td>Responsable del sistema.</td><td>Gestiona usuarios, equipos, cadenas, calibraciones, eliminaciones y revisiones.</td><td>Sin restricciones funcionales dentro de la app.</td></tr>
+          <tr><td><span class="tag">Tecnico</span></td><td>Personal de campo.</td><td>Crea equipos, cadenas y eventos de calibracion. Usa herramientas y consulta historial.</td><td>No elimina registros ni gestiona usuarios. No actualiza administrativamente equipos existentes.</td></tr>
+          <tr><td><span class="tag warning">Supervisor</span></td><td>Revision operativa.</td><td>Consulta balanzas, herramientas, historial, fotos, detalle y reportes.</td><td>No crea, elimina ni modifica eventos.</td></tr>
+          <tr><td><span class="tag success">Viewer</span></td><td>Consulta basica.</td><td>Acceso de lectura a herramientas e historial segun configuracion.</td><td>No opera calibraciones ni administra datos.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warning"><strong>Importante:</strong> si un usuario tecnico no puede guardar eventos, revisar que tenga rol <code>tecnico</code> en Supabase y que el despliegue incluya la version que evita actualizar la tabla de equipos al cerrar un evento.</div>
+    </section>
+
+    <section id="inicio">
+      <h2>4. Ingreso y pantalla inicial</h2>
+      <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra Supabase Auth y consulta el perfil para conocer el rol.</p></div></div>
+      <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior muestra las secciones disponibles para el rol actual: balanzas, nueva calibracion, herramientas, historial y usuarios.</p></div></div>
+      <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con Supabase o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
+      <div class="callout"><strong>Version visible:</strong> la version de la app se muestra en la cabecera. Usarla para confirmar que Vercel ya desplego el ultimo cambio.</div>
+    </section>
+
+    <section id="balanzas" class="page-break">
+      <h2>5. Gestion de balanzas</h2>
+      <p>La seccion de balanzas concentra el alta, consulta y gestion tecnica de equipos. Cada balanza debe tener datos suficientes para que las herramientas y el flujo de calibracion funcionen correctamente.</p>
+      <h3>Campos principales</h3>
+      <table>
+        <thead><tr><th>Campo</th><th>Descripcion</th><th>Uso dentro de la app</th></tr></thead>
+        <tbody>
+          <tr><td>Planta</td><td>Sector o ubicacion operativa.</td><td>Filtra cadenas disponibles cuando hay cadenas de la misma planta.</td></tr>
+          <tr><td>Linea / cinta / nombre</td><td>Identificacion operativa del equipo.</td><td>Aparece en listados, historial y reportes.</td></tr>
+          <tr><td>Controlador</td><td>Modelo y numero de serie.</td><td>Trazabilidad del equipo intervenido.</td></tr>
+          <tr><td>Puente de pesaje</td><td>Distancia efectiva de pesaje.</td><td>Referencia tecnica para parametros y calculos.</td></tr>
+          <tr><td>Velocidad nominal</td><td>Velocidad esperada de la cinta.</td><td>Comparacion con calculos por RPM o vuelta completa.</td></tr>
+          <tr><td>Factor calibracion actual</td><td>Factor usado por el controlador antes del evento.</td><td>Base para sugerencias de ajuste.</td></tr>
+          <tr><td>Factor ajuste actual</td><td>Factor del totalizador/acumulado.</td><td>Base para control de acumulado.</td></tr>
+          <tr><td>Foto</td><td>Imagen del equipo.</td><td>Ayuda visual para identificar la balanza en campo.</td></tr>
+        </tbody>
+      </table>
+      <h3>Alta de balanza</h3>
+      <ol>
+        <li>Ir a <strong>Balanzas</strong>.</li>
+        <li>Abrir el formulario de alta si esta colapsado.</li>
+        <li>Completar planta, linea, codigo de cinta, nombre, controlador, puente y velocidad nominal como minimo.</li>
+        <li>Agregar foto si esta disponible.</li>
+        <li>Guardar balanza.</li>
+      </ol>
+      <h3>Edicion y baja</h3>
+      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en Supabase por cascada. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
+    </section>
+
+    <section id="cadenas">
+      <h2>6. Gestion de cadenas patron</h2>
+      <p>Las cadenas son datos maestros reutilizables. Una cadena bien cargada evita errores de kg/m y acelera la calibracion.</p>
+      <h3>Alta de cadena</h3>
+      <ol>
+        <li>Ir a <strong>Balanzas</strong>.</li>
+        <li>Abrir <strong>Cadenas de calibracion</strong>.</li>
+        <li>Completar planta, nombre, kg/m, largo total y peso total.</li>
+        <li>Guardar.</li>
+      </ol>
+      <h3>Seleccion flexible por planta</h3>
+      <table>
+        <thead><tr><th>Situacion</th><th>Comportamiento</th><th>Motivo</th></tr></thead>
+        <tbody>
+          <tr><td>Balanza de Secado y cadenas de Secado existentes.</td><td>Se muestran solo cadenas de Secado.</td><td>Evita seleccionar por error una cadena de otra planta.</td></tr>
+          <tr><td>Balanza Externa sin cadenas de Externa.</td><td>Se muestran todas las cadenas disponibles.</td><td>Permite calibrar equipos externos o provisorios usando una cadena disponible.</td></tr>
+          <tr><td>Sin balanza seleccionada.</td><td>Se muestran todas las cadenas.</td><td>No hay planta de referencia para filtrar.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><strong>Nota:</strong> cuando se activa el fallback, la app informa que no hay cadenas para esa planta y que se muestran todas las disponibles.</div>
+    </section>
+
+    <section id="nueva-calibracion" class="page-break">
+      <h2>7. Nueva calibracion paso a paso</h2>
+      <p>El flujo esta organizado como wizard de 8 pasos. La navegacion permite avanzar, retroceder o tocar directamente un paso. El evento se guarda solo desde el cierre.</p>
+      <div class="grid four">
+        <div class="metric"><span>Paso 1</span><strong>Contexto</strong></div>
+        <div class="metric"><span>Paso 2</span><strong>Inspeccion</strong></div>
+        <div class="metric"><span>Paso 3</span><strong>Cero</strong></div>
+        <div class="metric"><span>Paso 4</span><strong>Parametros</strong></div>
+        <div class="metric"><span>Paso 5</span><strong>Cadena</strong></div>
+        <div class="metric"><span>Paso 6</span><strong>Acumulado</strong></div>
+        <div class="metric"><span>Paso 7</span><strong>Material real</strong></div>
+        <div class="metric"><span>Paso 8</span><strong>Cierre</strong></div>
+      </div>
+
+      <h3>Paso 1: Contexto</h3>
+      <p>Seleccionar la balanza, seleccionar la cadena si corresponde, definir fecha/hora y tolerancia. Si la balanza tiene cadenas de la misma planta, solo se listan esas cadenas. Si no tiene, se habilitan todas.</p>
+      <div class="callout warning"><strong>Primera calibracion:</strong> si la balanza no tiene eventos previos, la app exigira datos completos de cadena y acumulado. Si ya tiene historial, podra cerrarse como control preventivo con material.</div>
+
+      <h3>Paso 2: Inspeccion previa</h3>
+      <p>Confirmar condiciones mecanicas y operativas antes de calibrar: banda vacia, banda limpia, sin acumulacion, rolos/idlers OK, estructura sin vibraciones anormales y sensor de velocidad OK. Si algo no cumple, corregir antes de continuar.</p>
+
+      <h3>Paso 3: Cero</h3>
+      <p>Registrar si el cero fue realizado, si fue ajustado, la unidad visible y valores antes/despues. La app calcula deriva cuando ambos valores son numericos.</p>
+
+      <h3>Paso 4: Foto de parametros</h3>
+      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, span, filtro, puente, velocidad nominal, unidades, constantes internas y motivo del cambio.</p>
+
+      <h3>Paso 5: Span con cadena</h3>
+      <p>Registrar kg/m de cadena, cantidad de pasadas, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
+      <div class="callout"><strong>Campo editable:</strong> aunque el kg/m se precarga desde la cadena seleccionada, queda editable para registrar la referencia real usada en campo.</div>
+
+      <h3>Paso 6: Acumulado</h3>
+      <p>Controla totalizador y factor de ajuste. Se carga caudal esperado, tiempo de prueba, acumulado indicado y factor antes. La app calcula acumulado esperado, error acumulado y factor sugerido.</p>
+      <p>Este paso es obligatorio para la primera calibracion/carga de una balanza, pero no para controles preventivos posteriores con material.</p>
+
+      <h3>Paso 7: Material real</h3>
+      <p>Registrar una o mas pasadas con material pesado en balanza certificada. La primera pasada puede cerrar el evento si queda dentro de tolerancia y no se ajusta el factor. Si se ajusta, agregar una verificacion post-ajuste.</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Que registrar</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td>Peso balanza certificada</td><td>Peso real obtenido antes/despues en balanza de piso o camionera certificada.</td><td>Referencia del calculo de error.</td></tr>
+          <tr><td>Peso indicado controlador</td><td>Peso totalizado o indicado por la balanza dinamica.</td><td>Valor comparado contra el patron real.</td></tr>
+          <tr><td>Factor usado</td><td>Factor cargado en el controlador durante esa pasada.</td><td>Permite demostrar si hubo ajuste.</td></tr>
+          <tr><td>Nota de pasada</td><td>Observaciones de campo.</td><td>Contexto para supervision e historial.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Paso 8: Cierre</h3>
+      <p>Revisar resultado final, error final, si hubo ajuste y factor final. Completar motivo de ajuste y observaciones cuando corresponda. Guardar evento.</p>
+    </section>
+
+    <section id="controles-preventivos">
+      <h2>8. Controles preventivos con material</h2>
+      <p>Una balanza con calibracion previa puede revisarse sin repetir todo el procedimiento de cadena y acumulado. Este modo sirve para mantenimiento preventivo y controles rutinarios.</p>
+      <h3>Reglas de resultado</h3>
+      <table>
+        <thead><tr><th>Caso</th><th>Resultado</th><th>Interpretacion</th></tr></thead>
+        <tbody>
+          <tr><td>Primera pasada dentro de tolerancia y sin cambio de factor.</td><td><span class="tag success">Control conforme</span></td><td>La balanza sigue calibrada. No hizo falta ajustar.</td></tr>
+          <tr><td>Primera pasada fuera, se ajusta factor y la verificacion posterior queda dentro.</td><td><span class="tag">Calibrada</span></td><td>Hubo intervencion y quedo verificada.</td></tr>
+          <tr><td>Ultima pasada completa fuera de tolerancia.</td><td><span class="tag error">Fuera de tolerancia</span></td><td>Requiere nueva verificacion o intervencion.</td></tr>
+          <tr><td>Se modifica factor sin pasada posterior.</td><td><span class="tag warning">Bloqueado</span></td><td>La app exige verificacion posterior para evitar cierres ambiguos.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout success"><strong>Criterio clave:</strong> la app siempre toma la ultima pasada completa como resultado final del evento.</div>
+    </section>
+
+    <section id="borradores">
+      <h2>9. Borradores locales</h2>
+      <p>El wizard permite guardar un borrador local en el dispositivo. Es util si se interrumpe el trabajo de campo o si se debe cerrar la app antes de terminar.</p>
+      <h3>Guardar borrador</h3>
+      <ol>
+        <li>Dentro de <strong>Nueva calibracion</strong>, tocar <strong>Guardar borrador</strong>.</li>
+        <li>La app conserva formulario, balanza, cadena, paso y cantidad de pasadas.</li>
+        <li>El borrador queda solo en ese dispositivo/navegador.</li>
+      </ol>
+      <h3>Recuperar o descartar</h3>
+      <p>Si existe un borrador, aparece <strong>Recuperar borrador</strong>. Tambien se puede descartar manualmente. Al guardar un evento exitosamente, el borrador se limpia automaticamente.</p>
+      <div class="callout warning"><strong>Limitacion:</strong> el borrador local no es una sincronizacion multiusuario. Si se cambia de equipo o navegador, no estara disponible.</div>
+    </section>
+
+    <section id="herramientas" class="page-break">
+      <h2>10. Herramientas tecnicas</h2>
+      <p>La seccion herramientas permite hacer calculos rapidos y trasladar resultados al evento activo cuando el usuario tiene permiso operativo.</p>
+      <h3>Velocidad por RPM</h3>
+      <p>Calcula velocidad de cinta a partir de RPM y diametro del rolo. Entrega m/s, m/min, m/h y diferencia contra velocidad indicada.</p>
+      <h3>Velocidad por vuelta completa</h3>
+      <p>Calcula velocidad con largo de cinta y tiempo de una vuelta completa. Es util cuando no se dispone de senal confiable de RPM.</p>
+      <h3>Cadena de calibracion</h3>
+      <p>Calcula kg/m, caudal esperado y carga segun cadena, largo de tren y velocidad. Puede trasladarse al evento para evitar recarga manual.</p>
+      <h3>Acumulado</h3>
+      <p>Calcula total esperado y factor de ajuste sugerido a partir de caudal esperado, tiempo e indicado del totalizador.</p>
+      <h3>Factor de correccion</h3>
+      <p>Calcula nuevo factor cuando se compara peso real contra peso indicado por controlador.</p>
+      <div class="callout"><strong>Uso recomendado:</strong> usar herramientas para calcular, pero confirmar siempre que el dato trasladado corresponde al equipo seleccionado.</div>
+    </section>
+
+    <section id="historial">
+      <h2>11. Historial y reportes</h2>
+      <p>El historial muestra eventos guardados, ordenados por fecha descendente. Permite filtrar por balanza, revisar detalle, imprimir reporte y, para administradores, eliminar eventos.</p>
+      <h3>Lectura de tarjetas</h3>
+      <table>
+        <thead><tr><th>Elemento</th><th>Descripcion</th></tr></thead>
+        <tbody>
+          <tr><td>ID de evento</td><td>Codigo generado con anio, mes y secuencia.</td></tr>
+          <tr><td>Equipo</td><td>Planta, linea, cinta y nombre de balanza.</td></tr>
+          <tr><td>Estado</td><td>Control conforme, calibrada o fuera de tolerancia segun ultima pasada completa.</td></tr>
+          <tr><td>Error material final</td><td>Error de la ultima pasada completa con material real.</td></tr>
+          <tr><td>Pasadas</td><td>Cantidad de pasadas completas guardadas.</td></tr>
+          <tr><td>Ajuste</td><td>Indica si hubo cambio de factor o verificacion post-ajuste.</td></tr>
+        </tbody>
+      </table>
+      <h3>Reporte imprimible</h3>
+      <ol>
+        <li>Ir a <strong>Historial</strong>.</li>
+        <li>Buscar el evento.</li>
+        <li>Tocar <strong>Imprimir reporte</strong>.</li>
+        <li>El navegador abre una ventana imprimible con resumen, inspeccion, cero, parametros, cadena, acumulado, pasadas con material y cierre.</li>
+      </ol>
+      <div class="callout warning"><strong>Si no abre el reporte:</strong> revisar bloqueador de ventanas emergentes del navegador para el dominio de la app.</div>
+    </section>
+
+    <section id="usuarios">
+      <h2>12. Usuarios y permisos</h2>
+      <p>Solo administradores ven la seccion usuarios. La gestion usa Supabase Auth para credenciales y perfiles para rol visible dentro de la app.</p>
+      <h3>Crear usuario</h3>
+      <ol>
+        <li>Ingresar como admin.</li>
+        <li>Ir a <strong>Usuarios</strong>.</li>
+        <li>Cargar email, nombre visible, contrasena y rol.</li>
+        <li>Guardar usuario.</li>
+      </ol>
+      <h3>Recomendaciones de rol</h3>
+      <p>Usar <code>tecnico</code> para personal que opera calibraciones. Usar <code>supervisor</code> para revision sin carga. Usar <code>viewer</code> para consulta basica. Reservar <code>admin</code> para personal responsable de datos maestros y usuarios.</p>
+    </section>
+
+    <section id="datos" class="page-break">
+      <h2>13. Persistencia y sincronizacion</h2>
+      <p>La app usa Supabase como almacenamiento remoto para equipos, cadenas, eventos y perfiles. Si Supabase no esta configurado o no responde, conserva modo local para contingencia.</p>
+      <h3>Que se guarda en Supabase</h3>
+      <ul>
+        <li>Equipos en <code>equipments</code>.</li>
+        <li>Cadenas en <code>chains</code>.</li>
+        <li>Eventos en <code>calibration_events</code>.</li>
+        <li>Perfiles de usuario en <code>profiles</code>.</li>
+        <li>Fotos de balanzas en Storage, bucket <code>equipment-photos</code>.</li>
+      </ul>
+      <h3>Seguridad por RLS</h3>
+      <p>Las policies de Supabase limitan acciones segun rol. Por ejemplo, el tecnico puede insertar eventos, pero la actualizacion administrativa de equipos queda reservada a administradores.</p>
+      <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de RLS, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
+    </section>
+
+    <section id="buenas-practicas">
+      <h2>14. Buenas practicas de campo</h2>
+      <div class="checklist">
+        <h3>Antes de empezar</h3>
+        <ul>
+          <li>Confirmar que la balanza seleccionada corresponde fisicamente al equipo intervenido.</li>
+          <li>Verificar limpieza, banda vacia y estado mecanico.</li>
+          <li>Confirmar que la cadena seleccionada corresponde a la planta o registrar claramente si se usa una cadena de otra planta.</li>
+          <li>Realizar cero antes de cualquier comparacion.</li>
+          <li>Anotar cambios de parametros y motivos.</li>
+        </ul>
+      </div>
+      <div class="checklist">
+        <h3>Durante pruebas con material</h3>
+        <ul>
+          <li>Usar balanza certificada para el peso real.</li>
+          <li>Registrar cada pasada en orden.</li>
+          <li>No cerrar como calibrada si se ajusto factor y no se hizo verificacion posterior.</li>
+          <li>Si la primera pasada esta dentro de tolerancia, dejar constancia como control conforme.</li>
+          <li>Usar notas para registrar condiciones excepcionales.</li>
+        </ul>
+      </div>
+      <div class="checklist">
+        <h3>Despues de guardar</h3>
+        <ul>
+          <li>Revisar historial para confirmar estado final.</li>
+          <li>Imprimir o guardar PDF si el procedimiento lo requiere.</li>
+          <li>Comunicar eventos fuera de tolerancia para intervencion.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="problemas">
+      <h2>15. Problemas frecuentes</h2>
+      <h3>No puedo guardar como tecnico por policy RLS</h3>
+      <p>Confirmar que la app este en version <code>v1.1.4</code> o superior. Esa version evita actualizar equipos al cerrar eventos, respetando que la actualizacion de <code>equipments</code> queda para administradores.</p>
+      <h3>No aparece una cadena para una balanza externa</h3>
+      <p>Desde <code>v1.1.3</code>, si no hay cadenas para la planta de la balanza, se muestran todas las disponibles. Si aun no aparecen, verificar que existan cadenas cargadas y que el navegador tenga la version desplegada.</p>
+      <h3>La app exige cadena/acumulado en un control preventivo</h3>
+      <p>Eso solo deberia ocurrir si la balanza no tiene eventos previos. Para una balanza ya calibrada, la app permite cerrar con material real sin repetir cadena ni acumulado.</p>
+      <h3>El reporte no se abre</h3>
+      <p>Revisar bloqueador de ventanas emergentes. El reporte se abre en una ventana nueva para poder imprimirlo.</p>
+      <h3>El evento queda fuera de tolerancia aunque ajuste factor</h3>
+      <p>Registrar una pasada posterior al ajuste. La app toma la ultima pasada completa como resultado final.</p>
+      <h3>Veo datos antiguos despues de un deploy</h3>
+      <p>Actualizar la pagina, cerrar y abrir sesion o limpiar cache del navegador si Vercel ya termino el despliegue.</p>
+    </section>
+
+    <section id="glosario">
+      <h2>16. Glosario</h2>
+      <table>
+        <thead><tr><th>Termino</th><th>Definicion</th></tr></thead>
+        <tbody>
+          <tr><td>Acumulado</td><td>Total indicado por el controlador durante una prueba de tiempo definido.</td></tr>
+          <tr><td>Balanza dinamica</td><td>Sistema de pesaje instalado sobre cinta transportadora.</td></tr>
+          <tr><td>Cadena patron</td><td>Peso calibrado usado para simular carga lineal sobre la cinta.</td></tr>
+          <tr><td>Control conforme</td><td>Evento donde la balanza queda dentro de tolerancia sin ajuste de factor.</td></tr>
+          <tr><td>Factor calibracion</td><td>Parametro del controlador usado para ajustar la medicion de peso/caudal.</td></tr>
+          <tr><td>Factor ajuste</td><td>Parametro asociado a correccion de totalizador/acumulado.</td></tr>
+          <tr><td>Pasada</td><td>Comparacion puntual entre peso certificado y peso indicado por la balanza dinamica.</td></tr>
+          <tr><td>RLS</td><td>Row Level Security de Supabase, mecanismo que limita permisos por usuario/rol.</td></tr>
+          <tr><td>Tolerancia</td><td>Porcentaje maximo de error aceptado para considerar conforme un evento.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="footer-note">
+      <strong>Calibra Cinta - Manual de usuario.</strong>
+      <p>Documento generado para operacion tecnica y supervision. Ante discrepancias con procedimientos internos de planta, aplicar el procedimiento aprobado por la organizacion y registrar observaciones en el evento.</p>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.5 - Manual de usuario
+
+- Se agrego un manual de usuario completo en HTML y PDF con la paleta visual de la app.
+- El documento cubre roles, balanzas, cadenas, calibraciones, controles preventivos, borradores, herramientas, historial, reportes, usuarios y problemas frecuentes.
+
 ## v1.1.4 - Guardado tecnico de eventos
 
 - Se corrigio el guardado de calibraciones para que el rol tecnico no intente actualizar la balanza al cerrar un evento.
