@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.14 - Frontend operativo
+
+- Se agrego landing publica con acceso a manuales e ingreso protegido.
+- Se incorporo dashboard operativo con KPIs, accion recomendada y accesos rapidos.
+- Se mejoraron tarjetas, filtros de historial y wizard con estados por paso y pre-reporte de cierre.
+
 ## v1.1.13 - SEO tecnico
 
 - Se agregaron metadatos SEO, Open Graph, canonical y datos estructurados para la app y manuales web.

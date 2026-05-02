@@ -39,7 +39,7 @@ import {
   round,
 } from './utils'
 
-type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
+type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 
 type Toast = {
@@ -70,7 +70,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.13'
+const APP_VERSION = 'v1.1.14'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -214,6 +214,15 @@ function outcomeLabel(outcome?: MaterialOutcome) {
   if (outcome === 'calibrada_ajustada') return 'Calibrada'
   if (outcome === 'ajuste_sin_verificacion') return 'Ajuste sin verificacion'
   return 'Fuera de tolerancia'
+}
+
+function statusClass(status: string) {
+  const normalized = status.toLowerCase()
+  if (normalized.includes('fuera')) return 'danger'
+  if (normalized.includes('pendiente') || normalized.includes('sin calibr')) return 'warning'
+  if (normalized.includes('calibrada')) return 'success'
+  if (normalized.includes('conforme')) return 'success'
+  return 'neutral'
 }
 
 function getEventMaterialPasses(item: CalibrationEvent): MaterialPass[] {
@@ -373,7 +382,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
 }
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('balanzas')
+  const [screen, setScreen] = useState<Screen>('dashboard')
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
   const [chains, setChains] = useState<Chain[]>(() => loadChains())
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
@@ -398,6 +407,8 @@ function App() {
   const [factorToolForm, setFactorToolForm] = useState(defaultFactorToolForm)
   const [accumulatedToolForm, setAccumulatedToolForm] = useState(defaultAccumulatedToolForm)
   const [historyEquipmentId, setHistoryEquipmentId] = useState('todos')
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('todos')
+  const [historyMonthFilter, setHistoryMonthFilter] = useState('todos')
   const [syncNotice, setSyncNotice] = useState('')
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
@@ -558,13 +569,13 @@ function App() {
   useEffect(() => {
     if (!currentUser) return
     if (currentUser.role !== 'admin' && screen === 'usuarios') {
-      setScreen(currentUser.role === 'viewer' ? 'herramientas' : 'balanzas')
+      setScreen(currentUser.role === 'viewer' ? 'herramientas' : 'dashboard')
     }
     if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
       setScreen('herramientas')
     }
     if (currentUser.role === 'supervisor' && screen === 'nueva') {
-      setScreen('balanzas')
+      setScreen('dashboard')
     }
   }, [currentUser, screen])
 
@@ -723,6 +734,21 @@ function App() {
     [events],
   )
 
+  const dashboardStats = useMemo(() => {
+    const now = new Date()
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const withoutHistory = equipmentWithLastEvent.filter(({ lastEvent }) => !lastEvent).length
+    const conform = events.filter((item) => getEventMaterialOutcome(item).outcome === 'control_conforme').length
+    const calibrated = events.filter((item) => getEventMaterialOutcome(item).outcome === 'calibrada_ajustada').length
+    const monthEvents = events.filter((item) => item.eventDate.slice(0, 7) === currentMonth).length
+    const nextAction = outOfToleranceCount > 0
+      ? 'Revisar equipos fuera de tolerancia'
+      : withoutHistory > 0
+        ? 'Completar primera calibracion'
+        : 'Mantener controles preventivos'
+    return { withoutHistory, conform, calibrated, monthEvents, nextAction }
+  }, [equipmentWithLastEvent, events, outOfToleranceCount])
+
   const precheckPassed = useMemo(
     () =>
       eventForm.precheckBeltEmpty &&
@@ -780,6 +806,30 @@ function App() {
     if (!(Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || materialFactorBefore)) issues.push('Falta el factor final o usado en la pasada final.')
     return issues
   }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, requiresFullCalibration, selectedEquipment, suggestedFactor])
+
+  const calibrationStepStates = useMemo(() => {
+    const fullCalibrationReady = !requiresFullCalibration || (
+      Number(eventForm.chainLinearKgM) > 0 &&
+      Number(eventForm.avgControllerReadingKgM) > 0 &&
+      Number(eventForm.expectedFlowTph) > 0 &&
+      Number(eventForm.accumulatedTestMinutes) > 0 &&
+      Number(eventForm.accumulatedIndicatedTotal) > 0
+    )
+    return calibrationSteps.map((step, index) => {
+      const complete = [
+        Boolean(selectedEquipment && eventForm.eventDate && Number(eventForm.tolerancePercent) > 0),
+        precheckPassed,
+        eventForm.zeroCompleted,
+        Boolean(Number(eventForm.calibrationFactor) || Number(eventForm.zeroValue) || Number(eventForm.spanValue) || eventForm.extraParameters.trim()),
+        !requiresFullCalibration || (Number(eventForm.chainLinearKgM) > 0 && Number(eventForm.avgControllerReadingKgM) > 0),
+        !requiresFullCalibration || (Number(eventForm.expectedFlowTph) > 0 && Number(eventForm.accumulatedTestMinutes) > 0 && Number(eventForm.accumulatedIndicatedTotal) > 0),
+        Boolean(finalMaterialPass),
+        eventBlockingIssues.length === 0,
+      ][index]
+      const warning = index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false
+      return { step, complete, warning }
+    })
+  }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -918,14 +968,22 @@ function App() {
     return messages
   }, [rpmToolResult, selectedEquipment, chainToolResult, eventForm.avgControllerReadingKgM, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted, finalMaterialPass, materialOutcome])
 
+  const historyMonths = useMemo(() => {
+    return Array.from(new Set(events.map((item) => item.eventDate.slice(0, 7)).filter(Boolean))).sort().reverse()
+  }, [events])
+
   const filteredEvents = useMemo(() => {
     return events
       .filter((item) => {
         const matchesEquipment = historyEquipmentId === 'todos' || item.equipmentId === historyEquipmentId
-        return matchesEquipment
+        const materialSummary = getEventMaterialOutcome(item)
+        const statusKey = statusClass(materialSummary.status)
+        const matchesStatus = historyStatusFilter === 'todos' || statusKey === historyStatusFilter
+        const matchesMonth = historyMonthFilter === 'todos' || item.eventDate.slice(0, 7) === historyMonthFilter
+        return matchesEquipment && matchesStatus && matchesMonth
       })
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
-  }, [events, historyEquipmentId])
+  }, [events, historyEquipmentId, historyMonthFilter, historyStatusFilter])
 
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
@@ -1044,7 +1102,7 @@ function App() {
     await loadAuthenticatedUser(data.session)
     setLoginEmail('')
     setLoginPassword('')
-    setScreen('balanzas')
+    setScreen('dashboard')
     setSyncNotice('Sesion iniciada.')
   }
 
@@ -1053,7 +1111,7 @@ function App() {
       await supabase.auth.signOut()
     }
     setCurrentUser(null)
-    setScreen('balanzas')
+    setScreen('dashboard')
     setSyncNotice('Sesion cerrada.')
   }
 
@@ -1599,11 +1657,34 @@ function App() {
 
   if (!currentUser) {
     return (
-      <div className="app-shell auth-shell">
-        <section className="auth-card">
+      <div className="public-shell">
+        <section className="public-hero">
+          <div className="public-copy">
+            <span className="brand-kicker">Control Metrologico Industrial</span>
+            <h1>Calibra Cinta</h1>
+            <p>Registro, calibracion y trazabilidad de balanzas dinamicas sobre cintas transportadoras, pensado para tecnicos de campo y supervision operativa.</p>
+            <div className="public-actions">
+              <a className="primary manual-link" href="/manual/" target="_blank" rel="noreferrer">Ver manuales</a>
+              <a className="secondary manual-link" href="#acceso">Ingresar a la app</a>
+            </div>
+          </div>
+          <div className="public-console" aria-label="Resumen de funcionalidades">
+            <div><span>01</span><strong>Span con cadena</strong><p>Patrones por planta y kg/m editable.</p></div>
+            <div><span>02</span><strong>Material real</strong><p>Control inicial y verificacion post-ajuste.</p></div>
+            <div><span>03</span><strong>Reportes</strong><p>Historial imprimible con diagnostico tecnico.</p></div>
+          </div>
+        </section>
+
+        <section className="public-grid">
+          <div className="card"><span className="section-kicker">Campo</span><h2>Flujo guiado</h2><p className="hint">Inspeccion, cero, parametros, cadena, acumulado, material real y cierre con validaciones.</p></div>
+          <div className="card"><span className="section-kicker">Trazabilidad</span><h2>Eventos auditables</h2><p className="hint">Cada calibracion conserva factores, errores, tecnico responsable y observaciones.</p></div>
+          <div className="card"><span className="section-kicker">Roles</span><h2>Acceso por perfil</h2><p className="hint">Admin, tecnico, supervisor y consulta con permisos separados.</p></div>
+        </section>
+
+        <section id="acceso" className="auth-card public-login">
           <div className="brand-kicker">Acceso protegido</div>
-          <h1>CalibraCinta</h1>
-          <p>Ingresá para operar la plataforma de calibración y trazabilidad de balanzas dinámicas.</p>
+          <h2>Ingresar</h2>
+          <p>Operadores habilitados pueden entrar para cargar controles y revisar historial.</p>
           <form className="stack" onSubmit={handleLogin}>
             <Field label="Email" type="email" value={loginEmail} onChange={setLoginEmail} />
             <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
@@ -1705,6 +1786,64 @@ function App() {
       {loadingData && <div className="notice">Cargando datos...</div>}
 
       <main className="content">
+        {screen === 'dashboard' && (
+          <section className="stack screen-shell">
+            <div className="screen-banner dashboard-banner">
+              <span className="section-kicker">Panel operativo</span>
+              <h2>Estado del parque en una mirada</h2>
+              <p>Priorizá equipos, controles pendientes y desvíos antes de entrar al detalle técnico.</p>
+            </div>
+            <div className="dashboard-grid">
+              <div className="dashboard-card primary-dashboard-card">
+                <span>Accion recomendada</span>
+                <strong>{dashboardStats.nextAction}</strong>
+                <p>{outOfToleranceCount > 0 ? 'Hay eventos que requieren seguimiento.' : 'El parque no muestra desvíos abiertos según el historial cargado.'}</p>
+              </div>
+              <Metric label="Balanzas" value={String(equipment.length)} />
+              <Metric label="Sin historial" value={String(dashboardStats.withoutHistory)} />
+              <Metric label="Eventos del mes" value={String(dashboardStats.monthEvents)} />
+              <Metric label="Fuera tolerancia" value={String(outOfToleranceCount)} />
+              <Metric label="Controles conformes" value={String(dashboardStats.conform)} />
+              <Metric label="Calibradas" value={String(dashboardStats.calibrated)} />
+            </div>
+            <div className="quick-actions card">
+              <div>
+                <span className="section-kicker">Accesos rapidos</span>
+                <h2>Trabajo de campo</h2>
+              </div>
+              <div className="row compact-actions">
+                {canOperate && <button className="primary" type="button" onClick={() => setScreen('nueva')}><ClipboardCheck className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
+                {canReview && <button className="secondary" type="button" onClick={() => setScreen('balanzas')}><Scale className="action-icon" aria-hidden="true" />Ver balanzas</button>}
+                <button className="secondary" type="button" onClick={() => setScreen('historial')}><History className="action-icon" aria-hidden="true" />Historial</button>
+                <button className="secondary" type="button" onClick={() => setScreen('herramientas')}><Wrench className="action-icon" aria-hidden="true" />Herramientas</button>
+              </div>
+            </div>
+            {canReview && <div className="stack">
+              {equipmentWithLastEvent.slice(0, 4).map(({ item, lastEvent }) => {
+                const statusText = lastEvent ? getEventMaterialOutcome(lastEvent).status : 'Sin calibraciones'
+                return (
+                  <div className={`card equipment-card status-${statusClass(statusText)}`} key={item.id}>
+                    <div className="equipment-card-header">
+                      <div className="equipment-card-head">
+                        <EquipmentPhoto photoUrl={getEquipmentPhotoUrl(item.photoPath)} label={item.scaleName} status={statusText} compact onOpen={() => openEquipmentPhoto(item)} />
+                        <div>
+                          <span className="section-kicker">{statusText}</span>
+                          <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
+                          <p className="hint">{lastEvent ? `Ultimo error: ${getEventMaterialOutcome(lastEvent).errorPct} %` : 'Requiere primera carga/calibracion.'}</p>
+                        </div>
+                      </div>
+                      <div className="equipment-card-actions row compact-actions">
+                        {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
+                        <button className="secondary small" onClick={() => { setHistoryEquipmentId(item.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>}
+          </section>
+        )}
+
         {screen === 'balanzas' && canReview && (
           <section className="stack screen-shell">
             <div className="screen-banner">
@@ -1844,7 +1983,7 @@ function App() {
                   ? getEventMaterialOutcome(lastEvent).status
                   : 'Sin calibraciones'
                 return (
-                  <div className="card equipment-card" key={item.id}>
+                  <div className={`card equipment-card status-${statusClass(statusText)}`} key={item.id}>
                     <div className="equipment-card-header">
                       <div className="equipment-card-head">
                         <EquipmentPhoto
@@ -1855,6 +1994,7 @@ function App() {
                           onOpen={() => openEquipmentPhoto(item)}
                         />
                         <div>
+                          <span className="section-kicker">{statusText}</span>
                           <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
                           <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
                         </div>
@@ -1899,17 +2039,25 @@ function App() {
                 </div>
               </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
-                {calibrationSteps.map((step, index) => (
+                {calibrationStepStates.map(({ step, complete, warning }, index) => (
                   <button
-                    className={index === calibrationStep ? 'wizard-step active' : index < calibrationStep ? 'wizard-step complete' : 'wizard-step'}
+                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : ''}`}
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
+                    title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
                   >
                     <span>{index + 1}</span>
                     {step}
+                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : 'Pendiente'}</small>
                   </button>
                 ))}
+              </div>
+              <div className="wizard-context compact-top">
+                <Metric label="Balanza" value={selectedEquipment ? `${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}` : 'Sin seleccion'} />
+                <Metric label="Cadena" value={selectedChain ? selectedChain.name : requiresFullCalibration ? 'Pendiente' : 'No requerida'} />
+                <Metric label="Tolerancia" value={`${eventForm.tolerancePercent || 1} %`} />
+                <Metric label="Estado previo" value={selectedEquipmentStatus} />
               </div>
             </div>
 
@@ -2133,6 +2281,15 @@ function App() {
                     <strong>{currentUser.username}</strong>
                   </div>
                 </div>
+                <div className="pre-report compact-top">
+                  <span className="section-kicker">Pre-reporte</span>
+                  <div className="grid four compact-top">
+                    <Metric label="Equipo" value={selectedEquipment ? `${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}` : '-'} />
+                    <Metric label="Resultado" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
+                    <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
+                    <Metric label="Bloqueos" value={String(eventBlockingIssues.length)} />
+                  </div>
+                </div>
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
                 {automaticDiagnosis.length > 0 && (
                   <div className="warning-panel">
@@ -2335,7 +2492,12 @@ function App() {
             </div>
             <div className="card">
               <h2>Historial de eventos</h2>
-              <div className="grid two">
+              <div className="history-summary compact-top">
+                <Metric label="Eventos filtrados" value={String(filteredEvents.length)} />
+                <Metric label="Fuera tolerancia" value={String(filteredEvents.filter((item) => statusClass(getEventMaterialOutcome(item).status) === 'danger').length)} />
+                <Metric label="Conformes" value={String(filteredEvents.filter((item) => statusClass(getEventMaterialOutcome(item).status) === 'success').length)} />
+              </div>
+              <div className="grid three compact-top">
                 <div>
                   <label className="label">Balanza</label>
                   <select className="input" value={historyEquipmentId} onChange={(e) => setHistoryEquipmentId(e.target.value)}>
@@ -2343,6 +2505,22 @@ function App() {
                     {equipment.map((item) => (
                       <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Estado</label>
+                  <select className="input" value={historyStatusFilter} onChange={(e) => setHistoryStatusFilter(e.target.value)}>
+                    <option value="todos">Todos</option>
+                    <option value="success">Conforme / calibrada</option>
+                    <option value="warning">Pendiente</option>
+                    <option value="danger">Fuera de tolerancia</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Mes</label>
+                  <select className="input" value={historyMonthFilter} onChange={(e) => setHistoryMonthFilter(e.target.value)}>
+                    <option value="todos">Todos</option>
+                    {historyMonths.map((month) => <option key={month} value={month}>{month}</option>)}
                   </select>
                 </div>
               </div>
@@ -2353,7 +2531,7 @@ function App() {
               const materialSummary = getEventMaterialOutcome(item)
               const statusText = materialSummary.status
               return (
-                <div className="card stack" key={item.id}>
+                <div className={`card stack history-card status-${statusClass(statusText)}`} key={item.id}>
                   <div className="row wrap">
                     <div className="equipment-card-head">
                       {equipmentItem && (
@@ -2366,6 +2544,7 @@ function App() {
                         />
                       )}
                       <div>
+                        <span className="section-kicker">{statusText}</span>
                         <h3>{item.id}</h3>
                         <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
                       </div>
@@ -2391,7 +2570,7 @@ function App() {
                       <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
                       <Metric label="Pasadas" value={String(materialSummary.passes.length)} />
                       <Metric label="Ajuste" value={materialSummary.adjustmentApplied ? 'Si' : 'No'} />
-                      <Metric label="Estado" value={statusText} />
+                      <Metric label="Accion recomendada" value={statusClass(statusText) === 'danger' ? 'Revisar desvio' : statusClass(statusText) === 'warning' ? 'Cargar control' : 'Seguimiento normal'} />
                     </div>
                     <div className="material-pass-list compact-top">
                       {materialSummary.passes.map((pass) => (
@@ -2461,7 +2640,8 @@ function App() {
 
       </main>
 
-      <nav className={`bottom-nav ${canManageUsers ? 'five' : canOperate ? 'four' : canReview ? 'three' : 'two'}`}>
+      <nav className={`bottom-nav ${canManageUsers ? 'six' : canOperate ? 'five' : canReview ? 'four' : 'three'}`}>
+        <button className={screen === 'dashboard' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('dashboard')}><Scale className="nav-icon" aria-hidden="true" />Inicio</button>
         {canReview && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
         <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
         {canOperate && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
