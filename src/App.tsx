@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
   deleteCalibrationEventRecord,
+  deleteChainRecord,
   deleteEquipmentRecord,
   loadAppData,
   saveCalibrationEventRecord,
@@ -397,6 +398,16 @@ function App() {
     }
   }, [selectedEquipment, chains])
 
+  function applySelectedChainToEvent(chain: Chain) {
+    setSelectedChainId(chain.id)
+    setEventForm((current) => ({
+      ...current,
+      chainId: chain.id,
+      chainName: chain.name,
+      chainLinearKgM: String(chain.linearWeightKgM || ''),
+    }))
+  }
+
   const equipmentWithLastEvent = useMemo(() => {
     return equipment.map((item) => {
       const lastEvent = events
@@ -693,12 +704,19 @@ function App() {
   }
 
   function primeEventForm(item: Equipment) {
+    const plantChain = chains.find((chain) => chain.plant.trim().toLowerCase() === item.plant.trim().toLowerCase())
+    if (plantChain) {
+      setSelectedChainId(plantChain.id)
+    }
     setSelectedEquipmentId(item.id)
     setEventForm({
       ...defaultEventForm,
       eventDate: nowLocalValue(),
       snapshotBridgeLengthM: String(item.bridgeLengthM || ''),
       snapshotNominalSpeedMs: String(item.nominalSpeedMs || ''),
+      chainId: plantChain?.id || '',
+      chainName: plantChain?.name || '',
+      chainLinearKgM: plantChain ? String(plantChain.linearWeightKgM || '') : '',
     })
     setScreen('nueva')
   }
@@ -1092,6 +1110,29 @@ function App() {
     }
   }
 
+  async function handleDeleteChain(item: Chain) {
+    const confirmed = window.confirm(
+      `Eliminar definitivamente la cadena ${item.plant} / ${item.name}? Los eventos historicos conservaran el nombre y kg/m registrados. Esta accion no se puede deshacer.`,
+    )
+    if (!confirmed) return
+
+    try {
+      const result = await deleteChainRecord(item.id)
+      setChains((current) => current.filter((currentItem) => currentItem.id !== item.id))
+      if (selectedChainId === item.id) {
+        setSelectedChainId('')
+      }
+      if (eventForm.chainId === item.id) {
+        setEventForm((current) => ({ ...current, chainId: '', chainName: '', chainLinearKgM: '' }))
+      }
+      setDataSource(result.source)
+      setSyncNotice(`Cadena ${item.name} eliminada.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo eliminar la cadena.'
+      setSyncNotice(`Error al eliminar cadena: ${message}`)
+    }
+  }
+
   async function loadManagedUsers() {
     if (!supabase || !canManageUsers) return
     setUserManagementLoading(true)
@@ -1375,7 +1416,10 @@ function App() {
                 {chains.map((item) => (
                   <div className="result-row" key={item.id}>
                     <span>{item.plant} / {item.name}</span>
-                    <strong>{item.linearWeightKgM} kg/m</strong>
+                    <div className="row compact-actions">
+                      <strong>{item.linearWeightKgM} kg/m</strong>
+                      {canDelete && <button className="secondary small danger" type="button" onClick={() => handleDeleteChain(item)}>Eliminar</button>}
+                    </div>
                   </div>
                 ))}
                 {chains.length === 0 && <div className="result-row"><span>No hay cadenas cargadas.</span><strong>-</strong></div>}
@@ -1466,13 +1510,11 @@ function App() {
                   const nextId = e.target.value
                   setSelectedChainId(nextId)
                   const chain = chains.find((item) => item.id === nextId)
-                  if (!chain) return
-                  setEventForm((current) => ({
-                    ...current,
-                    chainId: chain.id,
-                    chainName: chain.name,
-                    chainLinearKgM: current.chainLinearKgM || String(chain.linearWeightKgM),
-                  }))
+                  if (!chain) {
+                    setEventForm((current) => ({ ...current, chainId: '', chainName: '', chainLinearKgM: '' }))
+                    return
+                  }
+                  applySelectedChainToEvent(chain)
                 }}
               >
                 <option value="">Seleccionar cadena</option>
@@ -1570,7 +1612,7 @@ function App() {
                 <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
-                  <Field label="Kg/m de cadena" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} />
+                  <Field label="Kg/m de cadena (editable)" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} />
                   <Field label="Cantidad de pasadas" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
                   <Field label="Promedio lectura controlador (kg/m)" type="number" value={eventForm.avgControllerReadingKgM} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: value }))} />
                   <Field label="Factor provisorio" type="number" value={eventForm.provisionalFactor} onChange={(value) => setEventForm((current) => ({ ...current, provisionalFactor: value }))} />

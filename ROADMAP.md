@@ -59,9 +59,18 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 
 ### Asistente de calibracion
 
+- Reordenar `Nueva calibracion` para que el contexto sea el primer bloque: balanza, cadena, fecha, tolerancia y estado rapido del equipo.
+- Precargar datos de cadena al seleccionarla, manteniendo `Kg/m de cadena` editable para correcciones justificadas en campo.
 - Convertir el formulario largo en un flujo paso a paso con progreso visible.
 - Permitir guardar borrador de evento y retomarlo.
 - Marcar cada paso como `Completo`, `Pendiente` o `Con advertencia`.
+- Dejar el cierre del evento como ultimo paso con resumen final, diagnostico automatico y boton unico de guardado.
+
+### Gestion de patrones
+
+- Mantener alta de cadenas para `admin` y `tecnico`.
+- Mantener eliminacion de cadenas solo para `admin`.
+- Conservar trazabilidad historica copiando nombre y kg/m de la cadena dentro de cada evento.
 
 ### Fotos y evidencia
 

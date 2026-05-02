@@ -134,6 +134,7 @@ drop policy if exists "public delete equipments" on public.equipments;
 drop policy if exists "public read chains" on public.chains;
 drop policy if exists "public insert chains" on public.chains;
 drop policy if exists "public update chains" on public.chains;
+drop policy if exists "public delete chains" on public.chains;
 drop policy if exists "public read calibration_events" on public.calibration_events;
 drop policy if exists "public insert calibration_events" on public.calibration_events;
 drop policy if exists "public update calibration_events" on public.calibration_events;
@@ -175,6 +176,11 @@ on public.chains for update
 to authenticated
 using (public.current_user_role() in ('admin', 'tecnico'))
 with check (public.current_user_role() in ('admin', 'tecnico'));
+
+create policy "public delete chains"
+on public.chains for delete
+to authenticated
+using (public.current_user_role() = 'admin');
 
 create policy "public read calibration_events"
 on public.calibration_events for select

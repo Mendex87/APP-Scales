@@ -175,6 +175,21 @@ export async function saveChainRecord(item: Chain) {
   return { source: 'supabase' as const }
 }
 
+export async function deleteChainRecord(chainId: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    saveChains(loadChains().filter((item) => item.id !== chainId))
+    return { source: 'local' as const }
+  }
+
+  const result = await supabase.from('chains').delete().eq('id', chainId)
+  if (result.error) {
+    throw toError(result.error)
+  }
+
+  saveChains(loadChains().filter((item) => item.id !== chainId))
+  return { source: 'supabase' as const }
+}
+
 export async function saveCalibrationEventRecord(item: CalibrationEvent) {
   if (!isSupabaseConfigured || !supabase) {
     const next = [item, ...loadEvents().filter((current) => current.id !== item.id)]

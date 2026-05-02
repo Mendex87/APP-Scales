@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Se agrego eliminacion de cadenas de calibracion solo para administradores.
+- Se ajusto la seleccion de cadena en nueva calibracion para precargar siempre el kg/m de la cadena elegida, manteniendo el campo editable.
+- Se documento el plan de reordenamiento de nueva calibracion hacia un flujo por contexto, inspeccion, cero, parametros, span, acumulado, material real y cierre.
+
 ## v1.0.0 - Punto base operativo
 
 Esta version consolida la aplicacion como base funcional para operar calibraciones de balanzas dinamicas con trazabilidad, roles y persistencia remota.
