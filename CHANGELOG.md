@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0 - Flujo guiado y reportes
+
+- Se convirtio `Nueva calibracion` en un wizard por pasos con navegacion directa, anterior y siguiente.
+- Se agrego borrador local de calibracion para guardar, recuperar y descartar eventos en curso.
+- Se agrego reporte imprimible desde el historial de eventos.
+
 ## v1.0.6 - Iconografia
 
 - Se agrego favicon SVG con monograma industrial.

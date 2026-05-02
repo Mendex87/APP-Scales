@@ -6,6 +6,8 @@ import {
   History,
   Pencil,
   PlusCircle,
+  Printer,
+  RotateCcw,
   Save,
   Scale,
   Settings2,
@@ -68,7 +70,8 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.6'
+const APP_VERSION = 'v1.1.0'
+const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -175,6 +178,127 @@ const defaultAccumulatedToolForm = {
   adjustmentFactorCurrent: '1',
 }
 
+const calibrationSteps = [
+  'Contexto',
+  'Inspeccion',
+  'Cero',
+  'Parametros',
+  'Cadena',
+  'Acumulado',
+  'Material real',
+  'Cierre',
+]
+
+type EventDraft = {
+  eventForm: typeof defaultEventForm
+  selectedEquipmentId: string
+  selectedChainId: string
+  savedAt: string
+}
+
+function reportValue(value: unknown) {
+  return String(value ?? '-')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function reportRow(label: string, value: unknown) {
+  return `<div><span>${reportValue(label)}</span><strong>${reportValue(value ?? '-')}</strong></div>`
+}
+
+function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equipment) {
+  const status = computeStatusLabel(item.materialValidation.errorPct, item.tolerancePercent)
+  const equipmentLabel = equipmentItem
+    ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}`
+    : 'Equipo no encontrado'
+
+  return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Reporte ${reportValue(item.id)}</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #0c0b11; }
+    body { margin: 0; padding: 28px; background: #f7f5ef; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 30px; text-transform: uppercase; letter-spacing: -0.02em; }
+    h2 { margin-top: 22px; padding-bottom: 6px; border-bottom: 2px solid #ff5949; font-size: 18px; }
+    .header { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 18px; border-bottom: 3px solid #0c0b11; }
+    .badge { display: inline-block; padding: 7px 10px; background: #ff5949; color: #0c0b11; font-weight: 700; text-transform: uppercase; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+    .grid div { min-height: 54px; padding: 10px; border: 1px solid #d4d0c6; background: #fff; }
+    span { display: block; color: #5c575c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    strong { display: block; margin-top: 4px; font-size: 14px; }
+    .notes { margin-top: 12px; padding: 12px; border: 1px solid #d4d0c6; background: #fff; white-space: pre-wrap; }
+    @media print { body { padding: 0; background: #fff; } .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <button class="no-print" onclick="window.print()">Imprimir</button>
+  <section class="header">
+    <div>
+      <span>Reporte de calibracion</span>
+      <h1>${reportValue(item.id)}</h1>
+      <p>${reportValue(equipmentLabel)}</p>
+    </div>
+    <div><span class="badge">${reportValue(status)}</span></div>
+  </section>
+  <h2>Resumen</h2>
+  <div class="grid">
+    ${reportRow('Fecha evento', formatDateTime(item.eventDate))}
+    ${reportRow('Tecnico', item.approval.technician)}
+    ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
+    ${reportRow('Error cadena', `${item.chainSpan.avgErrorPct} %`)}
+    ${reportRow('Error acumulado', `${item.accumulatedCheck.errorPct || 0} %`)}
+    ${reportRow('Error material', `${item.materialValidation.errorPct} %`)}
+  </div>
+  <h2>Inspeccion y cero</h2>
+  <div class="grid">
+    ${reportRow('Banda vacia', item.precheck.beltEmpty ? 'Si' : 'No')}
+    ${reportRow('Banda limpia', item.precheck.beltClean ? 'Si' : 'No')}
+    ${reportRow('Sin acumulacion', item.precheck.noMaterialBuildup ? 'Si' : 'No')}
+    ${reportRow('Rolos/idlers OK', item.precheck.idlersOk ? 'Si' : 'No')}
+    ${reportRow('Estructura OK', item.precheck.structureOk ? 'Si' : 'No')}
+    ${reportRow('Sensor velocidad OK', item.precheck.speedSensorOk ? 'Si' : 'No')}
+    ${reportRow('Cero realizado', item.zeroCheck.completed ? 'Si' : 'No')}
+    ${reportRow('Unidad cero', item.zeroCheck.displayUnit)}
+    ${reportRow('Cero ajustado', item.zeroCheck.adjusted ? 'Si' : 'No')}
+  </div>
+  <h2>Parametros y span</h2>
+  <div class="grid">
+    ${reportRow('Factor calibracion', item.parameterSnapshot.calibrationFactor)}
+    ${reportRow('Cero', item.parameterSnapshot.zeroValue)}
+    ${reportRow('Span', item.parameterSnapshot.spanValue)}
+    ${reportRow('Filtro', item.parameterSnapshot.filterValue)}
+    ${reportRow('Puente', `${item.parameterSnapshot.bridgeLengthM} m`)}
+    ${reportRow('Velocidad', `${item.parameterSnapshot.nominalSpeedMs} m/s`)}
+    ${reportRow('Cadena', item.chainSpan.chainName)}
+    ${reportRow('Kg/m cadena', item.chainSpan.chainLinearKgM)}
+    ${reportRow('Lectura prom.', item.chainSpan.avgControllerReadingKgM)}
+  </div>
+  <h2>Acumulado, material real y cierre</h2>
+  <div class="grid">
+    ${reportRow('Caudal esperado', `${item.accumulatedCheck.expectedFlowTph} tn/h`)}
+    ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
+    ${reportRow('Total esperado', item.accumulatedCheck.expectedTotal)}
+    ${reportRow('Total indicado', item.accumulatedCheck.indicatedTotal)}
+    ${reportRow('Peso externo', `${item.materialValidation.externalWeightKg} kg`)}
+    ${reportRow('Peso balanza', `${item.materialValidation.beltWeightKg} kg`)}
+    ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
+    ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
+    ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
+  </div>
+  <h2>Notas</h2>
+  <div class="notes"><strong>Diagnostico</strong><br />${reportValue(item.diagnosis || '-')}</div>
+  <div class="notes"><strong>Motivo ajuste</strong><br />${reportValue(item.finalAdjustment.reason || '-')}</div>
+  <div class="notes"><strong>Observaciones</strong><br />${reportValue(item.notes || '-')}</div>
+</body>
+</html>`
+}
+
 function App() {
   const [screen, setScreen] = useState<Screen>('balanzas')
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
@@ -185,6 +309,8 @@ function App() {
   const [equipmentForm, setEquipmentForm] = useState(defaultEquipmentForm)
   const [chainForm, setChainForm] = useState(defaultChainForm)
   const [eventForm, setEventForm] = useState(defaultEventForm)
+  const [calibrationStep, setCalibrationStep] = useState(0)
+  const [hasEventDraft, setHasEventDraft] = useState(() => Boolean(localStorage.getItem(CALIBRATION_DRAFT_KEY)))
   const [equipmentSubmitAttempted, setEquipmentSubmitAttempted] = useState(false)
   const [chainSubmitAttempted, setChainSubmitAttempted] = useState(false)
   const [eventSubmitAttempted, setEventSubmitAttempted] = useState(false)
@@ -672,7 +798,69 @@ function App() {
 
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
+    setCalibrationStep(0)
     setEventSubmitAttempted(false)
+  }
+
+  function saveEventDraft() {
+    const draft: EventDraft = {
+      eventForm,
+      selectedEquipmentId,
+      selectedChainId,
+      savedAt: new Date().toISOString(),
+    }
+    localStorage.setItem(CALIBRATION_DRAFT_KEY, JSON.stringify(draft))
+    setHasEventDraft(true)
+    setSyncNotice('Borrador de calibracion guardado en este dispositivo.')
+  }
+
+  function loadEventDraft() {
+    const rawDraft = localStorage.getItem(CALIBRATION_DRAFT_KEY)
+    if (!rawDraft) {
+      setSyncNotice('No hay borrador local para recuperar.')
+      return
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft) as EventDraft
+      setEventForm({ ...defaultEventForm, ...draft.eventForm })
+      setSelectedEquipmentId(draft.selectedEquipmentId || '')
+      setSelectedChainId(draft.selectedChainId || '')
+      setCalibrationStep(0)
+      setScreen('nueva')
+      setSyncNotice(`Borrador recuperado (${formatDateTime(draft.savedAt)}).`)
+    } catch {
+      localStorage.removeItem(CALIBRATION_DRAFT_KEY)
+      setHasEventDraft(false)
+      setSyncNotice('El borrador local estaba dañado y fue descartado.')
+    }
+  }
+
+  function clearEventDraft(showNotice = true) {
+    localStorage.removeItem(CALIBRATION_DRAFT_KEY)
+    setHasEventDraft(false)
+    if (showNotice) setSyncNotice('Borrador local descartado.')
+  }
+
+  function goToPreviousCalibrationStep() {
+    setCalibrationStep((current) => Math.max(current - 1, 0))
+  }
+
+  function goToNextCalibrationStep() {
+    setCalibrationStep((current) => Math.min(current + 1, calibrationSteps.length - 1))
+  }
+
+  function printCalibrationReport(item: CalibrationEvent, equipmentItem?: Equipment) {
+    const reportWindow = window.open('', '_blank', 'noopener,noreferrer')
+    if (!reportWindow) {
+      setSyncNotice('No se pudo abrir el reporte. Revisá el bloqueador de ventanas emergentes.')
+      return
+    }
+
+    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem))
+    reportWindow.document.close()
+    reportWindow.focus()
+    reportWindow.setTimeout(() => reportWindow.print(), 250)
   }
 
   async function loadAuthenticatedUser(session: Session | null) {
@@ -749,6 +937,7 @@ function App() {
       chainName: plantChain?.name || '',
       chainLinearKgM: plantChain ? String(plantChain.linearWeightKgM || '') : '',
     })
+    setCalibrationStep(0)
     setScreen('nueva')
   }
 
@@ -1094,6 +1283,7 @@ function App() {
       await saveEquipmentRecord(selectedEquipment)
       const result = await saveCalibrationEventRecord(record)
       setEvents((current) => [record, ...current.filter((item) => item.id !== record.id)])
+      clearEventDraft(false)
       resetEventForm()
       setScreen('historial')
       setDataSource(result.source)
@@ -1547,6 +1737,33 @@ function App() {
               <h2>Secuencia real de trabajo</h2>
               <p>Inspección previa, cero, parámetros, span con cadena, material real y ajuste final en un solo circuito técnico.</p>
             </div>
+            <div className="wizard-panel card">
+              <div className="row wrap">
+                <div>
+                  <span className="section-kicker">Paso {calibrationStep + 1} de {calibrationSteps.length}</span>
+                  <h2>{calibrationSteps[calibrationStep]}</h2>
+                </div>
+                <div className="row compact-actions">
+                  {hasEventDraft && <button className="secondary small" type="button" onClick={loadEventDraft}><RotateCcw className="action-icon" aria-hidden="true" />Recuperar borrador</button>}
+                  <button className="secondary small" type="button" onClick={saveEventDraft}><Save className="action-icon" aria-hidden="true" />Guardar borrador</button>
+                </div>
+              </div>
+              <div className="wizard-steps" aria-label="Progreso de calibracion">
+                {calibrationSteps.map((step, index) => (
+                  <button
+                    className={index === calibrationStep ? 'wizard-step active' : index < calibrationStep ? 'wizard-step complete' : 'wizard-step'}
+                    key={step}
+                    type="button"
+                    onClick={() => setCalibrationStep(index)}
+                  >
+                    <span>{index + 1}</span>
+                    {step}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {calibrationStep === 0 && <>
             <div className="card">
               <label className="label">Balanza</label>
               <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)}>
@@ -1604,18 +1821,19 @@ function App() {
                 </div>
               )}
             </div>
+            </>}
 
             <form className="stack" onSubmit={handleEventSubmit}>
-              <div className="card">
+              {calibrationStep === 0 && <div className="card">
                 <div className="card-tag">Paso 1</div>
                 <h2>Evento de calibracion</h2>
                 <div className="grid two">
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
-              </div>
+              </div>}
 
-              <CollapsibleCard title="Paso 2 · Inspeccion previa" hint="Checks obligatorios antes de calibrar." defaultOpen={false}>
+              {calibrationStep === 1 && <CollapsibleCard title="Paso 2 · Inspeccion previa" hint="Checks obligatorios antes de calibrar." defaultOpen>
                 <div className="card-tag">Paso 2</div>
                 <h2>Inspeccion previa</h2>
                 <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
@@ -1629,9 +1847,9 @@ function App() {
                 </div>
                 <TextArea label="Observaciones de inspeccion" value={eventForm.precheckNotes} onChange={(value) => setEventForm((current) => ({ ...current, precheckNotes: value }))} />
                 <div className="result-row"><span>Estado inspeccion</span><strong>{precheckPassed ? 'Completa' : 'Incompleta'}</strong></div>
-              </CollapsibleCard>
+              </CollapsibleCard>}
 
-              <CollapsibleCard title="Paso 3 · Cero" hint="Registro de cero y deriva visible." defaultOpen={false}>
+              {calibrationStep === 2 && <CollapsibleCard title="Paso 3 · Cero" hint="Registro de cero y deriva visible." defaultOpen>
                 <div className="card-tag">Paso 3</div>
                 <h2>Cero</h2>
                 <p className="hint">Siempre se realiza antes de calibrar. Si el controlador no muestra valor, registralo igual como completado y elegí la opcion correspondiente.</p>
@@ -1657,9 +1875,9 @@ function App() {
                   <Metric label="Realizado" value={eventForm.zeroCompleted ? 'Si' : 'No'} />
                 </div>
                 <TextArea label="Observaciones de cero" value={eventForm.zeroNotes} onChange={(value) => setEventForm((current) => ({ ...current, zeroNotes: value }))} />
-              </CollapsibleCard>
+              </CollapsibleCard>}
 
-              <CollapsibleCard title="Paso 4 · Foto de parametros" hint="Datos del controlador al momento de calibrar." defaultOpen={false}>
+              {calibrationStep === 3 && <CollapsibleCard title="Paso 4 · Foto de parametros" hint="Datos del controlador al momento de calibrar." defaultOpen>
                 <div className="card-tag">Paso 4</div>
                 <h2>Foto de parametros</h2>
                 <div className="grid two">
@@ -1678,9 +1896,9 @@ function App() {
                 <TextArea label="Constantes internas" value={eventForm.internalConstants} onChange={(value) => setEventForm((current) => ({ ...current, internalConstants: value }))} />
                 <TextArea label="Parametros extra" value={eventForm.extraParameters} onChange={(value) => setEventForm((current) => ({ ...current, extraParameters: value }))} />
                 <TextArea label="Motivo del cambio de parametros" value={eventForm.changedReason} onChange={(value) => setEventForm((current) => ({ ...current, changedReason: value }))} />
-              </CollapsibleCard>
+              </CollapsibleCard>}
 
-              <CollapsibleCard title="Paso 5 · Span con cadena" hint="Lectura promedio contra peso patron." defaultOpen={false}>
+              {calibrationStep === 4 && <CollapsibleCard title="Paso 5 · Span con cadena" hint="Lectura promedio contra peso patron." defaultOpen>
                 <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
@@ -1694,9 +1912,9 @@ function App() {
                   <Metric label="Referencia cadena" value={`${round(Number(eventForm.chainLinearKgM) || 0)} kg/m`} />
                   <Metric label="Promedio controlador" value={`${round(Number(eventForm.avgControllerReadingKgM) || 0)} kg/m`} />
                 </div>
-              </CollapsibleCard>
+              </CollapsibleCard>}
 
-              <CollapsibleCard title="Paso 6 · Acumulado" hint="Control de totalizador y factor de ajuste." defaultOpen={false}>
+              {calibrationStep === 5 && <CollapsibleCard title="Paso 6 · Acumulado" hint="Control de totalizador y factor de ajuste." defaultOpen>
                 <div className="card-tag">Paso 6</div>
                 <h2>Acumulado y factor de ajuste</h2>
                 <div className="grid two">
@@ -1711,9 +1929,9 @@ function App() {
                   <Metric label="Factor ajuste sugerido" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal && eventForm.adjustmentFactorBefore ? String(round(Number(eventForm.adjustmentFactorBefore) * ((((Number(eventForm.expectedFlowTph) * Number(eventForm.accumulatedTestMinutes)) / 60) / Number(eventForm.accumulatedIndicatedTotal))), 6)) : '-'} />
                   <Metric label="Regla" value="Si el instantaneo esta bien, corregir con factor de ajuste" />
                 </div>
-              </CollapsibleCard>
+              </CollapsibleCard>}
 
-              <CollapsibleCard title="Paso 7 · Material real" hint="Validacion contra peso externo real." defaultOpen={false}>
+              {calibrationStep === 6 && <CollapsibleCard title="Paso 7 · Material real" hint="Validacion contra peso externo real." defaultOpen>
                 <div className="card-tag">Paso 7</div>
                 <h2>Validacion con material real</h2>
                 <div className="grid two">
@@ -1725,9 +1943,9 @@ function App() {
                   <Metric label="Factor anterior" value={String(round(Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0, 6))} />
                   <Metric label="Factor sugerido" value={String(round(suggestedFactor, 6))} />
                 </div>
-              </CollapsibleCard>
+              </CollapsibleCard>}
 
-              <div className="card">
+              {calibrationStep === 7 && <div className="card">
                 <div className="card-tag">Paso 8</div>
                 <h2>Ajuste final y aprobacion</h2>
                 <div className="grid two">
@@ -1760,8 +1978,13 @@ function App() {
                   </div>
                 )}
                 <button className="primary" type="submit"><Save className="action-icon" aria-hidden="true" />Guardar evento</button>
-              </div>
+              </div>}
             </form>
+            <div className="wizard-actions card">
+              <button className="secondary" type="button" onClick={goToPreviousCalibrationStep} disabled={calibrationStep === 0}>Anterior</button>
+              {hasEventDraft && <button className="secondary danger" type="button" onClick={() => clearEventDraft()}><Trash2 className="action-icon" aria-hidden="true" />Descartar borrador</button>}
+              {calibrationStep < calibrationSteps.length - 1 && <button className="primary" type="button" onClick={goToNextCalibrationStep}>Siguiente</button>}
+            </div>
           </section>
         )}
 
@@ -1970,11 +2193,16 @@ function App() {
                         <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
                       </div>
                     </div>
-                    {canDelete && (
-                      <button className="secondary small danger" onClick={() => handleDeleteEvent(item.id)}>
-                        Eliminar
+                    <div className="row compact-actions">
+                      <button className="secondary small" type="button" onClick={() => printCalibrationReport(item, equipmentItem)}>
+                        <Printer className="action-icon" aria-hidden="true" />Imprimir reporte
                       </button>
-                    )}
+                      {canDelete && (
+                        <button className="secondary small danger" type="button" onClick={() => handleDeleteEvent(item.id)}>
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
                   <details className="inline-details">

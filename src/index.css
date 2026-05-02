@@ -162,6 +162,72 @@ body::before {
   gap: 0.5rem;
 }
 
+.wizard-panel {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 5;
+}
+
+.wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.wizard-step {
+  min-height: 52px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #e5e2da;
+  color: var(--color-grey-500);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: transform var(--motion-fast) var(--ease-industrial), border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+
+.wizard-step span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+  background: var(--color-paper-strong);
+  color: var(--color-ink);
+}
+
+.wizard-step.active {
+  border-color: var(--color-orange-dark);
+  background: var(--color-orange);
+  color: var(--color-ink);
+}
+
+.wizard-step.complete {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.wizard-step:hover {
+  transform: translateY(-2px);
+}
+
+.wizard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.wizard-actions .primary {
+  width: auto;
+  min-width: 12rem;
+}
+
 .equipment-card-head,
 .photo-field,
 .selected-equipment-visual {
@@ -1292,6 +1358,24 @@ body::before {
   .row.wrap > button,
   .compact-actions,
   .compact-actions > button {
+    width: 100%;
+  }
+
+  .wizard-panel {
+    position: static;
+  }
+
+  .wizard-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wizard-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wizard-actions .primary,
+  .wizard-actions .secondary {
     width: 100%;
   }
 
