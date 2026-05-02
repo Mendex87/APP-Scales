@@ -54,7 +54,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.1'
+const APP_VERSION = 'v1.0.2'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -275,9 +275,9 @@ function App() {
 
     const id = generateId()
     setToasts((current) => [...current, { id, message: syncNotice, tone }])
-    setSyncNotice('')
     const timeoutId = window.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== id))
+      setSyncNotice('')
     }, 4200)
 
     return () => window.clearTimeout(timeoutId)

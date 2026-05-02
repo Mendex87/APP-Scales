@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.2 - Correccion de toasts
+
+- Se corrigio el temporizador de mensajes para que los toasts vuelvan a desaparecer automaticamente.
+
 ## v1.0.1 - Confirmaciones y avisos
 
 - Se agrego eliminacion de cadenas de calibracion solo para administradores.
