@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import {
   deleteCalibrationEventRecord,
   deleteEquipmentRecord,
@@ -9,7 +10,7 @@ import {
   saveEquipmentRecord,
 } from './repository'
 import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
-import { isSupabaseConfigured } from './supabase'
+import { isSupabaseConfigured, supabase } from './supabase'
 import type { CalibrationEvent, Chain, Equipment, SpeedSource } from './types'
 import {
   computePercentError,
@@ -22,7 +23,7 @@ import {
   round,
 } from './utils'
 
-type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial'
+type Screen = 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 
 type Toast = {
@@ -34,19 +35,17 @@ type Toast = {
 type UserRole = 'admin' | 'supervisor' | 'viewer'
 
 type AuthUser = {
+  id: string
   username: string
+  email: string
   role: UserRole
 }
 
-const APP_USERS = [
-  { username: 'eze', password: 'admin', role: 'admin' as const },
-  { username: 'supervisor', password: 'demo2026', role: 'supervisor' as const },
-  { username: 'demo', password: '1234', role: 'viewer' as const },
-]
+type ManagedUser = AuthUser & {
+  createdAt: string
+}
 
-const AUTH_STORAGE_KEY = 'balanzas-auth-user-v1'
-
-const APP_VERSION = 'v0.11.0'
+const APP_VERSION = 'v0.12.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -65,6 +64,7 @@ const defaultEquipmentForm = {
   calibrationFactorCurrent: '',
   adjustmentFactorCurrent: '1',
   totalizerUnit: 'tn',
+  photoPath: '',
   notes: '',
 }
 
@@ -162,6 +162,12 @@ function App() {
   const [equipmentForm, setEquipmentForm] = useState(defaultEquipmentForm)
   const [chainForm, setChainForm] = useState(defaultChainForm)
   const [eventForm, setEventForm] = useState(defaultEventForm)
+  const [equipmentSubmitAttempted, setEquipmentSubmitAttempted] = useState(false)
+  const [chainSubmitAttempted, setChainSubmitAttempted] = useState(false)
+  const [eventSubmitAttempted, setEventSubmitAttempted] = useState(false)
+  const [editingEquipmentId, setEditingEquipmentId] = useState('')
+  const [equipmentPhotoFile, setEquipmentPhotoFile] = useState<File | null>(null)
+  const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState('')
   const [rpmToolForm, setRpmToolForm] = useState(defaultRpmToolForm)
   const [loopToolForm, setLoopToolForm] = useState(defaultLoopToolForm)
   const [chainToolForm, setChainToolForm] = useState(defaultChainToolForm)
@@ -172,17 +178,13 @@ function App() {
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [toasts, setToasts] = useState<Toast[]>([])
-  const [loginUsername, setLoginUsername] = useState('')
+  const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY)
-    if (!raw) return null
-    try {
-      return JSON.parse(raw) as AuthUser
-    } catch {
-      return null
-    }
-  })
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([])
+  const [userForm, setUserForm] = useState({ email: '', username: '', password: '', role: 'viewer' as UserRole })
+  const [userManagementLoading, setUserManagementLoading] = useState(false)
 
   useEffect(() => {
     saveEquipment(equipment)
@@ -197,12 +199,58 @@ function App() {
   }, [events])
 
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser))
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY)
+    let cancelled = false
+
+    async function initializeAuth() {
+      if (!supabase) {
+        setAuthLoading(false)
+        return
+      }
+
+      const { data } = await supabase.auth.getSession()
+      if (!cancelled) {
+        await loadAuthenticatedUser(data.session)
+        setAuthLoading(false)
+      }
     }
-  }, [currentUser])
+
+    void initializeAuth()
+
+    const { data } = supabase?.auth.onAuthStateChange((_event, session) => {
+      void loadAuthenticatedUser(session)
+    }) || { data: null }
+
+    return () => {
+      cancelled = true
+      data?.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!currentUser) return
+    let cancelled = false
+
+    async function refreshAuthenticatedData() {
+      try {
+        const result = await loadAppData()
+        if (cancelled) return
+        setEquipment(result.equipment)
+        setChains(result.chains || [])
+        setEvents(result.events)
+        setDataSource(result.source)
+      } catch (error) {
+        if (cancelled) return
+        const message = error instanceof Error ? error.message : 'No se pudo cargar la base remota.'
+        setSyncNotice(`No se pudo cargar datos autenticados: ${message}`)
+      }
+    }
+
+    void refreshAuthenticatedData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentUser?.id])
 
   useEffect(() => {
     if (!syncNotice) return
@@ -265,8 +313,21 @@ function App() {
   }, [equipment, selectedEquipmentId])
 
   useEffect(() => {
+    if (!equipmentPhotoFile) {
+      setEquipmentPhotoPreview('')
+      return
+    }
+    const objectUrl = URL.createObjectURL(equipmentPhotoFile)
+    setEquipmentPhotoPreview(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [equipmentPhotoFile])
+
+  useEffect(() => {
     if (!currentUser) return
-    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
+    if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva' || screen === 'usuarios')) {
+      setScreen('herramientas')
+    }
+    if (currentUser.role === 'supervisor' && screen === 'usuarios') {
       setScreen('herramientas')
     }
   }, [currentUser, screen])
@@ -279,6 +340,13 @@ function App() {
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
   const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'supervisor'
   const canDelete = currentUser?.role === 'admin'
+  const canManageUsers = currentUser?.role === 'admin'
+
+  useEffect(() => {
+    if (screen === 'usuarios' && canManageUsers) {
+      void loadManagedUsers()
+    }
+  }, [screen, canManageUsers])
 
   useEffect(() => {
     if (!selectedEquipment) return
@@ -382,6 +450,14 @@ function App() {
     return issues
   }, [equipmentForm])
 
+  const chainBlockingIssues = useMemo(() => {
+    const issues: string[] = []
+    if (!chainForm.plant.trim()) issues.push('Falta planta.')
+    if (!chainForm.name.trim()) issues.push('Falta nombre de cadena.')
+    if (!(Number(chainForm.linearWeightKgM) > 0)) issues.push('El peso por metro debe ser mayor a 0.')
+    return issues
+  }, [chainForm])
+
   const eventBlockingIssues = useMemo(() => {
     const issues: string[] = []
     if (!selectedEquipment) issues.push('Seleccioná una balanza.')
@@ -390,6 +466,9 @@ function App() {
     if (!eventForm.technician.trim()) issues.push('Falta el tecnico responsable.')
     if (!(Number(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
     if (!(Number(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
+    if (!(Number(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
+    if (!(Number(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
+    if (!(Number(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
     if (!(Number(eventForm.externalWeightKg) > 0)) issues.push('Falta el peso real externo.')
     if (!(Number(eventForm.beltWeightKg) > 0)) issues.push('Falta el peso medido por balanza.')
     if (!(Number(eventForm.finalFactor || suggestedFactor) > 0)) issues.push('Falta el factor final o sugerido.')
@@ -535,23 +614,63 @@ function App() {
 
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
+    setEventSubmitAttempted(false)
   }
 
-  function handleLogin(event: FormEvent) {
-    event.preventDefault()
-    const user = APP_USERS.find((item) => item.username === loginUsername.trim() && item.password === loginPassword)
-    if (!user) {
-      setSyncNotice('Error de acceso: usuario o contraseña inválidos.')
+  async function loadAuthenticatedUser(session: Session | null) {
+    if (!session?.user || !supabase) {
+      setCurrentUser(null)
       return
     }
-    setCurrentUser({ username: user.username, role: user.role })
-    setLoginUsername('')
-    setLoginPassword('')
-    setScreen(user.role === 'viewer' ? 'herramientas' : 'balanzas')
-    setSyncNotice(`Sesion iniciada como ${user.username}.`)
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username, role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (error || !data) {
+      setCurrentUser(null)
+      setSyncNotice('Tu usuario no tiene perfil asignado. Contactá a un administrador.')
+      return
+    }
+
+    setCurrentUser({
+      id: session.user.id,
+      email: session.user.email || '',
+      username: data.username || session.user.email || 'Usuario',
+      role: data.role as UserRole,
+    })
   }
 
-  function handleLogout() {
+  async function handleLogin(event: FormEvent) {
+    event.preventDefault()
+    if (!supabase) {
+      setSyncNotice('Supabase Auth no está configurado.')
+      return
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginEmail.trim(),
+      password: loginPassword,
+    })
+
+    if (error) {
+      setSyncNotice(`Error de acceso: ${error.message}`)
+      return
+    }
+
+    await loadAuthenticatedUser(data.session)
+    setLoginEmail('')
+    setLoginPassword('')
+    setScreen('balanzas')
+    setSyncNotice('Sesion iniciada.')
+  }
+
+  async function handleLogout() {
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     setCurrentUser(null)
     setScreen('balanzas')
     setSyncNotice('Sesion cerrada.')
@@ -566,6 +685,82 @@ function App() {
       snapshotNominalSpeedMs: String(item.nominalSpeedMs || ''),
     })
     setScreen('nueva')
+  }
+
+  function primeEquipmentEdit(item: Equipment) {
+    setEditingEquipmentId(item.id)
+    setEquipmentPhotoFile(null)
+    setEquipmentSubmitAttempted(false)
+    setEquipmentForm({
+      plant: item.plant,
+      line: item.line,
+      beltCode: item.beltCode,
+      scaleName: item.scaleName,
+      controllerModel: item.controllerModel,
+      controllerSerial: item.controllerSerial,
+      beltWidthMm: String(item.beltWidthMm || ''),
+      beltLengthM: String(item.beltLengthM || ''),
+      nominalCapacityTph: String(item.nominalCapacityTph || ''),
+      bridgeLengthM: String(item.bridgeLengthM || ''),
+      nominalSpeedMs: String(item.nominalSpeedMs || ''),
+      speedSource: item.speedSource,
+      rpmRollDiameterMm: String(item.rpmRollDiameterMm || ''),
+      calibrationFactorCurrent: String(item.calibrationFactorCurrent || ''),
+      adjustmentFactorCurrent: String(item.adjustmentFactorCurrent || 1),
+      totalizerUnit: item.totalizerUnit || 'tn',
+      photoPath: item.photoPath || '',
+      notes: item.notes,
+    })
+    setScreen('balanzas')
+  }
+
+  function resetEquipmentForm() {
+    setEditingEquipmentId('')
+    setEquipmentPhotoFile(null)
+    setEquipmentSubmitAttempted(false)
+    setEquipmentForm(defaultEquipmentForm)
+  }
+
+  function getEquipmentPhotoUrl(path: string) {
+    if (!path || !supabase) return ''
+    return supabase.storage.from('equipment-photos').getPublicUrl(path).data.publicUrl
+  }
+
+  async function resizeImage(file: File) {
+    const image = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    try {
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve()
+        image.onerror = () => reject(new Error('No se pudo leer la imagen.'))
+        image.src = objectUrl
+      })
+      const maxSize = 720
+      const scale = Math.min(maxSize / image.width, maxSize / image.height, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(image.width * scale)
+      canvas.height = Math.round(image.height * scale)
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('No se pudo procesar la imagen.')
+      context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      return await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('No se pudo comprimir la imagen.'))), 'image/jpeg', 0.82)
+      })
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }
+
+  async function uploadEquipmentPhoto(file: File, equipmentId: string) {
+    if (!supabase) return ''
+    const blob = await resizeImage(file)
+    const path = `${equipmentId}/${Date.now()}.jpg`
+    const result = await supabase.storage.from('equipment-photos').upload(path, blob, {
+      contentType: 'image/jpeg',
+      upsert: true,
+    })
+    if (result.error) throw result.error
+    return result.data.path
   }
 
   function applyMeasuredSpeed(speedMs: number) {
@@ -614,39 +809,50 @@ function App() {
 
   async function handleEquipmentSubmit(event: FormEvent) {
     event.preventDefault()
+    setEquipmentSubmitAttempted(true)
 
-    const nextEquipment: Equipment = {
-      id: generateId(),
-      plant: equipmentForm.plant.trim(),
-      line: equipmentForm.line.trim(),
-      beltCode: equipmentForm.beltCode.trim(),
-      scaleName: equipmentForm.scaleName.trim(),
-      controllerModel: equipmentForm.controllerModel.trim(),
-      controllerSerial: equipmentForm.controllerSerial.trim(),
-      beltWidthMm: Number(equipmentForm.beltWidthMm) || 0,
-      beltLengthM: Number(equipmentForm.beltLengthM) || 0,
-      nominalCapacityTph: Number(equipmentForm.nominalCapacityTph) || 0,
-      bridgeLengthM: Number(equipmentForm.bridgeLengthM) || 0,
-      nominalSpeedMs: Number(equipmentForm.nominalSpeedMs) || 0,
-      speedSource: equipmentForm.speedSource,
-      rpmRollDiameterMm: Number(equipmentForm.rpmRollDiameterMm) || 0,
-      calibrationFactorCurrent: Number(equipmentForm.calibrationFactorCurrent) || 0,
-      adjustmentFactorCurrent: Number(equipmentForm.adjustmentFactorCurrent) || 1,
-      totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
-      notes: equipmentForm.notes.trim(),
-      createdAt: new Date().toISOString(),
-    }
-
-    if (!nextEquipment.beltCode || !nextEquipment.scaleName || !nextEquipment.controllerModel) return
+    if (equipmentBlockingIssues.length > 0) return
 
     try {
+      const equipmentId = editingEquipmentId || generateId()
+      let photoPath = equipmentForm.photoPath
+      if (equipmentPhotoFile) {
+        photoPath = await uploadEquipmentPhoto(equipmentPhotoFile, equipmentId)
+      }
+
+      const nextEquipment: Equipment = {
+        id: equipmentId,
+        plant: equipmentForm.plant.trim(),
+        line: equipmentForm.line.trim(),
+        beltCode: equipmentForm.beltCode.trim(),
+        scaleName: equipmentForm.scaleName.trim(),
+        controllerModel: equipmentForm.controllerModel.trim(),
+        controllerSerial: equipmentForm.controllerSerial.trim(),
+        beltWidthMm: Number(equipmentForm.beltWidthMm) || 0,
+        beltLengthM: Number(equipmentForm.beltLengthM) || 0,
+        nominalCapacityTph: Number(equipmentForm.nominalCapacityTph) || 0,
+        bridgeLengthM: Number(equipmentForm.bridgeLengthM) || 0,
+        nominalSpeedMs: Number(equipmentForm.nominalSpeedMs) || 0,
+        speedSource: equipmentForm.speedSource,
+        rpmRollDiameterMm: Number(equipmentForm.rpmRollDiameterMm) || 0,
+        calibrationFactorCurrent: Number(equipmentForm.calibrationFactorCurrent) || 0,
+        adjustmentFactorCurrent: Number(equipmentForm.adjustmentFactorCurrent) || 1,
+        totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
+        photoPath,
+        notes: equipmentForm.notes.trim(),
+        createdAt: equipment.find((item) => item.id === equipmentId)?.createdAt || new Date().toISOString(),
+      }
+
       const result = await saveEquipmentRecord(nextEquipment)
       setEquipment((current) => [nextEquipment, ...current.filter((item) => item.id !== nextEquipment.id)])
       setSelectedEquipmentId(nextEquipment.id)
-      setEquipmentForm(defaultEquipmentForm)
+      resetEquipmentForm()
+      setEquipmentSubmitAttempted(false)
       setDataSource(result.source)
       setSyncNotice(
-        result.source === 'supabase' ? 'Balanza guardada en Supabase.' : 'Balanza guardada solo localmente.',
+        result.source === 'supabase'
+          ? `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} en Supabase.`
+          : `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} solo localmente.`,
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar la balanza.'
@@ -656,6 +862,9 @@ function App() {
 
   async function handleChainSubmit(event: FormEvent) {
     event.preventDefault()
+    setChainSubmitAttempted(true)
+
+    if (chainBlockingIssues.length > 0) return
 
     const nextChain: Chain = {
       id: generateId(),
@@ -668,16 +877,12 @@ function App() {
       createdAt: new Date().toISOString(),
     }
 
-    if (!nextChain.plant || !nextChain.name || !(nextChain.linearWeightKgM > 0)) {
-      setSyncNotice('Faltan datos de cadena para guardar.')
-      return
-    }
-
     try {
       const result = await saveChainRecord(nextChain)
       setChains((current) => [nextChain, ...current.filter((item) => item.id !== nextChain.id)])
       setSelectedChainId(nextChain.id)
       setChainForm(defaultChainForm)
+      setChainSubmitAttempted(false)
       setDataSource(result.source)
       setSyncNotice(result.source === 'supabase' ? 'Cadena guardada en Supabase.' : 'Cadena guardada solo localmente.')
     } catch (error) {
@@ -688,6 +893,8 @@ function App() {
 
   async function handleEventSubmit(event: FormEvent) {
     event.preventDefault()
+    setEventSubmitAttempted(true)
+    if (eventBlockingIssues.length > 0) return
     if (!selectedEquipment) return
 
     const factorBeforeAdjustment = Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0
@@ -863,6 +1070,81 @@ function App() {
     }
   }
 
+  async function loadManagedUsers() {
+    if (!supabase || !canManageUsers) return
+    setUserManagementLoading(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'list' },
+      })
+      if (error) throw error
+      setManagedUsers((data?.users || []) as ManagedUser[])
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudieron cargar los usuarios.'
+      setSyncNotice(`Error de usuarios: ${message}`)
+    } finally {
+      setUserManagementLoading(false)
+    }
+  }
+
+  async function handleUserSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!supabase || !canManageUsers) return
+
+    setUserManagementLoading(true)
+    try {
+      const { error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'create', ...userForm },
+      })
+      if (error) throw error
+      setUserForm({ email: '', username: '', password: '', role: 'viewer' })
+      setSyncNotice(`Usuario ${userForm.email} creado.`)
+      await loadManagedUsers()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo crear el usuario.'
+      setSyncNotice(`Error al crear usuario: ${message}`)
+    } finally {
+      setUserManagementLoading(false)
+    }
+  }
+
+  async function handleDeleteUser(user: ManagedUser) {
+    if (!supabase || !canManageUsers) return
+    if (user.id === currentUser?.id) {
+      setSyncNotice('No podés eliminar tu propio usuario activo.')
+      return
+    }
+    const confirmed = window.confirm(`Eliminar definitivamente el usuario ${user.email}? Esta accion no se puede deshacer.`)
+    if (!confirmed) return
+
+    setUserManagementLoading(true)
+    try {
+      const { error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'delete', userId: user.id },
+      })
+      if (error) throw error
+      setSyncNotice(`Usuario ${user.email} eliminado.`)
+      await loadManagedUsers()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo eliminar el usuario.'
+      setSyncNotice(`Error al eliminar usuario: ${message}`)
+    } finally {
+      setUserManagementLoading(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="app-shell auth-shell">
+        <section className="auth-card">
+          <div className="brand-kicker">Acceso protegido</div>
+          <h1>CalibraCinta</h1>
+          <p>Cargando sesión...</p>
+        </section>
+      </div>
+    )
+  }
+
   if (!currentUser) {
     return (
       <div className="app-shell auth-shell">
@@ -871,7 +1153,7 @@ function App() {
           <h1>CalibraCinta</h1>
           <p>Ingresá para operar la plataforma de calibración y trazabilidad de balanzas dinámicas.</p>
           <form className="stack" onSubmit={handleLogin}>
-            <Field label="Usuario" value={loginUsername} onChange={setLoginUsername} />
+            <Field label="Email" type="email" value={loginEmail} onChange={setLoginEmail} />
             <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
             <button className="primary" type="submit">Ingresar</button>
           </form>
@@ -943,11 +1225,11 @@ function App() {
               <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
             </div>
             <CollapsibleCard title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." defaultOpen={equipment.length === 0}>
-              <div className="row wrap">
-                <div>
-                  <h2>Listado de balanzas</h2>
-                  <p className="hint">La app arranca mostrando equipos y su ultimo estado conocido.</p>
-                </div>
+                <div className="row wrap">
+                  <div>
+                    <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
+                    <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : 'La app arranca mostrando equipos y su ultimo estado conocido.'}</p>
+                  </div>
                   <button className="secondary" onClick={() => setScreen('nueva')}>
                     Nueva calibracion
                   </button>
@@ -984,8 +1266,29 @@ function App() {
                   </div>
                   <Field label="Diametro rolo RPM (mm)" type="number" value={equipmentForm.rpmRollDiameterMm} onChange={(value) => setEquipmentForm((current) => ({ ...current, rpmRollDiameterMm: value }))} />
                 </div>
+                <div className="photo-field">
+                  <div className="equipment-avatar">
+                    {equipmentPhotoPreview ? (
+                      <img src={equipmentPhotoPreview} alt="Preview de balanza" />
+                    ) : equipmentForm.photoPath ? (
+                      <img src={getEquipmentPhotoUrl(equipmentForm.photoPath)} alt="Foto de balanza" />
+                    ) : (
+                      <span>{equipmentForm.scaleName?.slice(0, 2).toUpperCase() || 'BD'}</span>
+                    )}
+                  </div>
+                  <div>
+                    <label className="label">Foto de balanza</label>
+                    <input
+                      className="input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => setEquipmentPhotoFile(event.target.files?.[0] || null)}
+                    />
+                    <p className="hint">Se comprime antes de subirla para mantener la app liviana.</p>
+                  </div>
+                </div>
                 <TextArea label="Observaciones del equipo" value={equipmentForm.notes} onChange={(value) => setEquipmentForm((current) => ({ ...current, notes: value }))} />
-                {equipmentBlockingIssues.length > 0 && (
+                {equipmentSubmitAttempted && equipmentBlockingIssues.length > 0 && (
                   <div className="warning-panel">
                     <strong>Faltan datos para guardar la balanza</strong>
                     <ul>
@@ -995,7 +1298,10 @@ function App() {
                     </ul>
                   </div>
                 )}
-                <button className="primary" type="submit" disabled={equipmentBlockingIssues.length > 0}>Guardar balanza</button>
+                <div className="row compact-actions">
+                  <button className="primary" type="submit">{editingEquipmentId ? 'Actualizar balanza' : 'Guardar balanza'}</button>
+                  {editingEquipmentId && <button className="secondary" type="button" onClick={resetEquipmentForm}>Cancelar edicion</button>}
+                </div>
               </form>
             </CollapsibleCard>
 
@@ -1015,6 +1321,16 @@ function App() {
                   <Field label="Peso total (kg)" type="number" value={chainForm.totalWeightKg} onChange={(value) => setChainForm((current) => ({ ...current, totalWeightKg: value }))} />
                 </div>
                 <TextArea label="Observaciones de cadena" value={chainForm.notes} onChange={(value) => setChainForm((current) => ({ ...current, notes: value }))} />
+                {chainSubmitAttempted && chainBlockingIssues.length > 0 && (
+                  <div className="warning-panel">
+                    <strong>Faltan datos para guardar la cadena</strong>
+                    <ul>
+                      {chainBlockingIssues.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <button className="primary" type="submit">Guardar cadena</button>
               </form>
               <div className="stack compact-top">
@@ -1036,12 +1352,18 @@ function App() {
                 return (
                   <div className="card" key={item.id}>
                     <div className="row wrap">
-                      <div>
-                        <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
-                        <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
+                      <div className="equipment-card-head">
+                        <div className="equipment-avatar small-avatar">
+                          {item.photoPath ? <img src={getEquipmentPhotoUrl(item.photoPath)} alt={item.scaleName} /> : <span>{item.scaleName.slice(0, 2).toUpperCase()}</span>}
+                        </div>
+                        <div>
+                          <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
+                          <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
+                        </div>
                       </div>
                       <div className="row compact-actions">
                         <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>
+                        {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}>Editar</button>}
                         {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}>Dar de baja</button>}
                       </div>
                     </div>
@@ -1257,7 +1579,7 @@ function App() {
                     </ul>
                   </div>
                 )}
-                {eventBlockingIssues.length > 0 && (
+                {eventSubmitAttempted && eventBlockingIssues.length > 0 && (
                   <div className="warning-panel">
                     <strong>Faltan datos obligatorios para cerrar el evento</strong>
                     <ul>
@@ -1267,7 +1589,7 @@ function App() {
                     </ul>
                   </div>
                 )}
-                <button className="primary" type="submit" disabled={eventBlockingIssues.length > 0}>Guardar evento</button>
+                <button className="primary" type="submit">Guardar evento</button>
               </div>
             </form>
           </section>
@@ -1482,13 +1804,59 @@ function App() {
           </section>
         )}
 
+        {screen === 'usuarios' && canManageUsers && (
+          <section className="stack screen-shell">
+            <div className="screen-banner">
+              <span className="section-kicker">Administracion</span>
+              <h2>Gestion de usuarios</h2>
+              <p>Alta y baja de usuarios usando Supabase Auth y perfiles con rol operativo.</p>
+            </div>
+            <div className="card stack">
+              <h2>Crear usuario</h2>
+              <form className="stack" onSubmit={handleUserSubmit}>
+                <div className="grid two">
+                  <Field label="Email" type="email" value={userForm.email} onChange={(value) => setUserForm((current) => ({ ...current, email: value }))} />
+                  <Field label="Nombre visible" value={userForm.username} onChange={(value) => setUserForm((current) => ({ ...current, username: value }))} />
+                  <Field label="Contraseña" type="password" value={userForm.password} onChange={(value) => setUserForm((current) => ({ ...current, password: value }))} />
+                  <div>
+                    <label className="label">Rol</label>
+                    <select className="input" value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value as UserRole }))}>
+                      <option value="viewer">Consulta</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                </div>
+                <button className="primary" type="submit" disabled={userManagementLoading}>Crear usuario</button>
+              </form>
+            </div>
+            <div className="card stack">
+              <div className="row wrap">
+                <div>
+                  <h2>Usuarios activos</h2>
+                  <p className="hint">Los cambios se aplican sobre Supabase Auth.</p>
+                </div>
+                <button className="secondary small" onClick={loadManagedUsers} disabled={userManagementLoading}>Actualizar</button>
+              </div>
+              {managedUsers.map((user) => (
+                <div className="result-row" key={user.id}>
+                  <span>{user.username || user.email} · {user.email} · {user.role}</span>
+                  <button className="secondary small danger" disabled={user.id === currentUser.id || userManagementLoading} onClick={() => handleDeleteUser(user)}>Eliminar</button>
+                </div>
+              ))}
+              {managedUsers.length === 0 && <div className="result-row"><span>No hay usuarios cargados o no se cargó la lista.</span><strong>-</strong></div>}
+            </div>
+          </section>
+        )}
+
       </main>
 
-      <nav className={`bottom-nav ${canEdit ? 'four' : 'two'}`}>
+      <nav className={`bottom-nav ${canManageUsers ? 'five' : canEdit ? 'four' : 'two'}`}>
         {canEdit && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>}
         <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}>Herramientas</button>
         {canEdit && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>}
         <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
+        {canManageUsers && <button className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('usuarios')}>Usuarios</button>}
       </nav>
     </div>
   )

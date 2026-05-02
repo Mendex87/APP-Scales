@@ -20,6 +20,7 @@ type EquipmentRow = {
   calibration_factor_current: number
   adjustment_factor_current: number
   totalizer_unit: string
+  photo_path: string
   notes: string
   created_at: string
 }
@@ -261,6 +262,7 @@ function mapEquipmentRow(row: EquipmentRow): Equipment {
     calibrationFactorCurrent: row.calibration_factor_current,
     adjustmentFactorCurrent: row.adjustment_factor_current,
     totalizerUnit: row.totalizer_unit,
+    photoPath: row.photo_path || '',
     notes: row.notes,
     createdAt: row.created_at,
   }
@@ -285,6 +287,7 @@ function toEquipmentRow(item: Equipment): EquipmentRow {
     calibration_factor_current: item.calibrationFactorCurrent,
     adjustment_factor_current: item.adjustmentFactorCurrent,
     totalizer_unit: item.totalizerUnit,
+    photo_path: item.photoPath || '',
     notes: item.notes,
     created_at: item.createdAt,
   }

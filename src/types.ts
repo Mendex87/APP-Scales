@@ -19,6 +19,7 @@ export type Equipment = {
   calibrationFactorCurrent: number
   adjustmentFactorCurrent: number
   totalizerUnit: string
+  photoPath: string
   notes: string
   createdAt: string
 }

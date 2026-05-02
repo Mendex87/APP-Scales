@@ -16,9 +16,27 @@ create table if not exists public.equipments (
   calibration_factor_current double precision not null default 0,
   adjustment_factor_current double precision not null default 1,
   totalizer_unit text not null default 'tn',
+  photo_path text not null default '',
   notes text not null default '',
   created_at timestamptz not null default now()
 );
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text not null default '',
+  role text not null check (role in ('admin', 'supervisor', 'viewer')),
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.current_user_role()
+returns text
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select role from public.profiles where id = auth.uid()
+$$;
 
 create table if not exists public.chains (
   id text primary key,
@@ -83,10 +101,24 @@ alter table public.equipments
 alter table public.equipments
   add column if not exists totalizer_unit text not null default 'tn';
 
+alter table public.equipments
+  add column if not exists photo_path text not null default '';
+
+insert into storage.buckets (id, name, public)
+values ('equipment-photos', 'equipment-photos', true)
+on conflict (id) do update set public = true;
+
 alter table public.chains enable row level security;
 
+alter table public.profiles enable row level security;
 alter table public.equipments enable row level security;
 alter table public.calibration_events enable row level security;
+
+drop policy if exists "profiles read own" on public.profiles;
+drop policy if exists "profiles admin read" on public.profiles;
+drop policy if exists "profiles admin write" on public.profiles;
+drop policy if exists "equipment photos read" on storage.objects;
+drop policy if exists "equipment photos write" on storage.objects;
 
 drop policy if exists "public read equipments" on public.equipments;
 drop policy if exists "public insert equipments" on public.equipments;
@@ -102,58 +134,85 @@ drop policy if exists "public delete calibration_events" on public.calibration_e
 
 create policy "public read equipments"
 on public.equipments for select
-to anon
+to authenticated
 using (true);
 
 create policy "public insert equipments"
 on public.equipments for insert
-to anon
-with check (true);
+to authenticated
+with check (public.current_user_role() in ('admin', 'supervisor'));
 
 create policy "public update equipments"
 on public.equipments for update
-to anon
-using (true)
-with check (true);
+to authenticated
+using (public.current_user_role() = 'admin')
+with check (public.current_user_role() = 'admin');
 
 create policy "public delete equipments"
 on public.equipments for delete
-to anon
-using (true);
+to authenticated
+using (public.current_user_role() = 'admin');
 
 create policy "public read chains"
 on public.chains for select
-to anon
+to authenticated
 using (true);
 
 create policy "public insert chains"
 on public.chains for insert
-to anon
-with check (true);
+to authenticated
+with check (public.current_user_role() in ('admin', 'supervisor'));
 
 create policy "public update chains"
 on public.chains for update
-to anon
-using (true)
-with check (true);
+to authenticated
+using (public.current_user_role() in ('admin', 'supervisor'))
+with check (public.current_user_role() in ('admin', 'supervisor'));
 
 create policy "public read calibration_events"
 on public.calibration_events for select
-to anon
+to authenticated
 using (true);
 
 create policy "public insert calibration_events"
 on public.calibration_events for insert
-to anon
-with check (true);
+to authenticated
+with check (public.current_user_role() in ('admin', 'supervisor'));
 
 create policy "public update calibration_events"
 on public.calibration_events for update
-to anon
-using (true)
-with check (true);
+to authenticated
+using (public.current_user_role() in ('admin', 'supervisor'))
+with check (public.current_user_role() in ('admin', 'supervisor'));
 
 create policy "public delete calibration_events"
 on public.calibration_events for delete
-to anon
-using (true);
+to authenticated
+using (public.current_user_role() = 'admin');
+
+create policy "profiles read own"
+on public.profiles for select
+to authenticated
+using (id = auth.uid());
+
+create policy "profiles admin read"
+on public.profiles for select
+to authenticated
+using (public.current_user_role() = 'admin');
+
+create policy "profiles admin write"
+on public.profiles for all
+to authenticated
+using (public.current_user_role() = 'admin')
+with check (public.current_user_role() = 'admin');
+
+create policy "equipment photos read"
+on storage.objects for select
+to authenticated
+using (bucket_id = 'equipment-photos');
+
+create policy "equipment photos write"
+on storage.objects for all
+to authenticated
+using (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'supervisor'))
+with check (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'supervisor'));
