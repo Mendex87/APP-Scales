@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.6 - Iconografia
+
+- Se agrego favicon SVG con monograma industrial.
+- Se incorporo `lucide-react` para iconos de interfaz.
+- Se agregaron iconos en navegacion inferior y acciones principales.
+
 ## v1.0.5 - Motion refinado
 
 - Se agrego barra de progreso y salida animada en toasts.

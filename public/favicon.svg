@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="CalibraCinta">
+  <rect width="128" height="128" rx="18" fill="#0c0b11"/>
+  <path d="M18 94h92" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/>
+  <path d="M25 34h78v42H25z" fill="none" stroke="#f0efeb" stroke-width="7"/>
+  <path d="M40 76V52h18c8 0 13 4 13 11s-5 13-14 13H40z" fill="#ff5949"/>
+  <path d="M78 76V52h11c10 0 18 5 18 12s-8 12-18 12H78z" fill="#f0efeb"/>
+  <path d="M49 59v10h7c4 0 7-2 7-5s-3-5-7-5h-7z" fill="#0c0b11"/>
+  <path d="M86 59v10h3c6 0 10-2 10-5s-4-5-10-5h-3z" fill="#0c0b11"/>
+</svg>

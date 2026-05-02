@@ -818,6 +818,10 @@ body::before {
 .nav-item {
   position: relative;
   overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   min-height: 48px;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -850,6 +854,19 @@ body::before {
 .secondary.small {
   min-height: 38px;
   font-size: 0.9rem;
+}
+
+.action-icon,
+.nav-icon {
+  width: 1.05em;
+  height: 1.05em;
+  flex: 0 0 auto;
+  stroke-width: 2.35;
+}
+
+.nav-icon {
+  width: 1.15em;
+  height: 1.15em;
 }
 
 .primary:hover:enabled,
@@ -1181,6 +1198,8 @@ body::before {
   color: var(--color-grey-500);
   border-color: var(--border);
   padding: 0 0.35rem;
+  flex-direction: column;
+  gap: 0.18rem;
 }
 
 .nav-item.active {

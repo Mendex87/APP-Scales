@@ -2,6 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
+  ClipboardCheck,
+  History,
+  Pencil,
+  PlusCircle,
+  Save,
+  Scale,
+  Settings2,
+  Trash2,
+  Users,
+  Wrench,
+  XCircle,
+} from 'lucide-react'
+import {
   deleteCalibrationEventRecord,
   deleteChainRecord,
   deleteEquipmentRecord,
@@ -55,7 +68,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.5'
+const APP_VERSION = 'v1.0.6'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -1367,6 +1380,7 @@ function App() {
                     <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : 'La app arranca mostrando equipos y su ultimo estado conocido.'}</p>
                   </div>
                   {canOperate && <button className="secondary" onClick={() => setScreen('nueva')}>
+                    <PlusCircle className="action-icon" aria-hidden="true" />
                     Nueva calibracion
                   </button>}
               </div>
@@ -1435,8 +1449,8 @@ function App() {
                   </div>
                 )}
                 <div className="row compact-actions">
-                  <button className="primary" type="submit">{editingEquipmentId ? 'Actualizar balanza' : 'Guardar balanza'}</button>
-                  {editingEquipmentId && <button className="secondary" type="button" onClick={resetEquipmentForm}>Cancelar edicion</button>}
+                  <button className="primary" type="submit"><Save className="action-icon" aria-hidden="true" />{editingEquipmentId ? 'Actualizar balanza' : 'Guardar balanza'}</button>
+                  {editingEquipmentId && <button className="secondary" type="button" onClick={resetEquipmentForm}><XCircle className="action-icon" aria-hidden="true" />Cancelar edicion</button>}
                 </div>
               </form>}
             </CollapsibleCard>
@@ -1468,7 +1482,7 @@ function App() {
                     </ul>
                   </div>
                 )}
-                <button className="primary" type="submit">Guardar cadena</button>
+                <button className="primary" type="submit"><Save className="action-icon" aria-hidden="true" />Guardar cadena</button>
               </form>}
               <div className="stack compact-top">
                 {chains.map((item) => (
@@ -1476,7 +1490,7 @@ function App() {
                     <span>{item.plant} / {item.name}</span>
                     <div className="row compact-actions">
                       <strong>{item.linearWeightKgM} kg/m</strong>
-                      {canDelete && <button className="secondary small danger" type="button" onClick={() => handleDeleteChain(item)}>Eliminar</button>}
+                      {canDelete && <button className="secondary small danger" type="button" onClick={() => handleDeleteChain(item)}><Trash2 className="action-icon" aria-hidden="true" />Eliminar</button>}
                     </div>
                   </div>
                 ))}
@@ -1506,9 +1520,9 @@ function App() {
                         </div>
                       </div>
                       <div className="row compact-actions">
-                        {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}>Nueva calibracion</button>}
-                        {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}>Editar</button>}
-                        {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}>Dar de baja</button>}
+                        {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
+                        {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
+                        {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
                       </div>
                     </div>
                     <div className="grid four compact-top">
@@ -1745,7 +1759,7 @@ function App() {
                     </ul>
                   </div>
                 )}
-                <button className="primary" type="submit">Guardar evento</button>
+                <button className="primary" type="submit"><Save className="action-icon" aria-hidden="true" />Guardar evento</button>
               </div>
             </form>
           </section>
@@ -1830,6 +1844,7 @@ function App() {
                 <Metric label="Error %" value={rpmToolResult && rpmToolForm.indicatedSpeedMs ? `${round(rpmToolResult.errorPct, 3)} %` : '-'} />
               </div>
               <button className="secondary" disabled={!rpmToolResult || !canOperate} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
+                <ClipboardCheck className="action-icon" aria-hidden="true" />
                 Usar velocidad en evento
               </button>
             </CollapsibleCard>
@@ -1847,6 +1862,7 @@ function App() {
                 <Metric label="Error %" value={loopToolResult && loopToolForm.indicatedSpeedMs ? `${round(loopToolResult.errorPct, 3)} %` : '-'} />
               </div>
               <button className="secondary" disabled={!loopToolResult || !canOperate} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
+                <ClipboardCheck className="action-icon" aria-hidden="true" />
                 Usar velocidad en evento
               </button>
             </CollapsibleCard>
@@ -1865,6 +1881,7 @@ function App() {
                 <Metric label="Caudal esperado t/h" value={chainToolResult ? String(round(chainToolResult.tph, 3)) : '-'} />
               </div>
               <button className="secondary" disabled={!chainToolResult || !canOperate} onClick={applyChainToEvent}>
+                <ClipboardCheck className="action-icon" aria-hidden="true" />
                 Usar datos en evento
               </button>
             </CollapsibleCard>
@@ -1884,6 +1901,7 @@ function App() {
                 <Metric label="Diagnostico" value={accumulatedToolResult ? (Math.abs(accumulatedToolResult.errorPct) > 2 ? 'Revisar/ajustar acumulado' : 'Acumulado coherente') : '-'} />
               </div>
               <button className="secondary" disabled={!accumulatedToolResult || !canOperate} onClick={applyAccumulatedToEvent}>
+                <ClipboardCheck className="action-icon" aria-hidden="true" />
                 Usar acumulado en evento
               </button>
             </CollapsibleCard>
@@ -1902,6 +1920,7 @@ function App() {
                 <Metric label="Recomendacion" value={factorToolResult ? factorToolResult.recommendation : '-'} />
               </div>
               <button className="secondary" disabled={!factorToolResult || !canOperate} onClick={applyFactorToEvent}>
+                <ClipboardCheck className="action-icon" aria-hidden="true" />
                 Usar factor en evento
               </button>
             </CollapsibleCard>
@@ -2003,7 +2022,7 @@ function App() {
                     </select>
                   </div>
                 </div>
-                <button className="primary" type="submit" disabled={userManagementLoading}>Crear usuario</button>
+                <button className="primary" type="submit" disabled={userManagementLoading}><Users className="action-icon" aria-hidden="true" />Crear usuario</button>
               </form>
             </div>
             <div className="card stack">
@@ -2012,12 +2031,12 @@ function App() {
                   <h2>Usuarios activos</h2>
                   <p className="hint">Los cambios se aplican sobre Supabase Auth.</p>
                 </div>
-                <button className="secondary small" onClick={loadManagedUsers} disabled={userManagementLoading}>Actualizar</button>
+                <button className="secondary small" onClick={loadManagedUsers} disabled={userManagementLoading}><Settings2 className="action-icon" aria-hidden="true" />Actualizar</button>
               </div>
               {managedUsers.map((user) => (
                 <div className="result-row" key={user.id}>
                   <span>{user.username || user.email} · {user.email} · {user.role}</span>
-                  <button className="secondary small danger" disabled={user.id === currentUser.id || userManagementLoading} onClick={() => handleDeleteUser(user)}>Eliminar</button>
+                  <button className="secondary small danger" disabled={user.id === currentUser.id || userManagementLoading} onClick={() => handleDeleteUser(user)}><Trash2 className="action-icon" aria-hidden="true" />Eliminar</button>
                 </div>
               ))}
               {managedUsers.length === 0 && <div className="result-row"><span>No hay usuarios cargados o no se cargó la lista.</span><strong>-</strong></div>}
@@ -2028,11 +2047,11 @@ function App() {
       </main>
 
       <nav className={`bottom-nav ${canManageUsers ? 'five' : canOperate ? 'four' : canReview ? 'three' : 'two'}`}>
-        {canReview && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}>Balanzas</button>}
-        <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}>Herramientas</button>
-        {canOperate && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}>Nueva</button>}
-        <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}>Historial</button>
-        {canManageUsers && <button className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('usuarios')}>Usuarios</button>}
+        {canReview && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
+        <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
+        {canOperate && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
+        <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}><History className="nav-icon" aria-hidden="true" />Historial</button>
+        {canManageUsers && <button className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('usuarios')}><Users className="nav-icon" aria-hidden="true" />Usuarios</button>}
       </nav>
     </div>
   )
