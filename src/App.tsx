@@ -45,7 +45,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v0.12.0'
+const APP_VERSION = 'v0.13.0'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -168,6 +168,7 @@ function App() {
   const [editingEquipmentId, setEditingEquipmentId] = useState('')
   const [equipmentPhotoFile, setEquipmentPhotoFile] = useState<File | null>(null)
   const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState('')
+  const [photoViewer, setPhotoViewer] = useState<{ src: string; title: string } | null>(null)
   const [rpmToolForm, setRpmToolForm] = useState(defaultRpmToolForm)
   const [loopToolForm, setLoopToolForm] = useState(defaultLoopToolForm)
   const [chainToolForm, setChainToolForm] = useState(defaultChainToolForm)
@@ -336,6 +337,17 @@ function App() {
     () => equipment.find((item) => item.id === selectedEquipmentId),
     [equipment, selectedEquipmentId],
   )
+
+  const selectedEquipmentLastEvent = useMemo(() => {
+    if (!selectedEquipment) return null
+    return events
+      .filter((item) => item.equipmentId === selectedEquipment.id)
+      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())[0] || null
+  }, [events, selectedEquipment])
+
+  const selectedEquipmentStatus = selectedEquipmentLastEvent
+    ? computeStatusLabel(selectedEquipmentLastEvent.materialValidation.errorPct, selectedEquipmentLastEvent.tolerancePercent)
+    : 'Sin calibrar'
 
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
   const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'supervisor'
@@ -724,6 +736,12 @@ function App() {
   function getEquipmentPhotoUrl(path: string) {
     if (!path || !supabase) return ''
     return supabase.storage.from('equipment-photos').getPublicUrl(path).data.publicUrl
+  }
+
+  function openEquipmentPhoto(item: Equipment) {
+    const src = getEquipmentPhotoUrl(item.photoPath)
+    if (!src) return
+    setPhotoViewer({ src, title: `${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}` })
   }
 
   async function resizeImage(file: File) {
@@ -1212,6 +1230,22 @@ function App() {
         ))}
       </section>
 
+      {photoViewer && (
+        <div className="photo-modal" role="dialog" aria-modal="true" aria-label="Foto de balanza">
+          <button className="photo-modal-backdrop" type="button" onClick={() => setPhotoViewer(null)} aria-label="Cerrar foto" />
+          <div className="photo-modal-card">
+            <div className="row wrap">
+              <div>
+                <span className="section-kicker">Referencia visual</span>
+                <h2>{photoViewer.title}</h2>
+              </div>
+              <button className="secondary small" type="button" onClick={() => setPhotoViewer(null)}>Cerrar</button>
+            </div>
+            <img src={photoViewer.src} alt={photoViewer.title} />
+          </div>
+        </div>
+      )}
+
       {syncNotice && <div className="notice">{syncNotice}</div>}
 
       {loadingData && <div className="notice">Cargando datos...</div>}
@@ -1353,9 +1387,13 @@ function App() {
                   <div className="card" key={item.id}>
                     <div className="row wrap">
                       <div className="equipment-card-head">
-                        <div className="equipment-avatar small-avatar">
-                          {item.photoPath ? <img src={getEquipmentPhotoUrl(item.photoPath)} alt={item.scaleName} /> : <span>{item.scaleName.slice(0, 2).toUpperCase()}</span>}
-                        </div>
+                        <EquipmentPhoto
+                          photoUrl={getEquipmentPhotoUrl(item.photoPath)}
+                          label={item.scaleName}
+                          status={statusText}
+                          compact
+                          onOpen={() => openEquipmentPhoto(item)}
+                        />
                         <div>
                           <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
                           <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
@@ -1398,11 +1436,19 @@ function App() {
                 ))}
               </select>
               {selectedEquipment && (
-                <div className="grid four compact-top">
-                  <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM} m`} />
-                  <Metric label="Velocidad" value={`${selectedEquipment.nominalSpeedMs} m/s`} />
-                  <Metric label="Capacidad" value={`${selectedEquipment.nominalCapacityTph} t/h`} />
-                  <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
+                <div className="selected-equipment-visual compact-top">
+                  <EquipmentPhoto
+                    photoUrl={getEquipmentPhotoUrl(selectedEquipment.photoPath)}
+                    label={selectedEquipment.scaleName}
+                    status={selectedEquipmentStatus}
+                    onOpen={() => openEquipmentPhoto(selectedEquipment)}
+                  />
+                  <div className="grid four">
+                    <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM} m`} />
+                    <Metric label="Velocidad" value={`${selectedEquipment.nominalSpeedMs} m/s`} />
+                    <Metric label="Capacidad" value={`${selectedEquipment.nominalCapacityTph} t/h`} />
+                    <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
+                  </div>
                 </div>
               )}
             </div>
@@ -1611,11 +1657,19 @@ function App() {
                 ))}
               </select>
               {selectedEquipment && (
-                <div className="grid four compact-top">
-                  <Metric label="Diametro RPM" value={`${selectedEquipment.rpmRollDiameterMm || 0} mm`} />
-                  <Metric label="Largo cinta" value={`${selectedEquipment.beltLengthM || 0} m`} />
-                  <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM || 0} m`} />
-                  <Metric label="Velocidad nominal" value={`${selectedEquipment.nominalSpeedMs || 0} m/s`} />
+                <div className="selected-equipment-visual compact-top">
+                  <EquipmentPhoto
+                    photoUrl={getEquipmentPhotoUrl(selectedEquipment.photoPath)}
+                    label={selectedEquipment.scaleName}
+                    status={selectedEquipmentStatus}
+                    onOpen={() => openEquipmentPhoto(selectedEquipment)}
+                  />
+                  <div className="grid four">
+                    <Metric label="Diametro RPM" value={`${selectedEquipment.rpmRollDiameterMm || 0} mm`} />
+                    <Metric label="Largo cinta" value={`${selectedEquipment.beltLengthM || 0} m`} />
+                    <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM || 0} m`} />
+                    <Metric label="Velocidad nominal" value={`${selectedEquipment.nominalSpeedMs || 0} m/s`} />
+                  </div>
                 </div>
               )}
             </div>
@@ -1772,9 +1826,20 @@ function App() {
               return (
                 <div className="card stack" key={item.id}>
                   <div className="row wrap">
-                    <div>
-                      <h3>{item.id}</h3>
-                      <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
+                    <div className="equipment-card-head">
+                      {equipmentItem && (
+                        <EquipmentPhoto
+                          photoUrl={getEquipmentPhotoUrl(equipmentItem.photoPath)}
+                          label={equipmentItem.scaleName}
+                          status={statusText}
+                          compact
+                          onOpen={() => openEquipmentPhoto(equipmentItem)}
+                        />
+                      )}
+                      <div>
+                        <h3>{item.id}</h3>
+                        <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
+                      </div>
                     </div>
                     {canDelete && (
                       <button className="secondary small danger" onClick={() => handleDeleteEvent(item.id)}>
@@ -1886,6 +1951,34 @@ function CollapsibleCard({
         {children}
       </div>
     </details>
+  )
+}
+
+function EquipmentPhoto({
+  photoUrl,
+  label,
+  status,
+  compact = false,
+  onOpen,
+}: {
+  photoUrl: string
+  label: string
+  status: string
+  compact?: boolean
+  onOpen: () => void
+}) {
+  const initials = label.trim().slice(0, 2).toUpperCase() || 'BD'
+  return (
+    <button
+      className={`equipment-photo ${compact ? 'equipment-photo-compact' : ''}`}
+      type="button"
+      onClick={photoUrl ? onOpen : undefined}
+      disabled={!photoUrl}
+      title={photoUrl ? 'Ampliar foto' : 'Sin foto cargada'}
+    >
+      {photoUrl ? <img src={photoUrl} alt={label} /> : <span>{initials}</span>}
+      <strong>{status}</strong>
+    </button>
   )
 }
 
