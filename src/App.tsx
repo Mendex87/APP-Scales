@@ -70,7 +70,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.9'
+const APP_VERSION = 'v1.1.10'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -191,7 +191,7 @@ const defaultAccumulatedToolForm = {
 }
 
 const calibrationSteps = [
-  'Contexto',
+  'Eleccion de balanza/cinta',
   'Inspeccion',
   'Cero',
   'Parametros',
@@ -329,7 +329,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
     ${reportRow('Banda vacia', item.precheck.beltEmpty ? 'Si' : 'No')}
     ${reportRow('Banda limpia', item.precheck.beltClean ? 'Si' : 'No')}
     ${reportRow('Sin acumulacion', item.precheck.noMaterialBuildup ? 'Si' : 'No')}
-    ${reportRow('Rolos/idlers OK', item.precheck.idlersOk ? 'Si' : 'No')}
+    ${reportRow('Rolos y puente OK', item.precheck.idlersOk ? 'Si' : 'No')}
     ${reportRow('Estructura OK', item.precheck.structureOk ? 'Si' : 'No')}
     ${reportRow('Sensor velocidad OK', item.precheck.speedSensorOk ? 'Si' : 'No')}
     ${reportRow('Cero realizado', item.zeroCheck.completed ? 'Si' : 'No')}
@@ -367,7 +367,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
   </div>
   <h2>Notas</h2>
   <div class="notes"><strong>Diagnostico</strong><br />${reportValue(item.diagnosis || '-')}</div>
-  <div class="notes"><strong>Motivo ajuste</strong><br />${reportValue(item.finalAdjustment.reason || '-')}</div>
   <div class="notes"><strong>Observaciones</strong><br />${reportValue(item.notes || '-')}</div>
 </body>
 </html>`
@@ -1884,7 +1883,7 @@ function App() {
         {screen === 'nueva' && canOperate && (
           <section className="stack screen-shell">
             <div className="screen-banner">
-              <span className="section-kicker">Evento de calibracion</span>
+              <span className="section-kicker">Eleccion de balanza/cinta</span>
               <h2>Secuencia real de trabajo</h2>
               <p>Inspección previa, cero, parámetros, span con cadena, material real y ajuste final en un solo circuito técnico.</p>
             </div>
@@ -1976,7 +1975,7 @@ function App() {
             <form className="stack" onSubmit={handleEventSubmit}>
               {calibrationStep === 0 && <div className="card">
                 <div className="card-tag">Paso 1</div>
-                <h2>Evento de calibracion</h2>
+                <h2>Eleccion de balanza/cinta</h2>
                 <div className="grid two">
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
@@ -1991,7 +1990,7 @@ function App() {
                   <CheckField label="Banda vacia" checked={eventForm.precheckBeltEmpty} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltEmpty: checked }))} />
                   <CheckField label="Banda limpia" checked={eventForm.precheckBeltClean} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltClean: checked }))} />
                   <CheckField label="Sin acumulacion de material" checked={eventForm.precheckNoMaterialBuildup} onChange={(checked) => setEventForm((current) => ({ ...current, precheckNoMaterialBuildup: checked }))} />
-                  <CheckField label="Rolos e idlers OK" checked={eventForm.precheckIdlersOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckIdlersOk: checked }))} />
+                  <CheckField label="Rolos y distancia de puente de pesaje OK" checked={eventForm.precheckIdlersOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckIdlersOk: checked }))} />
                   <CheckField label="Estructura sin vibraciones anormales" checked={eventForm.precheckStructureOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckStructureOk: checked }))} />
                   <CheckField label="Sensor de velocidad OK" checked={eventForm.precheckSpeedSensorOk} onChange={(checked) => setEventForm((current) => ({ ...current, precheckSpeedSensorOk: checked }))} />
                 </div>
@@ -2043,9 +2042,7 @@ function App() {
                     <strong>{currentUser.username}</strong>
                   </div>
                 </div>
-                <TextArea label="Constantes internas" value={eventForm.internalConstants} onChange={(value) => setEventForm((current) => ({ ...current, internalConstants: value }))} />
                 <TextArea label="Parametros extra" value={eventForm.extraParameters} onChange={(value) => setEventForm((current) => ({ ...current, extraParameters: value }))} />
-                <TextArea label="Motivo del cambio de parametros" value={eventForm.changedReason} onChange={(value) => setEventForm((current) => ({ ...current, changedReason: value }))} />
               </CollapsibleCard>}
 
               {calibrationStep === 4 && <CollapsibleCard title="Paso 5 · Span con cadena" hint="Lectura promedio contra peso patron." defaultOpen>
@@ -2053,7 +2050,7 @@ function App() {
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
                   <Field label="Kg/m de cadena (editable)" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} />
-                  <Field label="Cantidad de pasadas" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
+                  <Field label="Tiempo de test" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
                   <Field label="Promedio lectura controlador (kg/m)" type="number" value={eventForm.avgControllerReadingKgM} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: value }))} />
                   <Field label="Factor provisorio" type="number" value={eventForm.provisionalFactor} onChange={(value) => setEventForm((current) => ({ ...current, provisionalFactor: value }))} />
                 </div>
@@ -2136,7 +2133,6 @@ function App() {
                     <strong>{currentUser.username}</strong>
                   </div>
                 </div>
-                <TextArea label="Motivo del ajuste" value={eventForm.adjustmentReason} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentReason: value }))} />
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
                 {automaticDiagnosis.length > 0 && (
                   <div className="warning-panel">

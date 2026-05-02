@@ -35,10 +35,19 @@ export const computeStatusLabel = (errorPct: number, tolerancePct: number) =>
 
 export const generateEventCode = (dateValue: string, existingEvents: CalibrationEvent[]) => {
   const date = new Date(dateValue)
-  const year = date.getFullYear()
+  const fullYear = date.getFullYear()
+  const year = String(fullYear).slice(-2)
   const month = String(date.getMonth() + 1).padStart(2, '0')
-  const prefix = `CAL-${year}${month}-`
-  const count = existingEvents.filter((item) => item.id.startsWith(prefix)).length + 1
-  return `${prefix}${String(count).padStart(4, '0')}`
+  const prefix = `CAL-${year}${month}`
+  const legacyPrefix = `CAL-${fullYear}${month}-`
+  const sequences = existingEvents
+    .map((item) => {
+      if (item.id.startsWith(prefix)) return Number(item.id.slice(prefix.length)) || 0
+      if (item.id.startsWith(legacyPrefix)) return Number(item.id.slice(legacyPrefix.length)) || 0
+      return 0
+    })
+    .filter((sequence) => sequence > 0)
+  const count = Math.max(0, ...sequences) + 1
+  return `${prefix}${String(count).padStart(2, '0')}`
 }
 

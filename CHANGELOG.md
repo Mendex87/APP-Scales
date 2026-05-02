@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.10 - Ajustes del flujo de calibracion
+
+- Se simplifico el wizard de nueva calibracion con etiquetas de campo alineadas al lenguaje operativo.
+- Se ocultaron campos no necesarios de parametros y cierre, manteniendo compatibilidad con eventos historicos.
+- Se acorto el codigo de evento al formato `CAL-YYMMSS`, por ejemplo `CAL-260502`.
+
 ## v1.1.9 - Acciones de balanzas consistentes
 
 - Se ajusto el layout de las acciones en tarjetas de balanza para evitar saltos visuales con nombres largos.

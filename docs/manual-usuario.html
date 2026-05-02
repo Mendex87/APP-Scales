@@ -459,7 +459,7 @@
       <h2>7. Nueva calibracion paso a paso</h2>
       <p>El flujo esta organizado como wizard de 8 pasos. La navegacion permite avanzar, retroceder o tocar directamente un paso. El evento se guarda solo desde el cierre.</p>
       <div class="grid four">
-        <div class="metric"><span>Paso 1</span><strong>Contexto</strong></div>
+        <div class="metric"><span>Paso 1</span><strong>Eleccion de balanza/cinta</strong></div>
         <div class="metric"><span>Paso 2</span><strong>Inspeccion</strong></div>
         <div class="metric"><span>Paso 3</span><strong>Cero</strong></div>
         <div class="metric"><span>Paso 4</span><strong>Parametros</strong></div>
@@ -469,21 +469,21 @@
         <div class="metric"><span>Paso 8</span><strong>Cierre</strong></div>
       </div>
 
-      <h3>Paso 1: Contexto</h3>
+      <h3>Paso 1: Eleccion de balanza/cinta</h3>
       <p>Seleccionar la balanza, seleccionar la cadena si corresponde, definir fecha/hora y tolerancia. Si la balanza tiene cadenas de la misma planta, solo se listan esas cadenas. Si no tiene, se habilitan todas.</p>
       <div class="callout warning"><strong>Primera calibracion:</strong> si la balanza no tiene eventos previos, la app exigira datos completos de cadena y acumulado. Si ya tiene historial, podra cerrarse como control preventivo con material.</div>
 
       <h3>Paso 2: Inspeccion previa</h3>
-      <p>Confirmar condiciones mecanicas y operativas antes de calibrar: banda vacia, banda limpia, sin acumulacion, rolos/idlers OK, estructura sin vibraciones anormales y sensor de velocidad OK. Si algo no cumple, corregir antes de continuar.</p>
+      <p>Confirmar condiciones mecanicas y operativas antes de calibrar: banda vacia, banda limpia, sin acumulacion, rolos y distancia de puente de pesaje OK, estructura sin vibraciones anormales y sensor de velocidad OK. Si algo no cumple, corregir antes de continuar.</p>
 
       <h3>Paso 3: Cero</h3>
       <p>Registrar si el cero fue realizado, si fue ajustado, la unidad visible y valores antes/despues. La app calcula deriva cuando ambos valores son numericos.</p>
 
       <h3>Paso 4: Foto de parametros</h3>
-      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, span, filtro, puente, velocidad nominal, unidades, constantes internas y motivo del cambio.</p>
+      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, span, filtro, puente, velocidad nominal, unidades y parametros extra si corresponde.</p>
 
       <h3>Paso 5: Span con cadena</h3>
-      <p>Registrar kg/m de cadena, cantidad de pasadas, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
+      <p>Registrar kg/m de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
       <div class="callout"><strong>Campo editable:</strong> aunque el kg/m se precarga desde la cadena seleccionada, queda editable para registrar la referencia real usada en campo.</div>
 
       <h3>Paso 6: Acumulado</h3>
@@ -503,7 +503,7 @@
       </table>
 
       <h3>Paso 8: Cierre</h3>
-      <p>Revisar resultado final, error final, si hubo ajuste y factor final. Completar motivo de ajuste y observaciones cuando corresponda. Guardar evento.</p>
+      <p>Revisar resultado final, error final, si hubo ajuste y factor final. Completar observaciones cuando corresponda. Guardar evento.</p>
     </section>
 
     <section id="controles-preventivos">
@@ -559,7 +559,7 @@
       <table>
         <thead><tr><th>Elemento</th><th>Descripcion</th></tr></thead>
         <tbody>
-          <tr><td>ID de evento</td><td>Codigo generado con anio, mes y secuencia.</td></tr>
+          <tr><td>ID de evento</td><td>Codigo generado en formato CAL-YYMMSS, por ejemplo CAL-260502.</td></tr>
           <tr><td>Equipo</td><td>Planta, linea, cinta y nombre de balanza.</td></tr>
           <tr><td>Estado</td><td>Control conforme, calibrada o fuera de tolerancia segun ultima pasada completa.</td></tr>
           <tr><td>Error material final</td><td>Error de la ultima pasada completa con material real.</td></tr>
