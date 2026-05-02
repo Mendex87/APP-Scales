@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.12 - Descarga PDF desde manual web
+
+- Se agrego descarga directa del PDF correspondiente dentro de cada manual HTML.
+- Los manuales web mantienen el acceso por rol desde el boton `Manual` de la app.
+
 ## v1.1.11 - Manuales web
 
 - Se publicaron los manuales HTML como paginas estaticas bajo `/manual/`.

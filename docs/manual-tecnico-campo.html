@@ -150,6 +150,28 @@
 
     p { margin: 8px 0; }
 
+    .manual-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .manual-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 12px 16px;
+      color: var(--ink);
+      background: var(--orange);
+      border: 2px solid var(--ink);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
     .toc {
       padding: 22px;
     }
@@ -277,6 +299,7 @@
       section { margin-top: 18px; }
       h2 { font-size: 31px; }
       h3 { font-size: 20px; }
+      .manual-actions { display: none; }
       .toc ol { columns: 2; }
     }
 
@@ -298,9 +321,12 @@
         <span class="kicker">Manual tecnico de campo</span>
         <h1>Calibra Cinta</h1>
         <p class="subtitle">Guia operativa para realizar controles y calibraciones en campo. Este documento se enfoca en el procedimiento tecnico: preparar el equipo, registrar datos confiables, interpretar tolerancias y cerrar el trabajo correctamente.</p>
+        <div class="manual-actions">
+          <a href="/manual-tecnico-campo.pdf" download>Descargar PDF tecnico</a>
+        </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v1.1.8</strong></div>
+        <div><span>Version documentada</span><strong>v1.1.12</strong></div>
         <div><span>Alcance</span><strong>Uso en campo</strong></div>
         <div><span>Usuario</span><strong>Tecnico</strong></div>
       </div>

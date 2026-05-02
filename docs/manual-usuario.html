@@ -158,6 +158,28 @@
 
     a { color: var(--orange-dark); }
 
+    .manual-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .manual-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 12px 16px;
+      color: var(--ink);
+      background: var(--orange);
+      border: 2px solid var(--ink);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
     .toc {
       padding: 22px;
     }
@@ -301,6 +323,7 @@
       h2 { font-size: 32px; }
       h3 { font-size: 21px; }
       a { color: var(--ink); text-decoration: none; }
+      .manual-actions { display: none; }
       .toc ol { columns: 2; }
     }
 
@@ -323,9 +346,12 @@
         <span class="kicker">Manual de administrador</span>
         <h1>Calibra Cinta</h1>
         <p class="subtitle">Guia completa para administracion y supervision integral de balanzas dinamicas, cadenas patron, calibraciones, controles preventivos, historial, reportes, herramientas tecnicas y usuarios.</p>
+        <div class="manual-actions">
+          <a href="/manual-admin.pdf" download>Descargar PDF administrador</a>
+        </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v1.1.8</strong></div>
+        <div><span>Version documentada</span><strong>v1.1.12</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
