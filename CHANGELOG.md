@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.3 - Edicion de balanzas
+
+- Se ajusto el boton `Editar` para abrir automaticamente el formulario de balanza y llevar al usuario al inicio de la pantalla.
+
 ## v1.0.2 - Correccion de toasts
 
 - Se corrigio el temporizador de mensajes para que los toasts vuelvan a desaparecer automaticamente.

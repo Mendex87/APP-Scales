@@ -54,7 +54,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.2'
+const APP_VERSION = 'v1.0.3'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -756,6 +756,7 @@ function App() {
       notes: item.notes,
     })
     setScreen('balanzas')
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
   }
 
   function resetEquipmentForm() {
@@ -1349,7 +1350,7 @@ function App() {
               <h2>Listado de balanzas y estado operativo</h2>
               <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
             </div>
-            <CollapsibleCard title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." defaultOpen={equipment.length === 0}>
+            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
                   <div>
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
