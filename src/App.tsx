@@ -851,12 +851,13 @@ function App() {
   }
 
   function printCalibrationReport(item: CalibrationEvent, equipmentItem?: Equipment) {
-    const reportWindow = window.open('', '_blank', 'noopener,noreferrer')
+    const reportWindow = window.open('', '_blank')
     if (!reportWindow) {
       setSyncNotice('No se pudo abrir el reporte. Revisá el bloqueador de ventanas emergentes.')
       return
     }
 
+    reportWindow.opener = null
     reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem))
     reportWindow.document.close()
     reportWindow.focus()
