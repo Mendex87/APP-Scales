@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/manual", "destination": "/manual/index.html" },
+    { "source": "/manual/admin", "destination": "/manual/admin/index.html" },
+    { "source": "/manual/tecnico", "destination": "/manual/tecnico/index.html" }
+  ]
+}

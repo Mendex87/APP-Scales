@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.11 - Manuales web
+
+- Se publicaron los manuales HTML como paginas estaticas bajo `/manual/`.
+- El boton `Manual` ahora abre la version web correspondiente al rol.
+
 ## v1.1.10 - Ajustes del flujo de calibracion
 
 - Se simplifico el wizard de nueva calibracion con etiquetas de campo alineadas al lenguaje operativo.

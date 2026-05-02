@@ -26,11 +26,13 @@
 ## Release/Deploy
 
 - Vercel deploy expects build command `npm run build` and output directory `dist`.
+- `vercel.json` only rewrites manual routes (`/manual`, `/manual/admin`, `/manual/tecnico`) to static HTML pages; keep SPA behavior untouched unless intentionally adding routing.
 - For relevant app changes, update all version locations together: `APP_VERSION` in `src/App.tsx`, `package.json`, `package-lock.json`, and `CHANGELOG.md`.
 - Google Sheets integration is intentionally paused; keep the historical setup files as reference unless explicitly asked to revive it.
 
 ## Manuals
 
 - Role-specific PDFs served by the app are in `public/manual-admin.pdf` and `public/manual-tecnico-campo.pdf`; `public/manual-usuario.pdf` remains for compatibility.
+- Role-specific HTML manuals are served from `public/manual/admin/index.html` and `public/manual/tecnico/index.html`; `/manual/` is the public landing page.
 - Manual source HTML lives in `docs/`; if field names or workflow labels change in the app, update both relevant HTML manuals and the public PDFs if regenerated.
 - There is no npm script for PDF generation; verify any manual generation workflow before claiming PDFs were refreshed.

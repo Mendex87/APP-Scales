@@ -70,7 +70,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.10'
+const APP_VERSION = 'v1.1.11'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1614,7 +1614,7 @@ function App() {
     )
   }
 
-  const manualHref = currentUser.role === 'admin' ? '/manual-admin.pdf' : '/manual-tecnico-campo.pdf'
+  const manualHref = currentUser.role === 'admin' ? '/manual/admin/' : '/manual/tecnico/'
 
   return (
     <div className="app-shell">
@@ -1630,7 +1630,7 @@ function App() {
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
-          <a className="secondary small manual-link" href={manualHref} download>
+          <a className="secondary small manual-link" href={manualHref} target="_blank" rel="noreferrer">
             <Download className="action-icon" aria-hidden="true" />Manual
           </a>
           <button className="secondary small" onClick={handleLogout}>Salir</button>
