@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
   ClipboardCheck,
+  Download,
   History,
   Pencil,
   PlusCircle,
@@ -69,7 +70,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.5'
+const APP_VERSION = 'v1.1.6'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1628,6 +1629,9 @@ function App() {
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
+          <a className="secondary small manual-link" href="/manual-usuario.pdf" download>
+            <Download className="action-icon" aria-hidden="true" />Manual
+          </a>
           <button className="secondary small" onClick={handleLogout}>Salir</button>
         </div>
       </header>
@@ -2528,10 +2532,11 @@ function EquipmentPhoto({
 type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string }
 
 function Field({ label, value, onChange, type = 'text' }: FieldProps) {
+  const inputMode = type === 'number' ? 'decimal' : type === 'email' ? 'email' : undefined
   return (
     <div>
       <label className="label">{label}</label>
-      <input className="input" type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input className="input" type={type} inputMode={inputMode} value={value} onChange={(event) => onChange(event.target.value)} />
     </div>
   )
 }

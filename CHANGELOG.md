@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.6 - Manual descargable y enfoque movil iOS
+
+- Se agrego descarga directa del manual de usuario desde la cabecera de la app.
+- Se publico el PDF del manual como asset web en `public/manual-usuario.pdf`.
+- Se ajusto la experiencia movil/iOS con safe areas, header compacto, wizard horizontal, acciones inferiores sticky e inputs numericos optimizados.
+- Se agrego manifest basico para mejorar el comportamiento como app instalada.
+
 ## v1.1.5 - Manual de usuario
 
 - Se agrego un manual de usuario completo en HTML y PDF con la paleta visual de la app.

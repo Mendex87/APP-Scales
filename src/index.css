@@ -959,6 +959,10 @@ body::before {
   font-size: 0.9rem;
 }
 
+.manual-link {
+  text-decoration: none;
+}
+
 .action-icon,
 .nav-icon {
   width: 1.05em;
@@ -1367,6 +1371,8 @@ body::before {
 @media (max-width: 640px) {
   .app-shell {
     padding-inline: 0.75rem;
+    padding-top: 0.75rem;
+    padding-bottom: calc(8.5rem + env(safe-area-inset-bottom));
   }
 
   .auth-shell {
@@ -1380,8 +1386,56 @@ body::before {
     border-radius: 0.22rem;
   }
 
+  .topbar {
+    gap: 0.65rem;
+    padding: 0.85rem;
+  }
+
+  .topbar h1 {
+    font-size: clamp(2.8rem, 16vw, 4.2rem);
+  }
+
+  .topbar p {
+    display: none;
+  }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
   .topbar-actions .chip {
     flex: 1 1 auto;
+    min-width: 0;
+    min-height: 30px;
+    padding-inline: 0.45rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-actions .secondary.small {
+    width: 100%;
+    min-height: 38px;
+    padding-inline: 0.45rem;
+  }
+
+  .screen-banner {
+    padding: 1rem;
+  }
+
+  .screen-banner h2 {
+    font-size: clamp(2.2rem, 11vw, 3.2rem);
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .card-tag {
+    position: static;
+    width: fit-content;
+    margin-bottom: 0.65rem;
   }
 
   .hero-panel {
@@ -1403,12 +1457,39 @@ body::before {
   }
 
   .wizard-steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    grid-template-columns: none;
+    gap: 0.4rem;
+    margin-inline: -0.15rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding: 0.15rem 0.15rem 0.35rem;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wizard-step {
+    flex: 0 0 auto;
+    min-width: 3.25rem;
+    min-height: 3rem;
+    padding: 0.35rem;
+    font-size: 0;
+    scroll-snap-align: start;
+  }
+
+  .wizard-step span {
+    margin-right: 0;
+    font-size: 0.9rem;
   }
 
   .wizard-actions {
+    position: sticky;
+    bottom: calc(4.95rem + env(safe-area-inset-bottom));
+    z-index: 35;
     align-items: stretch;
     flex-direction: column;
+    padding: 0.8rem;
+    box-shadow: 0 -0.85rem 1.8rem rgba(12, 11, 17, 0.12);
   }
 
   .wizard-actions .primary,
@@ -1418,6 +1499,28 @@ body::before {
 
   .compact-actions {
     flex-direction: column;
+  }
+
+  .input {
+    min-height: 54px;
+    font-size: 16px;
+  }
+
+  .textarea {
+    min-height: 92px;
+  }
+
+  .material-pass-card {
+    padding: 0.85rem;
+  }
+
+  .material-pass-card .grid.two {
+    gap: 0.65rem;
+  }
+
+  .status-pill {
+    width: 100%;
+    justify-content: center;
   }
 
   .equipment-card-head,
@@ -1469,19 +1572,37 @@ body::before {
 
   .bottom-nav {
     gap: 0.35rem;
-    padding-inline: 0.5rem;
+    padding: 0.55rem 0.5rem calc(0.55rem + env(safe-area-inset-bottom));
   }
 
   .nav-item {
-    min-height: 46px;
-    font-size: 0.78rem;
+    min-height: 48px;
+    font-size: 0.74rem;
     padding: 0 0.2rem;
+  }
+
+  .nav-icon {
+    width: 1.05em;
+    height: 1.05em;
   }
 }
 
 @media (max-width: 390px) {
+  .app-shell {
+    padding-inline: 0.55rem;
+  }
+
+  .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-actions .chip,
+  .topbar-actions .secondary.small {
+    width: 100%;
+  }
+
   .nav-item {
-    font-size: 0.7rem;
+    font-size: 0.66rem;
     letter-spacing: 0.02em;
   }
 

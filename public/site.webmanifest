@@ -1,0 +1,17 @@
+{
+  "name": "Calibra Cinta",
+  "short_name": "CalibraCinta",
+  "description": "Calibracion y trazabilidad de balanzas dinamicas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0efeb",
+  "theme_color": "#0c0b11",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
