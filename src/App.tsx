@@ -45,7 +45,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v0.14.0'
+const APP_VERSION = 'v1.0.0'
 
 const defaultEquipmentForm = {
   plant: '',
