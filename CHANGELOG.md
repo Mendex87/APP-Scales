@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.1 - Pasadas de material y control preventivo
+
+- Se agregaron pasadas con material certificado para diferenciar control inicial y verificaciones post-ajuste.
+- El estado del evento ahora usa la ultima pasada completa: `Control conforme`, `Calibrada` o `Fuera de tolerancia`.
+- El historial y el reporte imprimible muestran si hubo ajuste, cuantas pasadas se hicieron y cual fue el error final.
+- Se mantiene compatibilidad con eventos historicos sin pasadas detalladas.
+
 ## v1.1.0 - Flujo guiado y reportes
 
 - Se convirtio `Nueva calibracion` en un wizard por pasos con navegacion directa, anterior y siguiente.

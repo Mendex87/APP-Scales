@@ -228,6 +228,43 @@ body::before {
   min-width: 12rem;
 }
 
+.material-pass-card {
+  margin-top: 0.85rem;
+  padding: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #e5e2da;
+}
+
+.material-pass-card h3 {
+  margin: 0.1rem 0 0;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid rgba(196, 59, 48, 0.35);
+  border-radius: 999px;
+  background: #ffe0dc;
+  color: #842118;
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-pill.success {
+  border-color: rgba(31, 143, 95, 0.35);
+  background: rgba(31, 143, 95, 0.13);
+  color: #145f40;
+}
+
+.material-pass-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
 .equipment-card-head,
 .photo-field,
 .selected-equipment-visual {

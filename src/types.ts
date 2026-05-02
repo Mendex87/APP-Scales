@@ -84,6 +84,21 @@ export type MaterialValidation = {
   errorPct: number
   factorBefore: number
   factorSuggested: number
+  passes?: MaterialPass[]
+  finalPassIndex?: number
+  adjustmentApplied?: boolean
+  outcome?: MaterialOutcome
+}
+
+export type MaterialOutcome = 'control_conforme' | 'calibrada_ajustada' | 'fuera_tolerancia' | 'ajuste_sin_verificacion'
+
+export type MaterialPass = {
+  index: number
+  externalWeightKg: number
+  beltWeightKg: number
+  factorUsed: number
+  errorPct: number
+  notes: string
 }
 
 export type AccumulatedCheck = {

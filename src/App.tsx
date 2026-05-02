@@ -27,10 +27,9 @@ import {
 } from './repository'
 import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
-import type { CalibrationEvent, Chain, Equipment, SpeedSource } from './types'
+import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, SpeedSource } from './types'
 import {
   computePercentError,
-  computeStatusLabel,
   computeSuggestedFactor,
   formatDateTime,
   generateEventCode,
@@ -70,7 +69,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.0'
+const APP_VERSION = 'v1.1.1'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -142,6 +141,18 @@ const defaultEventForm = {
   adjustmentFactorBefore: '',
   externalWeightKg: '',
   beltWeightKg: '',
+  materialPass1ExternalWeightKg: '',
+  materialPass1BeltWeightKg: '',
+  materialPass1Factor: '',
+  materialPass1Notes: '',
+  materialPass2ExternalWeightKg: '',
+  materialPass2BeltWeightKg: '',
+  materialPass2Factor: '',
+  materialPass2Notes: '',
+  materialPass3ExternalWeightKg: '',
+  materialPass3BeltWeightKg: '',
+  materialPass3Factor: '',
+  materialPass3Notes: '',
   finalFactor: '',
   adjustmentReason: '',
   technician: '',
@@ -193,7 +204,45 @@ type EventDraft = {
   eventForm: typeof defaultEventForm
   selectedEquipmentId: string
   selectedChainId: string
+  materialPassCount: number
   savedAt: string
+}
+
+function outcomeLabel(outcome?: MaterialOutcome) {
+  if (outcome === 'control_conforme') return 'Control conforme'
+  if (outcome === 'calibrada_ajustada') return 'Calibrada'
+  if (outcome === 'ajuste_sin_verificacion') return 'Ajuste sin verificacion'
+  return 'Fuera de tolerancia'
+}
+
+function getEventMaterialPasses(item: CalibrationEvent): MaterialPass[] {
+  if (item.materialValidation.passes?.length) return item.materialValidation.passes
+  return [
+    {
+      index: 1,
+      externalWeightKg: item.materialValidation.externalWeightKg,
+      beltWeightKg: item.materialValidation.beltWeightKg,
+      factorUsed: item.materialValidation.factorBefore,
+      errorPct: item.materialValidation.errorPct,
+      notes: 'Registro historico sin pasadas detalladas.',
+    },
+  ]
+}
+
+function getEventMaterialOutcome(item: CalibrationEvent) {
+  const passes = getEventMaterialPasses(item).filter((pass) => pass.externalWeightKg > 0 && pass.beltWeightKg > 0)
+  const finalPass = passes[passes.length - 1]
+  const errorPct = finalPass?.errorPct ?? item.materialValidation.errorPct
+  const adjustmentApplied = item.materialValidation.adjustmentApplied ?? false
+  const outcome = item.materialValidation.outcome ?? (Math.abs(errorPct) <= item.tolerancePercent ? 'control_conforme' : 'fuera_tolerancia')
+  return {
+    adjustmentApplied,
+    errorPct,
+    finalPass,
+    outcome,
+    passes,
+    status: outcomeLabel(outcome),
+  }
 }
 
 function reportValue(value: unknown) {
@@ -210,10 +259,23 @@ function reportRow(label: string, value: unknown) {
 }
 
 function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equipment) {
-  const status = computeStatusLabel(item.materialValidation.errorPct, item.tolerancePercent)
+  const materialSummary = getEventMaterialOutcome(item)
+  const status = materialSummary.status
   const equipmentLabel = equipmentItem
     ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}`
     : 'Equipo no encontrado'
+  const materialPassRows = materialSummary.passes
+    .map(
+      (pass) => `<tr>
+        <td>${reportValue(`Pasada ${pass.index}`)}</td>
+        <td>${reportValue(`${pass.externalWeightKg} kg`)}</td>
+        <td>${reportValue(`${pass.beltWeightKg} kg`)}</td>
+        <td>${reportValue(pass.factorUsed || '-')}</td>
+        <td>${reportValue(`${pass.errorPct} %`)}</td>
+        <td>${reportValue(materialSummary.finalPass?.index === pass.index ? 'Final' : pass.index === 1 ? 'Control inicial' : 'Post-ajuste')}</td>
+      </tr>`,
+    )
+    .join('')
 
   return `<!doctype html>
 <html lang="es">
@@ -230,6 +292,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
     .badge { display: inline-block; padding: 7px 10px; background: #ff5949; color: #0c0b11; font-weight: 700; text-transform: uppercase; }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
     .grid div { min-height: 54px; padding: 10px; border: 1px solid #d4d0c6; background: #fff; }
+    table { width: 100%; margin-top: 12px; border-collapse: collapse; background: #fff; }
+    th, td { padding: 9px; border: 1px solid #d4d0c6; text-align: left; font-size: 13px; }
+    th { background: #0c0b11; color: #f7f5ef; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
     span { display: block; color: #5c575c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
     strong { display: block; margin-top: 4px; font-size: 14px; }
     .notes { margin-top: 12px; padding: 12px; border: 1px solid #d4d0c6; background: #fff; white-space: pre-wrap; }
@@ -253,7 +318,10 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
     ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
     ${reportRow('Error cadena', `${item.chainSpan.avgErrorPct} %`)}
     ${reportRow('Error acumulado', `${item.accumulatedCheck.errorPct || 0} %`)}
-    ${reportRow('Error material', `${item.materialValidation.errorPct} %`)}
+    ${reportRow('Error material final', `${materialSummary.errorPct} %`)}
+    ${reportRow('Resultado', materialSummary.status)}
+    ${reportRow('Ajuste aplicado', materialSummary.adjustmentApplied ? 'Si' : 'No')}
+    ${reportRow('Pasadas', materialSummary.passes.length)}
   </div>
   <h2>Inspeccion y cero</h2>
   <div class="grid">
@@ -279,14 +347,19 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
     ${reportRow('Kg/m cadena', item.chainSpan.chainLinearKgM)}
     ${reportRow('Lectura prom.', item.chainSpan.avgControllerReadingKgM)}
   </div>
+  <h2>Pasadas con material certificado</h2>
+  <table>
+    <thead><tr><th>Pasada</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th></tr></thead>
+    <tbody>${materialPassRows}</tbody>
+  </table>
   <h2>Acumulado, material real y cierre</h2>
   <div class="grid">
     ${reportRow('Caudal esperado', `${item.accumulatedCheck.expectedFlowTph} tn/h`)}
     ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
     ${reportRow('Total esperado', item.accumulatedCheck.expectedTotal)}
     ${reportRow('Total indicado', item.accumulatedCheck.indicatedTotal)}
-    ${reportRow('Peso externo', `${item.materialValidation.externalWeightKg} kg`)}
-    ${reportRow('Peso balanza', `${item.materialValidation.beltWeightKg} kg`)}
+    ${reportRow('Peso externo final', `${materialSummary.finalPass?.externalWeightKg ?? item.materialValidation.externalWeightKg} kg`)}
+    ${reportRow('Peso balanza final', `${materialSummary.finalPass?.beltWeightKg ?? item.materialValidation.beltWeightKg} kg`)}
     ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
     ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
     ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
@@ -310,6 +383,7 @@ function App() {
   const [chainForm, setChainForm] = useState(defaultChainForm)
   const [eventForm, setEventForm] = useState(defaultEventForm)
   const [calibrationStep, setCalibrationStep] = useState(0)
+  const [materialPassCount, setMaterialPassCount] = useState(1)
   const [hasEventDraft, setHasEventDraft] = useState(() => Boolean(localStorage.getItem(CALIBRATION_DRAFT_KEY)))
   const [equipmentSubmitAttempted, setEquipmentSubmitAttempted] = useState(false)
   const [chainSubmitAttempted, setChainSubmitAttempted] = useState(false)
@@ -507,7 +581,7 @@ function App() {
   }, [events, selectedEquipment])
 
   const selectedEquipmentStatus = selectedEquipmentLastEvent
-    ? computeStatusLabel(selectedEquipmentLastEvent.materialValidation.errorPct, selectedEquipmentLastEvent.tolerancePercent)
+    ? getEventMaterialOutcome(selectedEquipmentLastEvent).status
     : 'Sin calibrar'
 
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
@@ -579,28 +653,65 @@ function App() {
     [eventForm.chainLinearKgM, eventForm.avgControllerReadingKgM],
   )
 
-  const materialErrorPct = useMemo(
-    () => computePercentError(Number(eventForm.externalWeightKg) || 0, Number(eventForm.beltWeightKg) || 0),
-    [eventForm.externalWeightKg, eventForm.beltWeightKg],
+  const materialFactorBefore = Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0
+
+  const materialPasses = useMemo<MaterialPass[]>(() => {
+    const rawPasses = [
+      {
+        index: 1,
+        externalWeightKg: Number(eventForm.materialPass1ExternalWeightKg || eventForm.externalWeightKg) || 0,
+        beltWeightKg: Number(eventForm.materialPass1BeltWeightKg || eventForm.beltWeightKg) || 0,
+        factorUsed: Number(eventForm.materialPass1Factor) || materialFactorBefore,
+        notes: eventForm.materialPass1Notes.trim(),
+      },
+      {
+        index: 2,
+        externalWeightKg: Number(eventForm.materialPass2ExternalWeightKg) || 0,
+        beltWeightKg: Number(eventForm.materialPass2BeltWeightKg) || 0,
+        factorUsed: Number(eventForm.materialPass2Factor) || 0,
+        notes: eventForm.materialPass2Notes.trim(),
+      },
+      {
+        index: 3,
+        externalWeightKg: Number(eventForm.materialPass3ExternalWeightKg) || 0,
+        beltWeightKg: Number(eventForm.materialPass3BeltWeightKg) || 0,
+        factorUsed: Number(eventForm.materialPass3Factor) || 0,
+        notes: eventForm.materialPass3Notes.trim(),
+      },
+    ]
+
+    return rawPasses.slice(0, materialPassCount).map((pass) => ({
+      ...pass,
+      errorPct: round(computePercentError(pass.externalWeightKg, pass.beltWeightKg)),
+    }))
+  }, [eventForm, materialFactorBefore, materialPassCount])
+
+  const completeMaterialPasses = useMemo(
+    () => materialPasses.filter((pass) => pass.externalWeightKg > 0 && pass.beltWeightKg > 0),
+    [materialPasses],
   )
+
+  const finalMaterialPass = completeMaterialPasses[completeMaterialPasses.length - 1]
+  const materialErrorPct = finalMaterialPass?.errorPct ?? 0
 
   const suggestedFactor = useMemo(
-    () =>
-      computeSuggestedFactor(
-        Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0,
-        Number(eventForm.externalWeightKg) || 0,
-        Number(eventForm.beltWeightKg) || 0,
-      ),
-    [
-      eventForm.provisionalFactor,
-      eventForm.calibrationFactor,
-      eventForm.externalWeightKg,
-      eventForm.beltWeightKg,
-    ],
+    () => computeSuggestedFactor(finalMaterialPass?.factorUsed || materialFactorBefore, finalMaterialPass?.externalWeightKg || 0, finalMaterialPass?.beltWeightKg || 0),
+    [finalMaterialPass, materialFactorBefore],
   )
 
+  const materialAdjustmentApplied = useMemo(() => {
+    const finalFactor = Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || materialFactorBefore
+    return completeMaterialPasses.length > 1 || Math.abs(finalFactor - materialFactorBefore) > 0.000001
+  }, [completeMaterialPasses.length, eventForm.finalFactor, finalMaterialPass, materialFactorBefore])
+
+  const materialOutcome = useMemo<MaterialOutcome>(() => {
+    if (!finalMaterialPass) return 'fuera_tolerancia'
+    if (Math.abs(finalMaterialPass.errorPct) > (Number(eventForm.tolerancePercent) || 1)) return 'fuera_tolerancia'
+    return materialAdjustmentApplied ? 'calibrada_ajustada' : 'control_conforme'
+  }, [eventForm.tolerancePercent, finalMaterialPass, materialAdjustmentApplied])
+
   const outOfToleranceCount = useMemo(
-    () => events.filter((item) => Math.abs(item.materialValidation.errorPct) > item.tolerancePercent).length,
+    () => events.filter((item) => Math.abs(getEventMaterialOutcome(item).errorPct) > item.tolerancePercent).length,
     [events],
   )
 
@@ -653,11 +764,12 @@ function App() {
     if (!(Number(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
     if (!(Number(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
     if (!(Number(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
-    if (!(Number(eventForm.externalWeightKg) > 0)) issues.push('Falta el peso real externo.')
-    if (!(Number(eventForm.beltWeightKg) > 0)) issues.push('Falta el peso medido por balanza.')
-    if (!(Number(eventForm.finalFactor || suggestedFactor) > 0)) issues.push('Falta el factor final o sugerido.')
+    if (!finalMaterialPass) issues.push('Falta una pasada completa con material real.')
+    if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) issues.push('Falta el factor usado en una verificacion post-ajuste.')
+    if (materialAdjustmentApplied && completeMaterialPasses.length < 2) issues.push('Si se ajusta el factor, falta una pasada posterior de verificacion.')
+    if (!(Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || materialFactorBefore)) issues.push('Falta el factor final o usado en la pasada final.')
     return issues
-  }, [currentUser, eventForm, precheckPassed, selectedEquipment, suggestedFactor])
+  }, [completeMaterialPasses.length, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, selectedEquipment, suggestedFactor])
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -784,8 +896,17 @@ function App() {
     if (!eventForm.zeroCompleted) {
       messages.push('El cero no fue realizado antes de la prueba.')
     }
+    if (finalMaterialPass && materialOutcome === 'control_conforme') {
+      messages.push('La pasada con material quedo dentro de tolerancia sin ajuste; registrar como control preventivo conforme.')
+    }
+    if (finalMaterialPass && materialOutcome === 'calibrada_ajustada') {
+      messages.push('Hubo ajuste de factor y verificacion posterior dentro de tolerancia; registrar como calibrada.')
+    }
+    if (finalMaterialPass && materialOutcome === 'fuera_tolerancia') {
+      messages.push('La ultima pasada con material queda fuera de tolerancia; requiere nueva verificacion o intervencion.')
+    }
     return messages
-  }, [rpmToolResult, selectedEquipment, chainToolResult, eventForm.avgControllerReadingKgM, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted])
+  }, [rpmToolResult, selectedEquipment, chainToolResult, eventForm.avgControllerReadingKgM, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted, finalMaterialPass, materialOutcome])
 
   const filteredEvents = useMemo(() => {
     return events
@@ -799,6 +920,7 @@ function App() {
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
     setCalibrationStep(0)
+    setMaterialPassCount(1)
     setEventSubmitAttempted(false)
   }
 
@@ -807,6 +929,7 @@ function App() {
       eventForm,
       selectedEquipmentId,
       selectedChainId,
+      materialPassCount,
       savedAt: new Date().toISOString(),
     }
     localStorage.setItem(CALIBRATION_DRAFT_KEY, JSON.stringify(draft))
@@ -826,6 +949,7 @@ function App() {
       setEventForm({ ...defaultEventForm, ...draft.eventForm })
       setSelectedEquipmentId(draft.selectedEquipmentId || '')
       setSelectedChainId(draft.selectedChainId || '')
+      setMaterialPassCount(draft.materialPassCount || 1)
       setCalibrationStep(0)
       setScreen('nueva')
       setSyncNotice(`Borrador recuperado (${formatDateTime(draft.savedAt)}).`)
@@ -1166,8 +1290,10 @@ function App() {
     if (eventBlockingIssues.length > 0) return
     if (!selectedEquipment) return
 
-    const factorBeforeAdjustment = Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0
-    const factorAfterAdjustment = Number(eventForm.finalFactor) || suggestedFactor || factorBeforeAdjustment
+    const factorBeforeAdjustment = materialFactorBefore
+    const factorAfterAdjustment = materialOutcome === 'control_conforme'
+      ? factorBeforeAdjustment
+      : Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || factorBeforeAdjustment
 
     const record: CalibrationEvent = {
       id: generateEventCode(eventForm.eventDate, events),
@@ -1240,11 +1366,19 @@ function App() {
             : 0,
       },
       materialValidation: {
-        externalWeightKg: Number(eventForm.externalWeightKg) || 0,
-        beltWeightKg: Number(eventForm.beltWeightKg) || 0,
+        externalWeightKg: finalMaterialPass?.externalWeightKg || 0,
+        beltWeightKg: finalMaterialPass?.beltWeightKg || 0,
         errorPct: round(materialErrorPct),
         factorBefore: factorBeforeAdjustment,
         factorSuggested: round(suggestedFactor, 6),
+        passes: completeMaterialPasses.map((pass) => ({
+          ...pass,
+          factorUsed: pass.factorUsed || factorBeforeAdjustment,
+          errorPct: round(pass.errorPct),
+        })),
+        finalPassIndex: finalMaterialPass?.index || 0,
+        adjustmentApplied: materialAdjustmentApplied,
+        outcome: materialOutcome,
       },
       finalAdjustment: {
         factorBefore: factorBeforeAdjustment,
@@ -1692,7 +1826,7 @@ function App() {
             <div className="stack">
               {equipmentWithLastEvent.map(({ item, lastEvent }) => {
                 const statusText = lastEvent
-                  ? computeStatusLabel(lastEvent.materialValidation.errorPct, lastEvent.tolerancePercent)
+                  ? getEventMaterialOutcome(lastEvent).status
                   : 'Sin calibraciones'
                 return (
                   <div className="card" key={item.id}>
@@ -1935,20 +2069,50 @@ function App() {
               {calibrationStep === 6 && <CollapsibleCard title="Paso 7 · Material real" hint="Validacion contra peso externo real." defaultOpen>
                 <div className="card-tag">Paso 7</div>
                 <h2>Validacion con material real</h2>
-                <div className="grid two">
-                  <Field label="Peso externo real (kg)" type="number" value={eventForm.externalWeightKg} onChange={(value) => setEventForm((current) => ({ ...current, externalWeightKg: value }))} />
-                  <Field label="Peso medido por balanza (kg)" type="number" value={eventForm.beltWeightKg} onChange={(value) => setEventForm((current) => ({ ...current, beltWeightKg: value }))} />
+                <p className="hint">Registrá la primera pasada como control. Si queda fuera de tolerancia, ajustá el factor en el controlador y agregá una verificacion post-ajuste.</p>
+                {[1, 2, 3].slice(0, materialPassCount).map((passNumber) => {
+                  const prefix = `materialPass${passNumber}` as 'materialPass1' | 'materialPass2' | 'materialPass3'
+                  const pass = materialPasses[passNumber - 1]
+                  return (
+                    <div className="material-pass-card" key={passNumber}>
+                      <div className="row wrap">
+                        <div>
+                          <span className="section-kicker">{passNumber === 1 ? 'Control inicial' : 'Verificacion post-ajuste'}</span>
+                          <h3>Pasada {passNumber}</h3>
+                        </div>
+                        <strong className={Math.abs(pass.errorPct) <= Number(eventForm.tolerancePercent || 1) && pass.externalWeightKg && pass.beltWeightKg ? 'status-pill success' : 'status-pill'}>
+                          {pass.externalWeightKg && pass.beltWeightKg ? `${round(pass.errorPct)} %` : 'Pendiente'}
+                        </strong>
+                      </div>
+                      <div className="grid two compact-top">
+                        <Field label="Peso balanza certificada (kg)" type="number" value={eventForm[`${prefix}ExternalWeightKg`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: value }))} />
+                        <Field label="Peso indicado controlador (kg)" type="number" value={eventForm[`${prefix}BeltWeightKg`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: value }))} />
+                        <Field label="Factor usado" type="number" value={eventForm[`${prefix}Factor`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Factor`]: value }))} />
+                        <TextArea label="Nota de pasada" value={eventForm[`${prefix}Notes`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Notes`]: value }))} />
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="row wrap compact-top">
+                  {materialPassCount < 3 && <button className="secondary" type="button" onClick={() => setMaterialPassCount((current) => Math.min(current + 1, 3))}>Agregar verificacion post-ajuste</button>}
+                  {materialPassCount > 1 && <button className="secondary danger" type="button" onClick={() => setMaterialPassCount((current) => Math.max(current - 1, 1))}>Quitar ultima pasada</button>}
                 </div>
-                <div className="grid three compact-top">
-                  <Metric label="Error material real" value={`${round(materialErrorPct)} %`} />
-                  <Metric label="Factor anterior" value={String(round(Number(eventForm.provisionalFactor) || Number(eventForm.calibrationFactor) || 0, 6))} />
-                  <Metric label="Factor sugerido" value={String(round(suggestedFactor, 6))} />
+                <div className="grid four compact-top">
+                  <Metric label="Resultado final" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
+                  <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
+                  <Metric label="Ajuste aplicado" value={materialAdjustmentApplied ? 'Si' : 'No'} />
+                  <Metric label="Factor sugerido" value={suggestedFactor ? String(round(suggestedFactor, 6)) : '-'} />
                 </div>
               </CollapsibleCard>}
 
               {calibrationStep === 7 && <div className="card">
                 <div className="card-tag">Paso 8</div>
                 <h2>Ajuste final y aprobacion</h2>
+                <div className="grid three compact-top">
+                  <Metric label="Resultado material" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
+                  <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
+                  <Metric label="Ajuste aplicado" value={materialAdjustmentApplied ? 'Si' : 'No'} />
+                </div>
                 <div className="grid two">
                   <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
                   <div className="system-field">
@@ -2175,7 +2339,8 @@ function App() {
 
             {filteredEvents.map((item) => {
               const equipmentItem = equipment.find((row) => row.id === item.equipmentId)
-              const statusText = computeStatusLabel(item.materialValidation.errorPct, item.tolerancePercent)
+              const materialSummary = getEventMaterialOutcome(item)
+              const statusText = materialSummary.status
               return (
                 <div className="card stack" key={item.id}>
                   <div className="row wrap">
@@ -2211,9 +2376,19 @@ function App() {
                     <div className="grid four compact-top">
                       <Metric label="Error cadena" value={`${item.chainSpan.avgErrorPct} %`} />
                       <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
-                      <Metric label="Error material" value={`${item.materialValidation.errorPct} %`} />
+                      <Metric label="Error material final" value={`${materialSummary.errorPct} %`} />
                       <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
+                      <Metric label="Pasadas" value={String(materialSummary.passes.length)} />
+                      <Metric label="Ajuste" value={materialSummary.adjustmentApplied ? 'Si' : 'No'} />
                       <Metric label="Estado" value={statusText} />
+                    </div>
+                    <div className="material-pass-list compact-top">
+                      {materialSummary.passes.map((pass) => (
+                        <div className="result-row" key={`${item.id}-${pass.index}`}>
+                          <span>Pasada {pass.index} {materialSummary.finalPass?.index === pass.index ? '· final' : ''}</span>
+                          <strong>{pass.externalWeightKg} kg cert. / {pass.beltWeightKg} kg ctrl. / {pass.errorPct} %</strong>
+                        </div>
+                      ))}
                     </div>
                     {item.diagnosis && <p className="hint compact-top">Diagnostico: {item.diagnosis}</p>}
                     {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
