@@ -69,7 +69,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.3'
+const APP_VERSION = 'v1.1.4'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1426,7 +1426,6 @@ function App() {
     }
 
     try {
-      await saveEquipmentRecord(selectedEquipment)
       const result = await saveCalibrationEventRecord(record)
       setEvents((current) => [record, ...current.filter((item) => item.id !== record.id)])
       clearEventDraft(false)

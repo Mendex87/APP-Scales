@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.4 - Guardado tecnico de eventos
+
+- Se corrigio el guardado de calibraciones para que el rol tecnico no intente actualizar la balanza al cerrar un evento.
+- Evita conflictos con la policy RLS de `equipments`, donde la actualizacion sigue reservada a administradores.
+
 ## v1.1.3 - Seleccion flexible de cadenas
 
 - Si una balanza tiene cadenas de su misma planta, el selector muestra solo esas cadenas.
