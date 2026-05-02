@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.8 - Manuales por rol
+
+- Se separo el manual completo para administradores del manual tecnico de campo.
+- El boton `Manual` ahora descarga el documento correspondiente al rol logueado.
+- El manual tecnico se enfoca solo en procedimiento de campo, calibracion, control preventivo, pasadas con material y cierre.
+
 ## v1.1.7 - Legibilidad del manual
 
 - Se ajusto la tipografia de titulos del manual para evitar la sobre-negrita del PDF y mejorar la lectura.

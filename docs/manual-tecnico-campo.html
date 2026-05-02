@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manual Tecnico de Campo - Calibra Cinta</title>
+  <style>
+    :root {
+      --orange: #ff5949;
+      --orange-dark: #d94135;
+      --ink: #0c0b11;
+      --paper: #f0efeb;
+      --paper-strong: #faf9f6;
+      --grey-300: #737074;
+      --grey-500: #2e2930;
+      --success: #1f8f5f;
+      --warning: #c98500;
+      --error: #c43b30;
+      --border: rgba(12, 11, 17, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Segoe UI", Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    .page {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0 64px;
+    }
+
+    .cover {
+      min-height: 88vh;
+      display: grid;
+      align-content: space-between;
+      padding: 42px;
+      color: var(--paper-strong);
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        radial-gradient(circle at top left, rgba(255, 89, 73, 0.52), transparent 420px),
+        linear-gradient(135deg, #0c0b11, #19171a 72%, #2e2930);
+      background-size: 26px 26px, 26px 26px, auto, auto;
+      border: 1px solid var(--ink);
+    }
+
+    .cover h1 {
+      margin: 18px 0 16px;
+      max-width: 860px;
+      font-size: clamp(48px, 9vw, 92px);
+      font-weight: 800;
+      line-height: 0.96;
+      letter-spacing: -0.045em;
+      text-transform: uppercase;
+    }
+
+    .cover .subtitle {
+      max-width: 760px;
+      color: #e8e5de;
+      font-size: 19px;
+    }
+
+    .kicker {
+      display: inline-block;
+      color: var(--orange);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .cover-meta div,
+    .toc,
+    .callout,
+    .checklist,
+    .metric,
+    table {
+      border: 1px solid var(--border);
+      background: var(--paper-strong);
+    }
+
+    .cover-meta div {
+      padding: 14px;
+      color: var(--paper-strong);
+      background: rgba(250, 249, 246, 0.08);
+      border-color: rgba(250, 249, 246, 0.2);
+    }
+
+    .cover-meta span,
+    .metric span {
+      display: block;
+      color: var(--grey-300);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .cover-meta strong,
+    .metric strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+
+    section {
+      margin-top: 34px;
+      break-inside: avoid-page;
+    }
+
+    h2,
+    h3,
+    h4 {
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid var(--orange);
+      font-size: 34px;
+      line-height: 1.05;
+    }
+
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 22px;
+      line-height: 1.08;
+    }
+
+    h4 {
+      margin: 16px 0 8px;
+      font-size: 17px;
+      line-height: 1.15;
+    }
+
+    p { margin: 8px 0; }
+
+    .toc {
+      padding: 22px;
+    }
+
+    .toc ol {
+      columns: 2;
+      column-gap: 36px;
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    .toc li { margin: 7px 0; break-inside: avoid; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .metric,
+    .callout,
+    .checklist {
+      padding: 16px;
+      border-radius: 4px;
+    }
+
+    .metric {
+      min-height: 88px;
+      background: #e5e2da;
+    }
+
+    .callout {
+      margin: 14px 0;
+      border-left: 6px solid var(--orange);
+    }
+
+    .callout.warning { border-left-color: var(--warning); }
+    .callout.success { border-left-color: var(--success); }
+    .callout.error { border-left-color: var(--error); }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 9px;
+      color: var(--ink);
+      background: var(--orange);
+      border: 1px solid var(--orange-dark);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .tag.success { background: rgba(31, 143, 95, 0.15); border-color: var(--success); }
+    .tag.warning { background: rgba(201, 133, 0, 0.16); border-color: var(--warning); }
+    .tag.error { color: #fff; background: var(--error); border-color: var(--error); }
+
+    ul,
+    ol { padding-left: 22px; }
+
+    li { margin: 5px 0; }
+
+    table {
+      width: 100%;
+      margin: 14px 0;
+      border-collapse: collapse;
+      break-inside: avoid;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--paper-strong);
+      background: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 14px;
+      margin: 12px 0;
+      padding: 14px;
+      background: var(--paper-strong);
+      border: 1px solid var(--border);
+    }
+
+    .step-number {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      color: var(--ink);
+      background: var(--orange);
+      border: 1px solid var(--orange-dark);
+      border-radius: 50%;
+      font-weight: 800;
+    }
+
+    .footer-note {
+      margin-top: 40px;
+      padding: 18px;
+      color: var(--paper);
+      background: var(--ink);
+    }
+
+    .page-break { break-before: page; }
+
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      body { background: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .page { width: 100%; padding: 0; }
+      .cover { min-height: 270mm; }
+      section { margin-top: 18px; }
+      h2 { font-size: 31px; }
+      h3 { font-size: 20px; }
+      .toc ol { columns: 2; }
+    }
+
+    @media (max-width: 780px) {
+      .cover,
+      .callout { padding: 18px; }
+      .cover-meta,
+      .grid,
+      .grid.two,
+      .grid.four { grid-template-columns: 1fr; }
+      .toc ol { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="cover">
+      <div>
+        <span class="kicker">Manual tecnico de campo</span>
+        <h1>Calibra Cinta</h1>
+        <p class="subtitle">Guia operativa para realizar controles y calibraciones en campo. Este documento se enfoca en el procedimiento tecnico: preparar el equipo, registrar datos confiables, interpretar tolerancias y cerrar el trabajo correctamente.</p>
+      </div>
+      <div class="cover-meta">
+        <div><span>Version documentada</span><strong>v1.1.8</strong></div>
+        <div><span>Alcance</span><strong>Uso en campo</strong></div>
+        <div><span>Usuario</span><strong>Tecnico</strong></div>
+      </div>
+    </header>
+
+    <section id="indice" class="page-break">
+      <h2>Indice</h2>
+      <div class="toc">
+        <ol>
+          <li>Antes de salir a campo</li>
+          <li>Identificacion del equipo</li>
+          <li>Checklist previo</li>
+          <li>Cero de la balanza</li>
+          <li>Calibracion completa con cadena</li>
+          <li>Control preventivo con material</li>
+          <li>Pasadas con material real</li>
+          <li>Criterio de ajuste y cierre</li>
+          <li>Como interpretar el resultado</li>
+          <li>Buenas practicas</li>
+          <li>Problemas frecuentes en campo</li>
+          <li>Checklist final</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="antes">
+      <h2>1. Antes de salir a campo</h2>
+      <p>Antes de intervenir una balanza, confirmar que se cuenta con las condiciones y referencias necesarias para que el registro sea valido.</p>
+      <div class="grid four">
+        <div class="metric"><span>Equipo</span><strong>Balanza correcta</strong></div>
+        <div class="metric"><span>Patron</span><strong>Cadena disponible</strong></div>
+        <div class="metric"><span>Material</span><strong>Peso certificado</strong></div>
+        <div class="metric"><span>Cierre</span><strong>Ultima pasada valida</strong></div>
+      </div>
+      <div class="checklist">
+        <h3>Preparacion minima</h3>
+        <ul>
+          <li>Confirmar el equipo a intervenir: planta, linea, cinta y nombre.</li>
+          <li>Confirmar si es una primera calibracion, recalibracion o control preventivo.</li>
+          <li>Verificar que la cadena patron este disponible cuando el trabajo la requiera.</li>
+          <li>Verificar que el material real pueda pesarse en balanza certificada.</li>
+          <li>Confirmar que se puede leer el peso indicado por el controlador.</li>
+          <li>Tener a mano el factor actual si se espera ajustar.</li>
+        </ul>
+      </div>
+      <div class="callout warning"><strong>No continuar:</strong> si no se puede identificar con seguridad la balanza o si el peso real no proviene de una referencia confiable.</div>
+    </section>
+
+    <section id="equipo">
+      <h2>2. Identificacion del equipo</h2>
+      <p>El primer error a evitar es registrar datos sobre una balanza equivocada. Antes de iniciar, comparar el equipo fisico con la identificacion visible.</p>
+      <table>
+        <thead><tr><th>Verificar</th><th>Que mirar</th><th>Accion si no coincide</th></tr></thead>
+        <tbody>
+          <tr><td>Planta</td><td>Sector o ubicacion real del equipo.</td><td>Detenerse y confirmar con supervision.</td></tr>
+          <tr><td>Linea / cinta</td><td>Codigo de cinta o linea operativa.</td><td>No usar datos de otra cinta.</td></tr>
+          <tr><td>Nombre de balanza</td><td>Nombre operativo o tag interno.</td><td>Buscar el equipo correcto antes de registrar.</td></tr>
+          <tr><td>Foto</td><td>Vista del equipo si esta cargada.</td><td>Usarla como ayuda, no como unica referencia.</td></tr>
+        </tbody>
+      </table>
+      <h3>Seleccion de cadena</h3>
+      <p>Si hay cadenas de la misma planta, usar una de esas cadenas. Si la balanza pertenece a una planta sin cadenas cargadas, se puede elegir una cadena disponible de otra planta, dejando claro en observaciones si corresponde.</p>
+    </section>
+
+    <section id="precheck" class="page-break">
+      <h2>3. Checklist previo</h2>
+      <p>La condicion mecanica determina si la medicion es confiable. Completar el chequeo antes de calibrar o controlar.</p>
+      <table>
+        <thead><tr><th>Punto</th><th>Condicion esperada</th><th>Riesgo si no cumple</th></tr></thead>
+        <tbody>
+          <tr><td>Banda vacia</td><td>No debe haber material durante el cero.</td><td>Cero desplazado y mediciones falsas.</td></tr>
+          <tr><td>Banda limpia</td><td>No debe haber material adherido significativo.</td><td>Error sistematico.</td></tr>
+          <tr><td>Sin acumulacion</td><td>No debe haber material acumulado en zona de pesaje.</td><td>Peso adicional no controlado.</td></tr>
+          <tr><td>Rolos e idlers</td><td>Deben girar libremente y estar en estado normal.</td><td>Variacion de carga y vibraciones.</td></tr>
+          <tr><td>Estructura</td><td>Sin vibraciones o interferencias anormales.</td><td>Lecturas inestables.</td></tr>
+          <tr><td>Sensor de velocidad</td><td>Senal coherente y estable.</td><td>Caudal y total incorrectos.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout error"><strong>Regla de campo:</strong> si algo no cumple, corregir primero. No usar una calibracion para tapar una falla mecanica.</div>
+    </section>
+
+    <section id="cero">
+      <h2>4. Cero de la balanza</h2>
+      <p>El cero se realiza antes de cualquier prueba. Debe registrarse aunque el controlador no muestre todos los datos.</p>
+      <div class="step"><div class="step-number">1</div><div><h4>Preparar la banda</h4><p>Confirmar banda vacia, limpia y sin material acumulado.</p></div></div>
+      <div class="step"><div class="step-number">2</div><div><h4>Ejecutar cero</h4><p>Realizar el procedimiento de cero en el controlador segun el equipo.</p></div></div>
+      <div class="step"><div class="step-number">3</div><div><h4>Registrar valores</h4><p>Si el controlador muestra valores antes/despues, anotarlos. Si no son visibles, registrar que el cero fue realizado y usar la opcion correspondiente.</p></div></div>
+      <div class="callout"><strong>Observaciones utiles:</strong> anotar si se ajusto cero, si habia deriva visible o si hubo condicion anormal durante la prueba.</div>
+    </section>
+
+    <section id="cadena" class="page-break">
+      <h2>5. Calibracion completa con cadena</h2>
+      <p>Usar este procedimiento para una primera carga de balanza, una recalibracion completa o cuando se necesite validar el span con patron.</p>
+      <h3>Datos a registrar</h3>
+      <table>
+        <thead><tr><th>Dato</th><th>Descripcion</th><th>Criterio</th></tr></thead>
+        <tbody>
+          <tr><td>Kg/m de cadena</td><td>Peso lineal del patron usado.</td><td>Verificar que coincida con la cadena fisica.</td></tr>
+          <tr><td>Cantidad de pasadas</td><td>Numero de recorridos usados para promedio.</td><td>Usar suficientes pasadas para lectura estable.</td></tr>
+          <tr><td>Promedio controlador</td><td>Lectura promedio en kg/m.</td><td>Comparar contra kg/m real.</td></tr>
+          <tr><td>Factor provisorio</td><td>Factor cargado o calculado durante el ajuste.</td><td>Dejar trazabilidad del cambio.</td></tr>
+        </tbody>
+      </table>
+      <h3>Acumulado</h3>
+      <p>Cuando el trabajo requiere calibracion completa, registrar caudal esperado, tiempo de prueba, acumulado indicado y factor de ajuste antes. Esto permite evaluar si el instantaneo y el totalizador se comportan de forma coherente.</p>
+      <div class="callout warning"><strong>No obligatorio en control preventivo:</strong> si la balanza ya tiene calibracion previa y solo se esta verificando con material real, puede no ser necesario repetir cadena y acumulado.</div>
+    </section>
+
+    <section id="preventivo">
+      <h2>6. Control preventivo con material</h2>
+      <p>El control preventivo sirve para confirmar que una balanza ya calibrada sigue dentro de tolerancia. En este caso, la prueba principal es la comparacion con material real pesado en balanza certificada.</p>
+      <h3>Cuando alcanza una sola pasada</h3>
+      <p>Si la primera pasada con material queda dentro de tolerancia y no se cambia el factor, se puede cerrar como <strong>Control conforme</strong>.</p>
+      <h3>Cuando hay que repetir</h3>
+      <p>Si la primera pasada queda fuera de tolerancia y se ajusta el factor, registrar una segunda pasada como verificacion post-ajuste. Si sigue fuera, puede agregarse una tercera pasada.</p>
+      <div class="callout success"><strong>Criterio clave:</strong> la ultima pasada completa es la que define el resultado final.</div>
+    </section>
+
+    <section id="material" class="page-break">
+      <h2>7. Pasadas con material real</h2>
+      <p>Una pasada compara el peso real certificado contra el peso indicado por el controlador.</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Que cargar</th><th>Recomendacion</th></tr></thead>
+        <tbody>
+          <tr><td>Peso balanza certificada</td><td>Peso real del material.</td><td>Usar el peso final neto validado por balanza certificada.</td></tr>
+          <tr><td>Peso indicado controlador</td><td>Total o lectura equivalente del controlador.</td><td>Tomar el dato al cierre de la misma corrida.</td></tr>
+          <tr><td>Factor usado</td><td>Factor que estaba cargado durante esa pasada.</td><td>Si hubo ajuste, registrar el factor nuevo en la pasada posterior.</td></tr>
+          <tr><td>Nota</td><td>Condiciones relevantes.</td><td>Anotar paradas, derrames, cambios de flujo o dudas.</td></tr>
+        </tbody>
+      </table>
+      <h3>Secuencia recomendada</h3>
+      <ol>
+        <li>Pesar material antes o despues segun el procedimiento de planta.</li>
+        <li>Registrar el peso certificado.</li>
+        <li>Registrar el peso indicado por el controlador.</li>
+        <li>Revisar el error calculado.</li>
+        <li>Si esta dentro de tolerancia y no se ajusta, cerrar.</li>
+        <li>Si esta fuera y se ajusta, repetir con una pasada posterior.</li>
+      </ol>
+    </section>
+
+    <section id="cierre">
+      <h2>8. Criterio de ajuste y cierre</h2>
+      <table>
+        <thead><tr><th>Situacion</th><th>Accion</th><th>Resultado esperado</th></tr></thead>
+        <tbody>
+          <tr><td>Primera pasada dentro de tolerancia.</td><td>No tocar factor salvo indicacion tecnica.</td><td><span class="tag success">Control conforme</span></td></tr>
+          <tr><td>Primera pasada fuera de tolerancia.</td><td>Ajustar factor si corresponde y repetir.</td><td>Verificacion post-ajuste.</td></tr>
+          <tr><td>Pasada posterior dentro de tolerancia.</td><td>Cerrar con motivo del ajuste.</td><td><span class="tag">Calibrada</span></td></tr>
+          <tr><td>Ultima pasada fuera de tolerancia.</td><td>No forzar cierre conforme.</td><td><span class="tag error">Fuera de tolerancia</span></td></tr>
+          <tr><td>Factor modificado sin verificacion.</td><td>Realizar otra pasada.</td><td><span class="tag warning">No cerrar</span></td></tr>
+        </tbody>
+      </table>
+      <div class="callout warning"><strong>Regla obligatoria:</strong> si se cambia el factor, debe existir una pasada posterior completa para demostrar que quedo dentro de tolerancia.</div>
+    </section>
+
+    <section id="resultado">
+      <h2>9. Como interpretar el resultado</h2>
+      <div class="grid">
+        <div class="metric"><span>Control conforme</span><strong>Sin ajuste</strong><p>La balanza estaba dentro de tolerancia. Sirve como mantenimiento preventivo.</p></div>
+        <div class="metric"><span>Calibrada</span><strong>Ajuste verificado</strong><p>Se modifico el factor y una pasada posterior quedo dentro de tolerancia.</p></div>
+        <div class="metric"><span>Fuera de tolerancia</span><strong>Requiere accion</strong><p>La ultima pasada completa no cumple. Revisar factor, mecanica o procedimiento.</p></div>
+      </div>
+    </section>
+
+    <section id="buenas-practicas" class="page-break">
+      <h2>10. Buenas practicas</h2>
+      <div class="checklist">
+        <h3>Durante el trabajo</h3>
+        <ul>
+          <li>No mezclar pesos de corridas diferentes.</li>
+          <li>No registrar material real si el peso certificado es dudoso.</li>
+          <li>No modificar factor sin anotar motivo.</li>
+          <li>No cerrar como calibrada sin verificacion post-ajuste.</li>
+          <li>Registrar observaciones cuando hubo condiciones anormales.</li>
+          <li>Si hay falla mecanica, corregir antes de calibrar.</li>
+        </ul>
+      </div>
+      <div class="checklist">
+        <h3>Al terminar</h3>
+        <ul>
+          <li>Revisar que el resultado final coincida con la ultima pasada completa.</li>
+          <li>Confirmar que el factor final sea el que quedo cargado en el controlador.</li>
+          <li>Guardar el evento y revisar el historial.</li>
+          <li>Informar si quedo fuera de tolerancia.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="problemas">
+      <h2>11. Problemas frecuentes en campo</h2>
+      <h3>La balanza no tiene cadena de su planta</h3>
+      <p>Se puede elegir otra cadena disponible. Registrar observacion si la seleccion no corresponde a la planta habitual.</p>
+      <h3>El control pide cadena o acumulado</h3>
+      <p>Eso suele pasar cuando la balanza no tiene calibracion previa registrada. Para primera carga, completar calibracion completa.</p>
+      <h3>El evento queda fuera aunque ajuste el factor</h3>
+      <p>Falta registrar una pasada posterior al ajuste, o la ultima pasada sigue fuera de tolerancia.</p>
+      <h3>No puedo cerrar porque falta factor usado</h3>
+      <p>En verificaciones post-ajuste, cargar el factor usado en esa pasada.</p>
+      <h3>No estoy seguro del peso real</h3>
+      <p>No cerrar el evento como conforme. Repetir el pesaje o registrar la condicion en observaciones.</p>
+    </section>
+
+    <section id="checklist-final">
+      <h2>12. Checklist final</h2>
+      <table>
+        <thead><tr><th>Pregunta</th><th>Debe quedar</th></tr></thead>
+        <tbody>
+          <tr><td>La balanza seleccionada es la correcta?</td><td>Si.</td></tr>
+          <tr><td>Se hizo inspeccion previa?</td><td>Completa o con observacion de condicion corregida.</td></tr>
+          <tr><td>Se realizo cero?</td><td>Si.</td></tr>
+          <tr><td>Si fue primera calibracion, se completo cadena/acumulado?</td><td>Si.</td></tr>
+          <tr><td>Si fue control preventivo, hay pasada con material?</td><td>Si, al menos una completa.</td></tr>
+          <tr><td>Si se ajusto factor, hay verificacion posterior?</td><td>Si.</td></tr>
+          <tr><td>El factor final coincide con el controlador?</td><td>Si.</td></tr>
+          <tr><td>Se registraron observaciones relevantes?</td><td>Si, cuando corresponde.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="footer-note">
+      <strong>Calibra Cinta - Manual tecnico de campo.</strong>
+      <p>Documento orientado al procedimiento en campo. Ante diferencias con instrucciones internas de planta, aplicar el procedimiento aprobado y dejar observacion en el evento.</p>
+    </footer>
+  </main>
+</body>
+</html>
