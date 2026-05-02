@@ -69,7 +69,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.1'
+const APP_VERSION = 'v1.1.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -583,6 +583,7 @@ function App() {
   const selectedEquipmentStatus = selectedEquipmentLastEvent
     ? getEventMaterialOutcome(selectedEquipmentLastEvent).status
     : 'Sin calibrar'
+  const requiresFullCalibration = !selectedEquipmentLastEvent
 
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
   const canOperate = currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
@@ -759,17 +760,19 @@ function App() {
     if (!precheckPassed) issues.push('Completá toda la inspeccion previa.')
     if (!eventForm.zeroCompleted) issues.push('Debés registrar el cero antes de calibrar.')
     if (!currentUser?.username.trim()) issues.push('Falta usuario responsable logueado.')
-    if (!(Number(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
-    if (!(Number(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
-    if (!(Number(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
-    if (!(Number(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
-    if (!(Number(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
+    if (requiresFullCalibration) {
+      if (!(Number(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
+      if (!(Number(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
+      if (!(Number(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
+      if (!(Number(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
+      if (!(Number(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
+    }
     if (!finalMaterialPass) issues.push('Falta una pasada completa con material real.')
     if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) issues.push('Falta el factor usado en una verificacion post-ajuste.')
     if (materialAdjustmentApplied && completeMaterialPasses.length < 2) issues.push('Si se ajusta el factor, falta una pasada posterior de verificacion.')
     if (!(Number(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || materialFactorBefore)) issues.push('Falta el factor final o usado en la pasada final.')
     return issues
-  }, [completeMaterialPasses.length, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, selectedEquipment, suggestedFactor])
+  }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, requiresFullCalibration, selectedEquipment, suggestedFactor])
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -1398,7 +1401,6 @@ function App() {
 
     if (
       !record.approval.technician ||
-      !record.chainSpan.avgControllerReadingKgM ||
       !record.materialValidation.externalWeightKg ||
       !record.precheck.beltEmpty ||
       !record.precheck.beltClean ||
@@ -1407,9 +1409,11 @@ function App() {
       !record.precheck.structureOk ||
       !record.precheck.speedSensorOk ||
       !record.zeroCheck.completed ||
-      !record.accumulatedCheck.expectedFlowTph ||
-      !record.accumulatedCheck.testMinutes ||
-      !record.accumulatedCheck.indicatedTotal
+      (requiresFullCalibration &&
+        (!record.chainSpan.avgControllerReadingKgM ||
+          !record.accumulatedCheck.expectedFlowTph ||
+          !record.accumulatedCheck.testMinutes ||
+          !record.accumulatedCheck.indicatedTotal))
     ) {
       return
     }
@@ -2070,6 +2074,7 @@ function App() {
                 <div className="card-tag">Paso 7</div>
                 <h2>Validacion con material real</h2>
                 <p className="hint">Registrá la primera pasada como control. Si queda fuera de tolerancia, ajustá el factor en el controlador y agregá una verificacion post-ajuste.</p>
+                {!requiresFullCalibration && <p className="hint">Esta balanza ya tiene calibracion previa: podés cerrar el evento como control preventivo solo con material real, sin repetir cadena ni acumulado.</p>}
                 {[1, 2, 3].slice(0, materialPassCount).map((passNumber) => {
                   const prefix = `materialPass${passNumber}` as 'materialPass1' | 'materialPass2' | 'materialPass3'
                   const pass = materialPasses[passNumber - 1]

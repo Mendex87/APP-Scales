@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.2 - Controles preventivos
+
+- Se ajustaron las validaciones para permitir controles preventivos con material en balanzas ya calibradas.
+- Cadena, caudal y acumulado quedan obligatorios solo para la primera calibracion/carga del equipo.
+
 ## v1.1.1 - Pasadas de material y control preventivo
 
 - Se agregaron pasadas con material certificado para diferenciar control inicial y verificaciones post-ajuste.
