@@ -25,6 +25,10 @@
   --radius: 0.35rem;
   --ease: cubic-bezier(0.53, 0, 0, 1);
   --link-ease: cubic-bezier(0.4, 0, 0.25, 1);
+  --motion-fast: 180ms;
+  --motion-base: 320ms;
+  --motion-slow: 520ms;
+  --ease-industrial: cubic-bezier(0.2, 0.72, 0.18, 1);
 }
 
 * {
@@ -305,6 +309,7 @@ body::before {
   border: 0;
   background: rgba(12, 11, 17, 0.76);
   backdrop-filter: blur(10px);
+  animation: fade-in var(--motion-base) var(--ease-industrial) both;
 }
 
 .photo-modal-card,
@@ -321,7 +326,7 @@ body::before {
   background: var(--color-paper-strong);
   border: 1px solid var(--border-strong);
   box-shadow: 0 2rem 4rem rgba(12, 11, 17, 0.34);
-  animation: rise-in 0.25s var(--ease) both;
+  animation: modal-pop var(--motion-base) var(--ease-industrial) both;
 }
 
 .photo-modal-card h2 {
@@ -375,6 +380,11 @@ body::before {
   object-fit: contain;
   border-radius: var(--radius);
   background: var(--color-ink);
+  transition: transform var(--motion-slow) var(--ease-industrial);
+}
+
+.photo-modal-card img:hover {
+  transform: scale(1.01);
 }
 
 .topbar {
@@ -546,7 +556,7 @@ body::before {
 }
 
 .screen-shell {
-  animation: rise-in 0.45s var(--ease) both;
+  animation: screen-in var(--motion-slow) var(--ease-industrial) both;
 }
 
 .screen-banner {
@@ -592,7 +602,8 @@ body::before {
   border-radius: var(--radius);
   padding: clamp(0.95rem, 2.5vw, 1.15rem);
   position: relative;
-  animation: rise-in 0.45s var(--ease) both;
+  transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease, transform var(--motion-base) var(--ease-industrial);
+  animation: card-in var(--motion-slow) var(--ease-industrial) both;
 }
 
 .card::before {
@@ -608,8 +619,30 @@ body::before {
   width: 3px;
 }
 
+.stack > .card:nth-child(2) {
+  animation-delay: 45ms;
+}
+
+.stack > .card:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.stack > .card:nth-child(4) {
+  animation-delay: 135ms;
+}
+
+.stack > .card:nth-child(n + 5) {
+  animation-delay: 180ms;
+}
+
 .collapsible-card {
   overflow: hidden;
+  transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease;
+}
+
+.collapsible-card[open] {
+  border-color: var(--border-strong);
+  box-shadow: 0 1.1rem 2.2rem rgba(12, 11, 17, 0.08);
 }
 
 .collapsible-summary {
@@ -658,11 +691,13 @@ body::before {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
+  transition: background-color var(--motion-base) ease, color var(--motion-base) ease, transform var(--motion-base) var(--ease-industrial);
 }
 
 .collapsible-card[open] .collapsible-indicator {
   background: var(--color-orange);
   color: var(--color-ink);
+  transform: translateY(-1px);
 }
 
 .collapsible-card[open] .collapsible-indicator::before {
@@ -681,7 +716,7 @@ body::before {
   display: grid;
   gap: 1rem;
   padding-top: 1rem;
-  animation: rise-in 0.35s var(--ease) both;
+  animation: collapsible-in var(--motion-base) var(--ease-industrial) both;
 }
 
 .inline-details {
@@ -763,13 +798,14 @@ body::before {
   border: 1px solid var(--border);
   background: var(--color-white);
   color: var(--color-ink);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+  transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease, background-color var(--motion-base) ease, transform var(--motion-base) var(--ease-industrial);
 }
 
 .input:focus {
   outline: none;
   border-color: var(--color-orange);
   box-shadow: 0 0 0 3px rgba(255, 89, 73, 0.14);
+  transform: translateY(-1px);
 }
 
 .textarea {
@@ -857,14 +893,6 @@ body::before {
   opacity: 0.55;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .primary,
-  .secondary,
-  .nav-item {
-    transition: none;
-  }
-}
-
 .metric,
 .result-row,
 .notice,
@@ -928,6 +956,13 @@ body::before {
   border: 1px solid var(--border);
   background: var(--color-white);
   color: var(--color-ink);
+  transition: border-color var(--motion-base) ease, box-shadow var(--motion-base) ease, transform var(--motion-base) var(--ease-industrial);
+}
+
+.check-field:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 0.55rem 1rem rgba(12, 11, 17, 0.06);
+  transform: translateY(-1px);
 }
 
 .check-field input {
@@ -935,6 +970,11 @@ body::before {
   height: 20px;
   accent-color: var(--color-orange);
   flex: 0 0 auto;
+  transition: transform var(--motion-fast) var(--ease-industrial);
+}
+
+.check-field input:checked {
+  transform: scale(1.08);
 }
 
 .notice,
@@ -992,6 +1032,8 @@ body::before {
 }
 
 .toast {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: flex-start;
   gap: 0.7rem;
@@ -1002,7 +1044,11 @@ body::before {
   color: var(--color-paper);
   box-shadow: 0 1.5rem 3rem rgba(12, 11, 17, 0.24);
   backdrop-filter: blur(10px);
-  animation: toast-in 0.35s var(--ease) both;
+  animation: toast-in var(--motion-base) var(--ease-industrial) both;
+}
+
+.toast-exiting {
+  animation: toast-out var(--motion-base) var(--ease-industrial) both;
 }
 
 .toast p {
@@ -1031,6 +1077,29 @@ body::before {
 }
 
 .toast-error .toast-dot {
+  background: var(--color-error);
+}
+
+.toast-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--color-orange);
+  transform-origin: left;
+  animation: toast-progress 4.2s linear both;
+}
+
+.toast-success .toast-progress {
+  background: var(--color-success);
+}
+
+.toast-warning .toast-progress {
+  background: var(--color-warning);
+}
+
+.toast-error .toast-progress {
   background: var(--color-error);
 }
 
@@ -1304,6 +1373,66 @@ body::before {
   }
 }
 
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes collapsible-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes reveal-down {
   from {
     opacity: 0;
@@ -1329,11 +1458,33 @@ body::before {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-10px) scale(0.98);
+    transform: translateX(-14px) scale(0.98);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-10px) scale(0.98);
+  }
+}
+
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
   }
 }

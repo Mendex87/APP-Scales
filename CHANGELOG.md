@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.5 - Motion refinado
+
+- Se agrego barra de progreso y salida animada en toasts.
+- Se refinaron transiciones de pantallas, tarjetas, collapsibles y modales.
+- Se agregaron microinteracciones en estados hover/focus para controles de formulario.
+
 ## v1.0.4 - Interacciones visuales
 
 - Se ajusto el scroll de `Editar` para llevar directamente al formulario de balanza.

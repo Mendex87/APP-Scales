@@ -31,6 +31,7 @@ type Toast = {
   id: string
   message: string
   tone: ToastTone
+  exiting?: boolean
 }
 
 type ConfirmDialog = {
@@ -54,7 +55,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.0.4'
+const APP_VERSION = 'v1.0.5'
 
 const defaultEquipmentForm = {
   plant: '',
@@ -276,12 +277,18 @@ function App() {
 
     const id = generateId()
     setToasts((current) => [...current, { id, message: syncNotice, tone }])
-    const timeoutId = window.setTimeout(() => {
+    const exitTimeoutId = window.setTimeout(() => {
+      setToasts((current) => current.map((item) => (item.id === id ? { ...item, exiting: true } : item)))
+    }, 3800)
+    const removeTimeoutId = window.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== id))
       setSyncNotice('')
     }, 4200)
 
-    return () => window.clearTimeout(timeoutId)
+    return () => {
+      window.clearTimeout(exitTimeoutId)
+      window.clearTimeout(removeTimeoutId)
+    }
   }, [syncNotice])
 
   useEffect(() => {
@@ -1302,9 +1309,10 @@ function App() {
 
       <section className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.tone}`}>
+          <div key={toast.id} className={`toast toast-${toast.tone} ${toast.exiting ? 'toast-exiting' : ''}`}>
             <span className="toast-dot" />
             <p>{toast.message}</p>
+            <span className="toast-progress" />
           </div>
         ))}
       </section>
