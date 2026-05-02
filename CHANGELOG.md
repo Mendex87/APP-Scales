@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.7 - Legibilidad del manual
+
+- Se ajusto la tipografia de titulos del manual para evitar la sobre-negrita del PDF y mejorar la lectura.
+
 ## v1.1.6 - Manual descargable y enfoque movil iOS
 
 - Se agrego descarga directa del manual de usuario desde la cabecera de la app.
