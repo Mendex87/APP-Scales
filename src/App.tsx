@@ -69,7 +69,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.2'
+const APP_VERSION = 'v1.1.3'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -586,6 +586,13 @@ function App() {
   const requiresFullCalibration = !selectedEquipmentLastEvent
 
   const selectedChain = useMemo(() => chains.find((item) => item.id === selectedChainId), [chains, selectedChainId])
+  const plantChains = useMemo(() => {
+    if (!selectedEquipment) return []
+    const equipmentPlant = selectedEquipment.plant.trim().toLowerCase()
+    return chains.filter((item) => item.plant.trim().toLowerCase() === equipmentPlant)
+  }, [chains, selectedEquipment])
+  const availableChains = selectedEquipment && plantChains.length > 0 ? plantChains : chains
+  const usingAllChainsFallback = Boolean(selectedEquipment && plantChains.length === 0 && chains.length > 0)
   const canOperate = currentUser?.role === 'admin' || currentUser?.role === 'tecnico'
   const canReview = currentUser?.role === 'admin' || currentUser?.role === 'tecnico' || currentUser?.role === 'supervisor'
   const canDelete = currentUser?.role === 'admin'
@@ -1946,12 +1953,11 @@ function App() {
                 }}
               >
                 <option value="">Seleccionar cadena</option>
-                {chains
-                  .filter((item) => !selectedEquipment || item.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
-                  ))}
+                {availableChains.map((item) => (
+                  <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
+                ))}
               </select>
+              {usingAllChainsFallback && <p className="hint compact-top">No hay cadenas para esta planta. Se muestran todas las disponibles.</p>}
               {selectedChain && (
                 <div className="grid three compact-top">
                   <Metric label="Cadena" value={selectedChain.name} />
@@ -2209,12 +2215,11 @@ function App() {
                 }}
               >
                 <option value="">Seleccionar cadena</option>
-                {chains
-                  .filter((item) => !selectedEquipment || item.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
-                  ))}
+                {availableChains.map((item) => (
+                  <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
+                ))}
               </select>
+              {usingAllChainsFallback && <p className="hint compact-top">No hay cadenas para esta planta. Se muestran todas las disponibles.</p>}
               {selectedChain && (
                 <div className="grid three compact-top">
                   <Metric label="kg/m" value={String(selectedChain.linearWeightKgM)} />

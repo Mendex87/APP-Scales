@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.3 - Seleccion flexible de cadenas
+
+- Si una balanza tiene cadenas de su misma planta, el selector muestra solo esas cadenas.
+- Si la planta de la balanza no tiene cadenas cargadas, el selector permite elegir entre todas las disponibles.
+
 ## v1.1.2 - Controles preventivos
 
 - Se ajustaron las validaciones para permitir controles preventivos con material en balanzas ya calibradas.
