@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.9 - Acciones de balanzas consistentes
+
+- Se ajusto el layout de las acciones en tarjetas de balanza para evitar saltos visuales con nombres largos.
+- En movil, los botones de accion quedan debajo del encabezado y ocupan el ancho disponible.
+
 ## v1.1.8 - Manuales por rol
 
 - Se separo el manual completo para administradores del manual tecnico de campo.

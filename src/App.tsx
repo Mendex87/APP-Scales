@@ -70,7 +70,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.8'
+const APP_VERSION = 'v1.1.9'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1845,8 +1845,8 @@ function App() {
                   ? getEventMaterialOutcome(lastEvent).status
                   : 'Sin calibraciones'
                 return (
-                  <div className="card" key={item.id}>
-                    <div className="row wrap">
+                  <div className="card equipment-card" key={item.id}>
+                    <div className="equipment-card-header">
                       <div className="equipment-card-head">
                         <EquipmentPhoto
                           photoUrl={getEquipmentPhotoUrl(item.photoPath)}
@@ -1860,7 +1860,7 @@ function App() {
                           <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
                         </div>
                       </div>
-                      <div className="row compact-actions">
+                      <div className="equipment-card-actions row compact-actions">
                         {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
                         {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
                         {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
