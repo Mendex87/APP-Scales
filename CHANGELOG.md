@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.16 - Landing con video industrial
+
+- Se rediseño la pagina publica y el login con una composicion responsive de presentacion y acceso protegido.
+- Se integro el video de intro como fondo visual con capas CSS, overlay de legibilidad y fallback para movimiento reducido.
+
 ## v1.1.15 - Decimales con coma o punto
 
 - Se permite cargar valores numericos con coma o punto decimal en formularios y herramientas.

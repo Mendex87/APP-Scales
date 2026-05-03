@@ -155,21 +155,47 @@ body::before {
 }
 
 .public-shell {
-  width: min(1180px, calc(100% - 2rem));
+  width: min(1240px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 1rem 0 4rem;
 }
 
-.public-hero {
-  min-height: calc(100vh - 2rem);
+.public-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(12, 11, 17, 0.16);
+  border-radius: var(--radius);
+  background: rgba(250, 249, 246, 0.78);
+  backdrop-filter: blur(18px);
+  animation: rise-in var(--motion-slow) var(--ease-industrial) both;
+}
+
+.public-topline div {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  gap: 0.12rem;
+}
+
+.public-topline strong {
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 1.7rem;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.public-hero {
+  min-height: calc(100vh - 6rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.55fr);
   gap: 1rem;
   align-items: stretch;
 }
 
 .public-copy,
-.public-console,
 .public-login {
   border-radius: var(--radius);
   border: 1px solid var(--border-strong);
@@ -177,28 +203,88 @@ body::before {
 }
 
 .public-copy {
+  position: relative;
   display: grid;
   align-content: center;
-  padding: clamp(1.4rem, 5vw, 3rem);
+  min-height: 720px;
+  padding: clamp(1.1rem, 4vw, 3.4rem);
   color: var(--color-paper);
   background:
     radial-gradient(circle at 15% 15%, rgba(255, 89, 73, 0.48), transparent 28rem),
     linear-gradient(135deg, var(--color-ink), var(--color-grey-800));
   overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08), 0 2rem 4.5rem rgba(12, 11, 17, 0.18);
+}
+
+.public-copy::before,
+.public-copy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.public-copy::before {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(12, 11, 17, 0.92) 0%, rgba(12, 11, 17, 0.68) 46%, rgba(12, 11, 17, 0.28) 100%),
+    radial-gradient(circle at 18% 24%, rgba(255, 89, 73, 0.46), transparent 24rem),
+    linear-gradient(0deg, rgba(12, 11, 17, 0.5), transparent 38%);
+}
+
+.public-copy::after {
+  z-index: 2;
+  opacity: 0.32;
+  background:
+    linear-gradient(rgba(240, 239, 235, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240, 239, 235, 0.07) 1px, transparent 1px),
+    linear-gradient(115deg, transparent 0 48%, rgba(255, 89, 73, 0.5) 49%, transparent 50% 100%);
+  background-size: 44px 44px, 44px 44px, 100% 100%;
+  mix-blend-mode: screen;
+}
+
+.public-hero-video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.82;
+  filter: saturate(1.04) contrast(1.05);
+  transform: scale(1.01);
+}
+
+.public-scanline {
+  position: absolute;
+  inset: auto 0 14% 0;
+  z-index: 3;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 89, 73, 0.9), rgba(240, 239, 235, 0.72), transparent);
+  box-shadow: 0 0 2.4rem rgba(255, 89, 73, 0.7);
+  animation: scanline-pass 6.8s var(--ease-industrial) infinite;
+}
+
+.public-copy-content {
+  position: relative;
+  z-index: 4;
+  max-width: 760px;
 }
 
 .public-copy h1 {
-  max-width: 9ch;
+  max-width: 10.6ch;
   margin: 0 0 1rem;
   font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: clamp(5rem, 15vw, 11rem);
-  line-height: 0.78;
+  font-size: clamp(4.7rem, 11vw, 10.5rem);
+  line-height: 0.76;
   letter-spacing: -0.06em;
   text-transform: uppercase;
+  text-wrap: balance;
 }
 
 .public-copy p {
-  max-width: 56ch;
+  max-width: 58ch;
   margin: 0;
   color: rgba(240, 239, 235, 0.78);
   font-size: clamp(1rem, 2vw, 1.2rem);
@@ -218,55 +304,31 @@ body::before {
   padding-inline: 1rem;
 }
 
-.public-console {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: var(--color-paper-strong);
+.public-signal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: clamp(1.4rem, 3vw, 2.4rem);
 }
 
-.public-console div {
-  position: relative;
-  min-height: 170px;
-  padding: 1rem;
-  border: 1px solid var(--border);
-  background: #e5e2da;
-  overflow: hidden;
+.public-signal-row span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-height: 2.55rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(240, 239, 235, 0.2);
+  background: rgba(12, 11, 17, 0.42);
+  color: rgba(240, 239, 235, 0.72);
+  backdrop-filter: blur(14px);
 }
 
-.public-console div::after {
-  content: '';
-  position: absolute;
-  right: -2rem;
-  bottom: -2rem;
-  width: 7rem;
-  height: 7rem;
-  border: 1px solid rgba(255, 89, 73, 0.42);
-  transform: rotate(45deg);
-}
-
-.public-console span,
-.public-console strong {
+.public-signal-row strong {
+  color: var(--color-orange);
   font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 1.55rem;
+  line-height: 1;
   text-transform: uppercase;
-}
-
-.public-console span {
-  color: var(--color-orange-dark);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-.public-console strong {
-  display: block;
-  margin-top: 0.45rem;
-  font-size: 2.2rem;
-  line-height: 0.9;
-  letter-spacing: -0.035em;
-}
-
-.public-console p {
-  color: var(--color-grey-500);
 }
 
 .public-grid {
@@ -277,8 +339,65 @@ body::before {
 }
 
 .public-login {
-  width: min(620px, 100%);
-  margin: 1rem auto 0;
+  position: relative;
+  align-self: stretch;
+  display: grid;
+  align-content: center;
+  min-height: 620px;
+  width: 100%;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 1.45rem);
+  background:
+    linear-gradient(180deg, rgba(250, 249, 246, 0.96), rgba(229, 226, 218, 0.96)),
+    repeating-linear-gradient(135deg, rgba(12, 11, 17, 0.08) 0 1px, transparent 1px 12px);
+  overflow: hidden;
+}
+
+.public-login::before {
+  content: '';
+  position: absolute;
+  inset: 0.85rem;
+  border: 1px solid rgba(12, 11, 17, 0.08);
+  pointer-events: none;
+}
+
+.public-login > * {
+  position: relative;
+  z-index: 1;
+}
+
+.login-status,
+.login-footnote {
+  color: var(--color-grey-500);
+  font-size: 0.86rem;
+}
+
+.login-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  margin-bottom: 1.4rem;
+  padding: 0.42rem 0.58rem;
+  border: 1px solid rgba(31, 143, 95, 0.34);
+  background: rgba(31, 143, 95, 0.09);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.login-status span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--color-success);
+  box-shadow: 0 0 0 0.28rem rgba(31, 143, 95, 0.14);
+}
+
+.login-footnote {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(12, 11, 17, 0.1);
 }
 
 .topbar,
@@ -1617,6 +1736,19 @@ body::before {
   .history-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .public-hero {
+    min-height: auto;
+  }
+
+  .public-copy,
+  .public-login {
+    min-height: auto;
+  }
+
+  .public-copy {
+    min-height: 70vh;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1772,22 +1904,52 @@ body::before {
     padding-top: 0.75rem;
   }
 
+  .public-topline {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 0.7rem;
+  }
+
+  .public-topline .secondary {
+    width: 100%;
+  }
+
   .public-hero {
     min-height: auto;
   }
 
   .public-copy {
-    min-height: 68vh;
+    min-height: 76vh;
     padding: 1rem;
   }
 
+  .public-copy::before {
+    background:
+      linear-gradient(180deg, rgba(12, 11, 17, 0.9) 0%, rgba(12, 11, 17, 0.66) 48%, rgba(12, 11, 17, 0.86) 100%),
+      radial-gradient(circle at 18% 18%, rgba(255, 89, 73, 0.5), transparent 18rem);
+  }
+
   .public-copy h1 {
-    font-size: clamp(4.2rem, 24vw, 7rem);
+    max-width: 9ch;
+    font-size: clamp(4rem, 20vw, 6.8rem);
+  }
+
+  .public-copy p {
+    font-size: 1rem;
   }
 
   .public-actions .primary,
   .public-actions .secondary {
     width: 100%;
+  }
+
+  .public-signal-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .public-login {
+    padding: 1rem;
   }
 
   .quick-actions {
@@ -1968,6 +2130,11 @@ body::before {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+
+  .public-hero-video,
+  .public-scanline {
+    display: none;
+  }
 }
 
 @keyframes rise-in {
@@ -1979,6 +2146,24 @@ body::before {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes scanline-pass {
+  0%,
+  18% {
+    transform: translateY(-38vh) scaleX(0.52);
+    opacity: 0;
+  }
+
+  34%,
+  68% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateY(22vh) scaleX(1);
+    opacity: 0;
   }
 }
 

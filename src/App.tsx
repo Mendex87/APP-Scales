@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.15'
+const APP_VERSION = 'v1.1.16'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1660,38 +1660,61 @@ function App() {
   if (!currentUser) {
     return (
       <div className="public-shell">
-        <section className="public-hero">
-          <div className="public-copy">
+        <header className="public-topline" aria-label="Presentacion Calibra Cinta">
+          <div>
             <span className="brand-kicker">Control Metrologico Industrial</span>
-            <h1>Calibra Cinta</h1>
-            <p>Registro, calibracion y trazabilidad de balanzas dinamicas sobre cintas transportadoras, pensado para tecnicos de campo y supervision operativa.</p>
-            <div className="public-actions">
-              <a className="primary manual-link" href="/manual/" target="_blank" rel="noreferrer">Ver manuales</a>
-              <a className="secondary manual-link" href="#acceso">Ingresar a la app</a>
+            <strong>Calibra Cinta</strong>
+          </div>
+          <a className="secondary manual-link" href="/manual/" target="_blank" rel="noreferrer">Ver manuales</a>
+        </header>
+
+        <section className="public-hero">
+          <div className="public-copy" aria-label="Video de presentacion de Calibra Cinta">
+            <video
+              className="public-hero-video"
+              src="/intro/calibra-cinta-intro.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+            />
+            <div className="public-scanline" aria-hidden="true"></div>
+            <div className="public-copy-content">
+              <span className="brand-kicker">Planta, campo y reporte en un mismo flujo</span>
+              <h1>Calibracion trazable para balanzas dinamicas</h1>
+              <p>Registro guiado de inspeccion, cero, parametros, cadena, acumulado, material real y cierre tecnico para cintas transportadoras.</p>
+              <div className="public-actions">
+                <a className="primary manual-link" href="#acceso">Ingresar a la app</a>
+                <a className="secondary manual-link" href="/manual/" target="_blank" rel="noreferrer">Ver manuales</a>
+              </div>
+              <div className="public-signal-row" aria-label="Resumen operativo">
+                <span><strong>8</strong> pasos guiados</span>
+                <span><strong>4</strong> roles</span>
+                <span><strong>PDF</strong> reporte</span>
+              </div>
             </div>
           </div>
-          <div className="public-console" aria-label="Resumen de funcionalidades">
-            <div><span>01</span><strong>Span con cadena</strong><p>Patrones por planta y kg/m editable.</p></div>
-            <div><span>02</span><strong>Material real</strong><p>Control inicial y verificacion post-ajuste.</p></div>
-            <div><span>03</span><strong>Reportes</strong><p>Historial imprimible con diagnostico tecnico.</p></div>
+
+          <div id="acceso" className="auth-card public-login">
+            <div className="login-status"><span></span> Supabase online</div>
+            <div className="brand-kicker">Acceso protegido</div>
+            <h2>Ingresar</h2>
+            <p>Operadores habilitados pueden cargar controles, revisar historial y emitir reportes de campo.</p>
+            <form className="stack" onSubmit={handleLogin}>
+              <Field label="Email" type="email" value={loginEmail} onChange={setLoginEmail} />
+              <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
+              <button className="primary" type="submit">Ingresar</button>
+            </form>
+            <div className="login-footnote">Roles: admin, tecnico, supervisor y consulta.</div>
           </div>
         </section>
 
-        <section className="public-grid">
-          <div className="card"><span className="section-kicker">Campo</span><h2>Flujo guiado</h2><p className="hint">Inspeccion, cero, parametros, cadena, acumulado, material real y cierre con validaciones.</p></div>
-          <div className="card"><span className="section-kicker">Trazabilidad</span><h2>Eventos auditables</h2><p className="hint">Cada calibracion conserva factores, errores, tecnico responsable y observaciones.</p></div>
-          <div className="card"><span className="section-kicker">Roles</span><h2>Acceso por perfil</h2><p className="hint">Admin, tecnico, supervisor y consulta con permisos separados.</p></div>
-        </section>
-
-        <section id="acceso" className="auth-card public-login">
-          <div className="brand-kicker">Acceso protegido</div>
-          <h2>Ingresar</h2>
-          <p>Operadores habilitados pueden entrar para cargar controles y revisar historial.</p>
-          <form className="stack" onSubmit={handleLogin}>
-            <Field label="Email" type="email" value={loginEmail} onChange={setLoginEmail} />
-            <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
-            <button className="primary" type="submit">Ingresar</button>
-          </form>
+        <section className="public-grid" aria-label="Modulos principales">
+          <div className="card"><span className="section-kicker">Campo</span><h2>Flujo guiado</h2><p className="hint">Validaciones paso a paso para reducir omisiones durante la intervencion.</p></div>
+          <div className="card"><span className="section-kicker">Trazabilidad</span><h2>Eventos auditables</h2><p className="hint">Factores, errores, tecnico responsable y diagnostico quedan listos para reporte.</p></div>
+          <div className="card"><span className="section-kicker">Operacion</span><h2>Estado del parque</h2><p className="hint">KPIs, semaforos y filtros para priorizar equipos con accion recomendada.</p></div>
         </section>
       </div>
     )
