@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.16'
+const APP_VERSION = 'v1.1.17'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -528,9 +528,7 @@ function App() {
         setChains(result.chains || [])
         setEvents(result.events)
         setDataSource(result.source)
-        if (result.source === 'supabase') {
-          setSyncNotice('Datos cargados desde Supabase.')
-        } else if (!isSupabaseConfigured) {
+        if (!isSupabaseConfigured) {
           setSyncNotice('Supabase no está configurado. La app quedó en modo local.')
         }
       } catch (error) {

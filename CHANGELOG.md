@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.17 - Inicio sin aviso persistente
+
+- Se quito el aviso de exito al cargar datos desde Supabase para evitar un popup innecesario al ingresar.
+
 ## v1.1.16 - Landing con video industrial
 
 - Se rediseño la pagina publica y el login con una composicion responsive de presentacion y acceso protegido.
