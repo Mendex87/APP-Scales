@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.17'
+const APP_VERSION = 'v1.1.18'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1658,14 +1658,6 @@ function App() {
   if (!currentUser) {
     return (
       <div className="public-shell">
-        <header className="public-topline" aria-label="Presentacion Calibra Cinta">
-          <div>
-            <span className="brand-kicker">Control Metrologico Industrial</span>
-            <strong>Calibra Cinta</strong>
-          </div>
-          <a className="secondary manual-link" href="/manual/" target="_blank" rel="noreferrer">Ver manuales</a>
-        </header>
-
         <section className="public-hero">
           <div className="public-copy" aria-label="Video de presentacion de Calibra Cinta">
             <video
@@ -1685,7 +1677,7 @@ function App() {
               <p>Registro guiado de inspeccion, cero, parametros, cadena, acumulado, material real y cierre tecnico para cintas transportadoras.</p>
               <div className="public-actions">
                 <a className="primary manual-link" href="#acceso">Ingresar a la app</a>
-                <a className="secondary manual-link" href="/manual/" target="_blank" rel="noreferrer">Ver manuales</a>
+                <a className="secondary manual-link" href="/manual/tecnico/" target="_blank" rel="noreferrer">Manual de campo</a>
               </div>
               <div className="public-signal-row" aria-label="Resumen operativo">
                 <span><strong>8</strong> pasos guiados</span>

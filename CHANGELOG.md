@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.18 - Manual publico de campo
+
+- Se quito el encabezado publico de la landing para simplificar el ingreso.
+- El acceso publico a manuales ahora apunta solo al manual tecnico de campo; el manual admin queda para usuarios admin logueados.
+
 ## v1.1.17 - Inicio sin aviso persistente
 
 - Se quito el aviso de exito al cargar datos desde Supabase para evitar un popup innecesario al ingresar.
