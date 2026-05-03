@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.18'
+const APP_VERSION = 'v1.1.19'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1710,7 +1710,7 @@ function App() {
     )
   }
 
-  const manualHref = currentUser.role === 'admin' ? '/manual/admin/' : '/manual/tecnico/'
+  const manualHref = currentUser.role === 'admin' ? '/manual-admin.pdf' : '/manual/tecnico/'
 
   return (
     <div className="app-shell">

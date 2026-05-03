@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.19 - Manual admin no publico
+
+- Se quito el manual administrador del indice publico y del sitemap.
+- Se redirige la ruta publica `/manual/admin` al manual tecnico de campo y se agrega `noindex` para recursos administrativos.
+- El boton de manual para usuarios admin logueados abre el PDF administrador directamente desde la app.
+
 ## v1.1.18 - Manual publico de campo
 
 - Se quito el encabezado publico de la landing para simplificar el ingreso.
