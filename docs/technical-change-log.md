@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-04 - v1.1.24 - Resumen automatico a Google Sheets
+
+- Contexto: Google Sheets debe funcionar como tablero externo resumido, sin replicar el detalle completo de Supabase.
+- Cambio: al guardar un evento en Supabase, la app construye un resumen minimo y llama a la Edge Function `sync-sheets-event`.
+- Cambio: la Edge Function valida usuario autenticado con rol `admin` o `tecnico` y reenvia el resumen al Web App de Google Apps Script usando `GOOGLE_SHEETS_WEBHOOK_URL` y `GOOGLE_SHEETS_TOKEN`.
+- Cambio: se documento el Apps Script base en `docs/google-sheets-summary-sync.md` para actualizar `Eventos` y `Equipos`; `Alertas` queda para reglas propias de Sheets.
+- Motivo: mantener Supabase como fuente principal y exportar un registro por calibracion, evitando cargas masivas y datos excesivos.
+- Verificacion requerida: configurar secrets, desplegar la Edge Function, publicar el Apps Script y guardar una calibracion de prueba.
+
 ## 2026-05-04 - v1.1.23 - Acceso tecnico desde manual admin
 
 - Contexto: el administrador necesita consultar tanto la guia interna como el procedimiento tecnico de campo desde su sesion.

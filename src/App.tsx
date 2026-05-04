@@ -25,7 +25,10 @@ import {
   saveCalibrationEventRecord,
   saveChainRecord,
   saveEquipmentRecord,
+  syncCalibrationEventToSheets,
+  updateCalibrationEventSync,
 } from './repository'
+import type { SheetsEventPayload } from './repository'
 import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, SpeedSource } from './types'
@@ -72,7 +75,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.23'
+const APP_VERSION = 'v1.1.24'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -612,6 +615,43 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
   <div class="notes"><strong>Observaciones</strong><br />${reportValue(item.notes || '-')}</div>
 </body>
 </html>`
+}
+
+function buildSheetsEventPayload(item: CalibrationEvent, equipmentItem: Equipment): SheetsEventPayload {
+  const materialSummary = getEventMaterialOutcome(item)
+  const finalPass = materialSummary.finalPass
+  const inspectionOk =
+    item.precheck.beltEmpty &&
+    item.precheck.beltClean &&
+    item.precheck.noMaterialBuildup &&
+    item.precheck.idlersOk &&
+    item.precheck.structureOk &&
+    item.precheck.speedSensorOk
+  const syncedAt = new Date().toISOString()
+
+  return {
+    event: {
+      id: item.id,
+      eventDate: item.eventDate,
+      equipmentId: item.equipmentId,
+      plant: equipmentItem.plant,
+      line: equipmentItem.line,
+      beltCode: equipmentItem.beltCode,
+      scaleName: equipmentItem.scaleName,
+      result: materialSummary.status,
+      finalErrorPct: round(materialSummary.errorPct),
+      tolerancePct: item.tolerancePercent,
+      withinTolerance: statusClass(materialSummary.status) !== 'danger',
+      finalExternalWeightKg: finalPass?.externalWeightKg || item.materialValidation.externalWeightKg || 0,
+      finalBeltWeightKg: finalPass?.beltWeightKg || item.materialValidation.beltWeightKg || 0,
+      finalFactor: item.finalAdjustment.factorAfter,
+      inspectionOk,
+      technician: item.approval.technician,
+      diagnosisSummary: item.diagnosis,
+      notesSummary: item.notes,
+      syncedAt,
+    },
+  }
 }
 
 function App() {
@@ -1740,6 +1780,35 @@ function App() {
           ? `Evento ${record.id} guardado en Supabase.`
           : `Evento ${record.id} guardado solo localmente.`,
       )
+
+      if (result.source === 'supabase') {
+        try {
+          const payload = buildSheetsEventPayload(record, selectedEquipment)
+          const sheetsResult = await syncCalibrationEventToSheets(payload)
+          const syncValues = {
+            syncStatus: 'sincronizado' as const,
+            syncMessage: sheetsResult.message,
+            syncedAt: payload.event.syncedAt,
+          }
+          await updateCalibrationEventSync(record.id, syncValues)
+          setEvents((current) => current.map((item) => (item.id === record.id ? { ...item, ...syncValues } : item)))
+          setSyncNotice(`Evento ${record.id} guardado y exportado a Google Sheets.`)
+        } catch (syncError) {
+          const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo exportar a Google Sheets.'
+          const syncValues = {
+            syncStatus: 'error' as const,
+            syncMessage,
+            syncedAt: new Date().toISOString(),
+          }
+          try {
+            await updateCalibrationEventSync(record.id, syncValues)
+          } catch {
+            // El evento ya quedo guardado; si falla el marcado de sync, se informa el error original de Sheets.
+          }
+          setEvents((current) => current.map((item) => (item.id === record.id ? { ...item, ...syncValues } : item)))
+          setSyncNotice(`Evento ${record.id} guardado. Error al exportar a Sheets: ${syncMessage}`)
+        }
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar el evento.'
       setSyncNotice(`Error al guardar evento: ${message}`)

@@ -2,6 +2,32 @@ import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveE
 import { isSupabaseConfigured, supabase } from './supabase'
 import type { CalibrationEvent, Chain, Equipment, SyncStatus } from './types'
 
+export type SheetsEventSummary = {
+  id: string
+  eventDate: string
+  equipmentId: string
+  plant: string
+  line: string
+  beltCode: string
+  scaleName: string
+  result: string
+  finalErrorPct: number
+  tolerancePct: number
+  withinTolerance: boolean
+  finalExternalWeightKg: number
+  finalBeltWeightKg: number
+  finalFactor: number
+  inspectionOk: boolean
+  technician: string
+  diagnosisSummary: string
+  notesSummary: string
+  syncedAt: string
+}
+
+export type SheetsEventPayload = {
+  event: SheetsEventSummary
+}
+
 type EquipmentRow = {
   id: string
   plant: string
@@ -240,6 +266,26 @@ export async function updateCalibrationEventSync(
   if (result.error) {
     throw toError(result.error)
   }
+}
+
+export async function syncCalibrationEventToSheets(payload: SheetsEventPayload) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, message: 'Supabase no esta configurado.' }
+  }
+
+  const { data, error } = await supabase.functions.invoke('sync-sheets-event', {
+    body: payload,
+  })
+
+  if (error) {
+    throw toError(error)
+  }
+
+  if (!data?.ok) {
+    throw new Error(String(data?.message || 'No se pudo sincronizar Google Sheets.'))
+  }
+
+  return { ok: true, message: String(data.message || 'Resumen exportado a Google Sheets.') }
 }
 
 function toError(value: unknown) {

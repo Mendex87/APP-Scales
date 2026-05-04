@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.24 - Resumen automatico a Google Sheets
+
+- Se agrego exportacion automatica de un resumen por calibracion/control hacia Google Sheets despues de guardar el evento en Supabase.
+- Se creo la Edge Function `sync-sheets-event` para reenviar el resumen al Web App de Apps Script sin exponer secretos en el navegador.
+- Se documento la estructura recomendada de hojas `Eventos` y `Equipos`, dejando `Alertas` para calculo propio en Google Sheets.
+
 ## v1.1.23 - Acceso tecnico desde manual admin
 
 - Se agrego acceso al manual tecnico de campo dentro del manual administrador interno para que un admin pueda consultar ambos documentos desde su sesion.
