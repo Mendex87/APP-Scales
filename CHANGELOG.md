@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.20 - Desvios abiertos por balanza
+
+- El dashboard ahora cuenta equipos actualmente fuera de tolerancia segun el ultimo evento de cada balanza.
+- El historial conserva los eventos antiguos fuera de tolerancia sin afectar el estado actual del parque.
+
 ## v1.1.19 - Manual admin no publico
 
 - Se quito el manual administrador del indice publico y del sitemap.

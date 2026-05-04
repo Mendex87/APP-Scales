@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.19'
+const APP_VERSION = 'v1.1.20'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -730,8 +730,8 @@ function App() {
   }, [eventForm.tolerancePercent, finalMaterialPass, materialAdjustmentApplied])
 
   const outOfToleranceCount = useMemo(
-    () => events.filter((item) => Math.abs(getEventMaterialOutcome(item).errorPct) > item.tolerancePercent).length,
-    [events],
+    () => equipmentWithLastEvent.filter(({ lastEvent }) => lastEvent && statusClass(getEventMaterialOutcome(lastEvent).status) === 'danger').length,
+    [equipmentWithLastEvent],
   )
 
   const dashboardStats = useMemo(() => {
