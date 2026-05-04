@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-04 - v1.1.23 - Acceso tecnico desde manual admin
+
+- Contexto: el administrador necesita consultar tanto la guia interna como el procedimiento tecnico de campo desde su sesion.
+- Cambio: se agregaron enlaces al manual tecnico publico dentro del manual admin generado en la app.
+- Motivo: facilitar soporte y supervision sin volver a publicar el manual admin como recurso estatico.
+- Verificacion requerida: ingresar como admin, abrir `Manual` y comprobar que `Abrir manual tecnico` abre `/manual/tecnico/`.
+
 ## 2026-05-04 - v1.1.22 - Manual admin interno ampliado
 
 - Contexto: al retirar el PDF/HTML administrador de `public`, el reemplazo interno habia quedado demasiado resumido para uso real.

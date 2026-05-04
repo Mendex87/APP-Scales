@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.23 - Acceso tecnico desde manual admin
+
+- Se agrego acceso al manual tecnico de campo dentro del manual administrador interno para que un admin pueda consultar ambos documentos desde su sesion.
+
 ## v1.1.22 - Manual admin interno ampliado
 
 - Se amplio el manual administrador generado dentro de la app con secciones de usuarios, balanzas, cadenas, calibraciones, historial, Supabase/RLS, Vercel, acciones destructivas y checklist.

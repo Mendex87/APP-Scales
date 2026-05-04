@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.22'
+const APP_VERSION = 'v1.1.23'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -298,7 +298,8 @@ function buildAdminManualHtml(user: AuthUser) {
     .cover p { max-width: 720px; margin-top: 12px; color: #e8e5de; }
     .kicker { display: inline-block; margin-bottom: 14px; color: #ff5949; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-    .actions button { min-height: 42px; padding: 10px 14px; border: 2px solid #ff5949; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+    .actions button, .actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 10px 14px; border: 2px solid #ff5949; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; text-decoration: none; cursor: pointer; }
+    .actions a.secondary { color: #f0efeb; background: transparent; }
     .meta, .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .meta { margin-top: 22px; }
     .meta div, .card { padding: 12px; background: #f0efeb; border: 1px solid rgba(12, 11, 17, 0.14); }
@@ -318,7 +319,10 @@ function buildAdminManualHtml(user: AuthUser) {
       <span class="kicker">Manual administrador interno</span>
       <h1>Calibra Cinta</h1>
       <p>Guia de administracion, supervision y mantenimiento operativo. Este documento se genera dentro de una sesion autenticada con rol admin y no se publica como recurso estatico.</p>
-      <div class="actions"><button onclick="window.print()">Imprimir o guardar PDF</button></div>
+      <div class="actions">
+        <button onclick="window.print()">Imprimir o guardar PDF</button>
+        <a class="secondary" href="/manual/tecnico/" target="_blank" rel="noreferrer">Abrir manual tecnico</a>
+      </div>
       <div class="meta">
         <div><span>Usuario</span><strong>${reportValue(user.username)}</strong></div>
         <div><span>Rol</span><strong>${reportValue(user.role)}</strong></div>
@@ -328,6 +332,11 @@ function buildAdminManualHtml(user: AuthUser) {
 
     <section class="callout danger">
       <strong>Uso interno:</strong> no reenviar capturas, PDFs o contenidos administrativos fuera del equipo responsable. El manual tecnico de campo es el unico manual publico.
+    </section>
+
+    <section class="callout ok">
+      <strong>Manual tecnico disponible:</strong> desde esta guia admin tambien se puede abrir el manual tecnico de campo para revisar el procedimiento operativo que usan tecnicos, supervisores y usuarios de consulta.
+      <div class="actions"><a href="/manual/tecnico/" target="_blank" rel="noreferrer">Abrir manual tecnico de campo</a></div>
     </section>
 
     <section class="toc">
