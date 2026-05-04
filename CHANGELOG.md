@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.21 - Endurecimiento publico y manual admin interno
+
+- Se agregaron headers de seguridad en Vercel para reducir clickjacking, sniffing, permisos de navegador innecesarios y carga de recursos no esperados.
+- Se elimino el PDF y HTML administrador de `public` para que el manual admin no quede disponible por URL directa.
+- El manual admin ahora se genera dentro de la app solo para usuarios con rol `admin`; el acceso publico sigue redirigiendo al manual tecnico de campo.
+- Se agrego `docs/technical-change-log.md` para registrar decisiones tecnicas y el motivo de cambios sensibles.
+
 ## v1.1.20 - Desvios abiertos por balanza
 
 - El dashboard ahora cuenta equipos actualmente fuera de tolerancia segun el ultimo evento de cada balanza.

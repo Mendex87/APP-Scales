@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.20'
+const APP_VERSION = 'v1.1.21'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -268,6 +268,70 @@ function reportValue(value: unknown) {
 
 function reportRow(label: string, value: unknown) {
   return `<div><span>${reportValue(label)}</span><strong>${reportValue(value ?? '-')}</strong></div>`
+}
+
+function buildAdminManualHtml(user: AuthUser) {
+  return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <title>Manual administrador Calibra Cinta</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #0c0b11; }
+    body { margin: 0; padding: 28px; background: #f7f5ef; }
+    main { max-width: 920px; margin: 0 auto; background: #faf9f6; border: 1px solid rgba(12, 11, 17, 0.18); padding: 28px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: 34px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.03em; }
+    h2 { margin-top: 26px; padding-bottom: 6px; border-bottom: 2px solid #ff5949; font-size: 18px; }
+    p, li { color: #2e2930; }
+    .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0 22px; }
+    .meta div { padding: 10px; background: #f0efeb; border: 1px solid rgba(12, 11, 17, 0.12); }
+    .meta span { display: block; color: #737074; font-size: 12px; text-transform: uppercase; }
+    .meta strong { display: block; margin-top: 3px; }
+    .warning { margin-top: 18px; padding: 12px; background: #fff3d6; border: 1px solid rgba(201, 133, 0, 0.45); }
+    @media print { body { background: #fff; padding: 0; } main { border: 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Manual administrador Calibra Cinta</h1>
+    <p>Guia resumida para administracion operativa. Documento generado dentro de una sesion admin autenticada.</p>
+    <section class="meta">
+      <div><span>Usuario</span><strong>${reportValue(user.username)}</strong></div>
+      <div><span>Rol</span><strong>${reportValue(user.role)}</strong></div>
+      <div><span>Version</span><strong>${APP_VERSION}</strong></div>
+    </section>
+    <section class="warning">Este material no se publica como recurso estatico. Usarlo solo para administracion interna.</section>
+    <h2>1. Roles y permisos</h2>
+    <ul>
+      <li><strong>Admin:</strong> gestiona usuarios, equipos, cadenas, eventos y eliminaciones.</li>
+      <li><strong>Tecnico:</strong> crea equipos/cadenas/eventos y opera calibraciones.</li>
+      <li><strong>Supervisor:</strong> revisa informacion, fotos, historial y reportes.</li>
+      <li><strong>Consulta:</strong> acceso basico de lectura.</li>
+    </ul>
+    <h2>2. Gestion segura</h2>
+    <ul>
+      <li>Crear usuarios solo con rol necesario para su trabajo.</li>
+      <li>Eliminar registros solo cuando exista confirmacion operativa.</li>
+      <li>Ante errores RLS, revisar rol del usuario y accion intentada antes de modificar policies.</li>
+      <li>No compartir capturas o documentos administrativos fuera del equipo responsable.</li>
+    </ul>
+    <h2>3. Balanzas, cadenas y eventos</h2>
+    <ul>
+      <li>Los equipos y cadenas son datos maestros; mantener nombres, plantas y kg/m consistentes.</li>
+      <li>Los eventos historicos deben conservarse para trazabilidad, incluso si un desvio ya fue corregido.</li>
+      <li>El dashboard muestra el estado actual por ultimo evento de cada balanza.</li>
+    </ul>
+    <h2>4. Reportes y auditoria</h2>
+    <ul>
+      <li>Usar historial para imprimir reportes de calibracion o control preventivo.</li>
+      <li>Registrar observaciones cuando haya ajustes, condiciones anormales o uso de cadenas de otra planta.</li>
+      <li>Confirmar que la version visible coincida con el ultimo despliegue de Vercel.</li>
+    </ul>
+  </main>
+</body>
+</html>`
 }
 
 function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equipment) {
@@ -1056,6 +1120,20 @@ function App() {
     reportWindow.setTimeout(() => reportWindow.print(), 250)
   }
 
+  function openAdminManual() {
+    if (!currentUser || currentUser.role !== 'admin') return
+    const manualWindow = window.open('', '_blank')
+    if (!manualWindow) {
+      setSyncNotice('No se pudo abrir el manual admin. Revisá el bloqueador de ventanas emergentes.')
+      return
+    }
+
+    manualWindow.opener = null
+    manualWindow.document.write(buildAdminManualHtml(currentUser))
+    manualWindow.document.close()
+    manualWindow.focus()
+  }
+
   async function loadAuthenticatedUser(session: Session | null) {
     if (!session?.user || !supabase) {
       setCurrentUser(null)
@@ -1710,7 +1788,7 @@ function App() {
     )
   }
 
-  const manualHref = currentUser.role === 'admin' ? '/manual-admin.pdf' : '/manual/tecnico/'
+  const manualHref = '/manual/tecnico/'
 
   return (
     <div className="app-shell">
@@ -1726,9 +1804,15 @@ function App() {
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
-          <a className="secondary small manual-link" href={manualHref} target="_blank" rel="noreferrer">
-            <Download className="action-icon" aria-hidden="true" />Manual
-          </a>
+          {currentUser.role === 'admin' ? (
+            <button className="secondary small manual-link" type="button" onClick={openAdminManual}>
+              <Download className="action-icon" aria-hidden="true" />Manual
+            </button>
+          ) : (
+            <a className="secondary small manual-link" href={manualHref} target="_blank" rel="noreferrer">
+              <Download className="action-icon" aria-hidden="true" />Manual
+            </a>
+          )}
           <button className="secondary small" onClick={handleLogout}>Salir</button>
         </div>
       </header>
