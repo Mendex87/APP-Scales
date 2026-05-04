@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-04 - v1.1.22 - Manual admin interno ampliado
+
+- Contexto: al retirar el PDF/HTML administrador de `public`, el reemplazo interno habia quedado demasiado resumido para uso real.
+- Cambio: se amplio el manual generado en app para admin con indice, roles, gestion de usuarios, balanzas, cadenas, calibraciones, historial, Supabase/RLS, Vercel, acciones destructivas y checklist.
+- Motivo: mantener el cierre de exposicion publica sin perder documentacion administrativa util para operacion y soporte.
+- Verificacion requerida: ingresar con rol `admin`, abrir `Manual`, revisar contenido y probar `Imprimir o guardar PDF`.
+
 ## 2026-05-04 - v1.1.21 - Endurecimiento publico y manual admin interno
 
 - Contexto: el manual administrador habia quedado como recurso estatico bajo `public`, por lo que podia abrirse por URL directa aunque no estuviera enlazado publicamente.

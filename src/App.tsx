@@ -72,7 +72,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.21'
+const APP_VERSION = 'v1.1.22'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -278,57 +278,215 @@ function buildAdminManualHtml(user: AuthUser) {
   <meta name="robots" content="noindex, nofollow, noarchive" />
   <title>Manual administrador Calibra Cinta</title>
   <style>
-    :root { font-family: Arial, sans-serif; color: #0c0b11; }
-    body { margin: 0; padding: 28px; background: #f7f5ef; }
-    main { max-width: 920px; margin: 0 auto; background: #faf9f6; border: 1px solid rgba(12, 11, 17, 0.18); padding: 28px; }
-    h1, h2, p { margin: 0; }
-    h1 { font-size: 34px; line-height: 0.95; text-transform: uppercase; letter-spacing: -0.03em; }
-    h2 { margin-top: 26px; padding-bottom: 6px; border-bottom: 2px solid #ff5949; font-size: 18px; }
-    p, li { color: #2e2930; }
-    .meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 18px 0 22px; }
-    .meta div { padding: 10px; background: #f0efeb; border: 1px solid rgba(12, 11, 17, 0.12); }
+    :root { font-family: Arial, sans-serif; color: #0c0b11; background: #f0efeb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 28px; background: #f7f5ef; line-height: 1.48; }
+    main { max-width: 1040px; margin: 0 auto; }
+    header, section { background: #faf9f6; border: 1px solid rgba(12, 11, 17, 0.18); padding: 24px; margin-bottom: 16px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { max-width: 760px; font-size: clamp(36px, 7vw, 72px); line-height: 0.88; text-transform: uppercase; letter-spacing: -0.045em; }
+    h2 { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #ff5949; font-size: 24px; text-transform: uppercase; letter-spacing: -0.025em; }
+    h3 { margin: 18px 0 8px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.02em; }
+    p, li, td { color: #2e2930; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 5px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border: 1px solid rgba(12, 11, 17, 0.14); text-align: left; vertical-align: top; }
+    th { color: #f0efeb; background: #0c0b11; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    code { padding: 1px 5px; background: #e5e2da; border: 1px solid rgba(12, 11, 17, 0.12); }
+    .cover { color: #f0efeb; background: linear-gradient(135deg, #0c0b11, #19171a 70%, #2e2930); }
+    .cover p { max-width: 720px; margin-top: 12px; color: #e8e5de; }
+    .kicker { display: inline-block; margin-bottom: 14px; color: #ff5949; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .actions button { min-height: 42px; padding: 10px 14px; border: 2px solid #ff5949; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+    .meta, .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .meta { margin-top: 22px; }
+    .meta div, .card { padding: 12px; background: #f0efeb; border: 1px solid rgba(12, 11, 17, 0.14); }
     .meta span { display: block; color: #737074; font-size: 12px; text-transform: uppercase; }
     .meta strong { display: block; margin-top: 3px; }
-    .warning { margin-top: 18px; padding: 12px; background: #fff3d6; border: 1px solid rgba(201, 133, 0, 0.45); }
-    @media print { body { background: #fff; padding: 0; } main { border: 0; } }
+    .callout { padding: 12px; background: #fff3d6; border: 1px solid rgba(201, 133, 0, 0.45); }
+    .ok { background: rgba(31, 143, 95, 0.1); border-color: rgba(31, 143, 95, 0.35); }
+    .danger { background: rgba(196, 59, 48, 0.1); border-color: rgba(196, 59, 48, 0.35); }
+    .toc ol { columns: 2; column-gap: 32px; }
+    @media print { body { background: #fff; padding: 0; } header, section { break-inside: avoid; border-color: #bbb; } .actions { display: none; } }
+    @media (max-width: 760px) { body { padding: 12px; } header, section { padding: 16px; } .meta, .grid { grid-template-columns: 1fr; } .toc ol { columns: 1; } }
   </style>
 </head>
 <body>
   <main>
-    <h1>Manual administrador Calibra Cinta</h1>
-    <p>Guia resumida para administracion operativa. Documento generado dentro de una sesion admin autenticada.</p>
-    <section class="meta">
-      <div><span>Usuario</span><strong>${reportValue(user.username)}</strong></div>
-      <div><span>Rol</span><strong>${reportValue(user.role)}</strong></div>
-      <div><span>Version</span><strong>${APP_VERSION}</strong></div>
+    <header class="cover">
+      <span class="kicker">Manual administrador interno</span>
+      <h1>Calibra Cinta</h1>
+      <p>Guia de administracion, supervision y mantenimiento operativo. Este documento se genera dentro de una sesion autenticada con rol admin y no se publica como recurso estatico.</p>
+      <div class="actions"><button onclick="window.print()">Imprimir o guardar PDF</button></div>
+      <div class="meta">
+        <div><span>Usuario</span><strong>${reportValue(user.username)}</strong></div>
+        <div><span>Rol</span><strong>${reportValue(user.role)}</strong></div>
+        <div><span>Version app</span><strong>${APP_VERSION}</strong></div>
+      </div>
+    </header>
+
+    <section class="callout danger">
+      <strong>Uso interno:</strong> no reenviar capturas, PDFs o contenidos administrativos fuera del equipo responsable. El manual tecnico de campo es el unico manual publico.
     </section>
-    <section class="warning">Este material no se publica como recurso estatico. Usarlo solo para administracion interna.</section>
-    <h2>1. Roles y permisos</h2>
-    <ul>
-      <li><strong>Admin:</strong> gestiona usuarios, equipos, cadenas, eventos y eliminaciones.</li>
-      <li><strong>Tecnico:</strong> crea equipos/cadenas/eventos y opera calibraciones.</li>
-      <li><strong>Supervisor:</strong> revisa informacion, fotos, historial y reportes.</li>
-      <li><strong>Consulta:</strong> acceso basico de lectura.</li>
-    </ul>
-    <h2>2. Gestion segura</h2>
-    <ul>
-      <li>Crear usuarios solo con rol necesario para su trabajo.</li>
-      <li>Eliminar registros solo cuando exista confirmacion operativa.</li>
-      <li>Ante errores RLS, revisar rol del usuario y accion intentada antes de modificar policies.</li>
-      <li>No compartir capturas o documentos administrativos fuera del equipo responsable.</li>
-    </ul>
-    <h2>3. Balanzas, cadenas y eventos</h2>
-    <ul>
-      <li>Los equipos y cadenas son datos maestros; mantener nombres, plantas y kg/m consistentes.</li>
-      <li>Los eventos historicos deben conservarse para trazabilidad, incluso si un desvio ya fue corregido.</li>
-      <li>El dashboard muestra el estado actual por ultimo evento de cada balanza.</li>
-    </ul>
-    <h2>4. Reportes y auditoria</h2>
-    <ul>
-      <li>Usar historial para imprimir reportes de calibracion o control preventivo.</li>
-      <li>Registrar observaciones cuando haya ajustes, condiciones anormales o uso de cadenas de otra planta.</li>
-      <li>Confirmar que la version visible coincida con el ultimo despliegue de Vercel.</li>
-    </ul>
+
+    <section class="toc">
+      <h2>Indice</h2>
+      <ol>
+        <li>Objetivo del rol admin</li>
+        <li>Roles y permisos</li>
+        <li>Ingreso y controles iniciales</li>
+        <li>Gestion de usuarios</li>
+        <li>Gestion de balanzas</li>
+        <li>Gestion de cadenas patron</li>
+        <li>Calibraciones y controles preventivos</li>
+        <li>Historial, reportes y criterios de lectura</li>
+        <li>Supabase, RLS y datos</li>
+        <li>Seguridad y despliegue Vercel</li>
+        <li>Acciones destructivas</li>
+        <li>Checklist de administracion</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>1. Objetivo del rol admin</h2>
+      <p>El administrador mantiene la calidad de los datos maestros, los permisos de usuarios y la trazabilidad del historial. No reemplaza el criterio tecnico de campo: asegura que cada tecnico tenga acceso correcto, que cada equipo este identificado y que los eventos queden auditables.</p>
+      <div class="grid">
+        <div class="card"><strong>Datos maestros</strong><p>Balanzas, cadenas, plantas, factores y fotos.</p></div>
+        <div class="card"><strong>Operacion</strong><p>Seguimiento de estado actual y eventos fuera de tolerancia.</p></div>
+        <div class="card"><strong>Gobierno</strong><p>Usuarios, permisos, borrados y version desplegada.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Roles y permisos</h2>
+      <table>
+        <thead><tr><th>Rol</th><th>Puede hacer</th><th>No debe hacer</th></tr></thead>
+        <tbody>
+          <tr><td>Admin</td><td>Gestiona usuarios, equipos, cadenas, eventos, eliminaciones y revisiones.</td><td>Compartir material admin o usar usuarios personales para tecnicos.</td></tr>
+          <tr><td>Tecnico</td><td>Crea equipos nuevos, cadenas, calibraciones, controles y usa herramientas.</td><td>Eliminar datos, gestionar usuarios o modificar administrativamente equipos existentes.</td></tr>
+          <tr><td>Supervisor</td><td>Consulta balanzas, historial, reportes, herramientas y fotos.</td><td>Crear, editar o borrar registros operativos.</td></tr>
+          <tr><td>Consulta</td><td>Acceso basico de lectura segun configuracion.</td><td>Operar calibraciones o administrar datos.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. Ingreso y controles iniciales</h2>
+      <ol>
+        <li>Confirmar que la cabecera muestre la version esperada luego de cada deploy.</li>
+        <li>Confirmar que el estado de base indique <code>DB: Supabase</code> para trabajo multi-dispositivo.</li>
+        <li>Si se ve <code>DB: Local</code>, no asumir sincronizacion remota hasta resolver conectividad/configuracion.</li>
+        <li>Revisar el dashboard: equipos fuera de tolerancia, equipos sin historial y eventos del mes.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>4. Gestion de usuarios</h2>
+      <h3>Alta recomendada</h3>
+      <ol>
+        <li>Entrar como admin y abrir <strong>Usuarios</strong>.</li>
+        <li>Cargar email, nombre visible, contrasena y rol minimo necesario.</li>
+        <li>Usar <code>tecnico</code> para campo, <code>supervisor</code> para revision y <code>viewer</code> para consulta.</li>
+        <li>Reservar <code>admin</code> para responsables reales del sistema.</li>
+      </ol>
+      <div class="callout">Si falla una accion de usuarios, revisar primero la Edge Function <code>manage-users</code> y el secret <code>SERVICE_ROLE_KEY</code>.</div>
+    </section>
+
+    <section>
+      <h2>5. Gestion de balanzas</h2>
+      <p>La balanza es el dato maestro principal. Una identificacion incorrecta afecta reportes, filtros, fotos y calibraciones.</p>
+      <table>
+        <thead><tr><th>Campo</th><th>Uso administrativo</th></tr></thead>
+        <tbody>
+          <tr><td>Planta, linea, cinta y nombre</td><td>Identificacion operativa y busqueda historica.</td></tr>
+          <tr><td>Controlador y serie</td><td>Trazabilidad del instrumento intervenido.</td></tr>
+          <tr><td>Puente y velocidad nominal</td><td>Base de calculos tecnicos y herramientas.</td></tr>
+          <tr><td>Factor actual</td><td>Referencia para ajustes y diagnostico.</td></tr>
+          <tr><td>Foto</td><td>Ayuda visual para evitar seleccionar equipo equivocado.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout ok">Los tecnicos pueden crear equipos, pero la edicion administrativa de equipos existentes queda reservada a admin por RLS.</div>
+    </section>
+
+    <section>
+      <h2>6. Gestion de cadenas patron</h2>
+      <p>Las cadenas se reutilizan en calibraciones. Mantener <code>kg/m</code>, largo, peso total y planta correctamente cargados evita errores de span.</p>
+      <ul>
+        <li>Si hay cadenas de la misma planta que la balanza, la app prioriza esas cadenas.</li>
+        <li>Si una planta no tiene cadenas, se habilita fallback a todas las cadenas disponibles.</li>
+        <li>Los eventos historicos conservan el nombre y kg/m usados aunque luego se edite la cadena.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>7. Calibraciones y controles preventivos</h2>
+      <p>El wizard se divide en ocho pasos: eleccion, inspeccion, cero, parametros, cadena, acumulado, material real y cierre.</p>
+      <table>
+        <thead><tr><th>Situacion</th><th>Criterio</th><th>Resultado esperado</th></tr></thead>
+        <tbody>
+          <tr><td>Primera carga sin historial</td><td>Completar cadena, acumulado y material.</td><td>Calibrada o fuera de tolerancia.</td></tr>
+          <tr><td>Control preventivo</td><td>Una pasada dentro de tolerancia sin ajuste puede cerrar.</td><td>Control conforme.</td></tr>
+          <tr><td>Ajuste de factor</td><td>Debe existir pasada posterior completa.</td><td>Calibrada si queda dentro.</td></tr>
+          <tr><td>Ultima pasada fuera</td><td>No forzar cierre conforme.</td><td>Fuera de tolerancia.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>8. Historial, reportes y lectura de estado</h2>
+      <ul>
+        <li>El historial muestra todos los eventos, incluidos desvios ya corregidos.</li>
+        <li>El dashboard muestra el estado actual del parque segun el ultimo evento de cada balanza.</li>
+        <li>Un evento viejo fuera de tolerancia no debe contar como desvio abierto si la balanza luego quedo calibrada.</li>
+        <li>El reporte imprimible se abre desde Historial y puede guardarse como PDF desde el navegador.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>9. Supabase, RLS y datos</h2>
+      <p>La app usa Supabase para equipos, cadenas, eventos, perfiles y fotos. RLS es la capa que impide acciones fuera del rol.</p>
+      <ul>
+        <li>No usar service role en el navegador.</li>
+        <li>Si aparece un error RLS, revisar tabla, accion y rol antes de cambiar policies.</li>
+        <li>La Edge Function de usuarios usa <code>SERVICE_ROLE_KEY</code>.</li>
+        <li>El guardado de eventos no debe actualizar <code>equipments</code>, porque eso rompio previamente al rol tecnico.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>10. Seguridad y despliegue Vercel</h2>
+      <ul>
+        <li>El dominio productivo es <code>mendex87.com</code>.</li>
+        <li>Vercel despliega automaticamente luego de push a <code>main</code>.</li>
+        <li>El manual admin no debe volver a publicarse en <code>public</code>.</li>
+        <li>Las rutas publicas admin redirigen al manual tecnico.</li>
+        <li>Los headers de seguridad se administran en <code>vercel.json</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>11. Acciones destructivas</h2>
+      <p>Eliminar balanzas, cadenas o eventos es una accion administrativa. Confirmar siempre impacto operativo antes de avanzar.</p>
+      <ul>
+        <li>Eliminar una balanza puede eliminar eventos asociados por cascada en Supabase.</li>
+        <li>Eliminar una cadena no modifica los datos historicos ya guardados en eventos.</li>
+        <li>Eliminar eventos reduce la trazabilidad y debe quedar justificado por procedimiento interno.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>12. Checklist de administracion</h2>
+      <ol>
+        <li>Version visible coincide con el ultimo deploy.</li>
+        <li>Usuarios tienen rol minimo necesario.</li>
+        <li>Balanzas nuevas tienen planta, linea, cinta, nombre y foto si corresponde.</li>
+        <li>Cadenas tienen kg/m verificado.</li>
+        <li>Eventos fuera de tolerancia tienen seguimiento.</li>
+        <li>Reportes importantes fueron impresos o guardados.</li>
+        <li>No hay material admin publicado en rutas publicas.</li>
+      </ol>
+    </section>
   </main>
 </body>
 </html>`

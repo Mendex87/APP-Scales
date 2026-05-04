@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.22 - Manual admin interno ampliado
+
+- Se amplio el manual administrador generado dentro de la app con secciones de usuarios, balanzas, cadenas, calibraciones, historial, Supabase/RLS, Vercel, acciones destructivas y checklist.
+- El manual admin sigue sin publicarse como archivo estatico y conserva opcion de imprimir o guardar PDF desde la sesion admin.
+
 ## v1.1.21 - Endurecimiento publico y manual admin interno
 
 - Se agregaron headers de seguridad en Vercel para reducir clickjacking, sniffing, permisos de navegador innecesarios y carga de recursos no esperados.
