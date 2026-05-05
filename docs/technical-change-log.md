@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.2 - Borrados sincronizados con Sheets
+
+- Contexto: Supabase elimina eventos y equipos desde la app, pero Google Sheets solo recibia altas/actualizaciones de eventos.
+- Cambio: la app envia acciones `delete_event` y `delete_equipment` a la Edge Function despues de borrados exitosos en Supabase.
+- Cambio: la Edge Function reenvia la accion a Apps Script y restringe borrados a rol `admin`; `upsert_event` sigue permitido para `admin` y `tecnico`.
+- Cambio: el Apps Script documentado elimina filas de `Eventos`/`Equipos` y reconstruye `Alertas` y `Dashboard` desde las hojas vigentes.
+- Motivo: mantener Google Sheets como espejo operativo de Supabase tambien cuando se eliminan registros.
+- Verificacion requerida: desplegar la Edge Function, actualizar Apps Script, borrar un evento y una balanza de prueba; Sheets debe remover filas y actualizar KPIs.
+
 ## 2026-05-05 - Google Sheets - Alertas por error absoluto
 
 - Contexto: el error final puede ser positivo o negativo; una configuracion de `1%` debe alertar tanto `+1%` como `-1%`.

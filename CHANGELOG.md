@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.2 - Borrados sincronizados con Google Sheets
+
+- La app ahora notifica a Google Sheets cuando un admin elimina un evento o da de baja una balanza.
+- La Edge Function `sync-sheets-event` acepta acciones `upsert_event`, `delete_event` y `delete_equipment`, con borrados restringidos a rol `admin`.
+- El Apps Script documentado elimina filas afectadas, reconstruye `Equipos`, `Alertas` y `Dashboard`, y mantiene Sheets alineado con Supabase.
+
 ## v2.0.1 - Fecha de evento legible en Sheets
 
 - La Edge Function de Google Sheets ahora normaliza `Fecha evento` y `Fecha sincronizacion` a `dd/mm/aaaa hh:mm` antes de reenviar el resumen a Apps Script.

@@ -22,6 +22,11 @@ type SheetsEventSummary = {
   syncedAt: string
 }
 
+type SheetsPayload =
+  | { action: 'upsert_event'; event: SheetsEventSummary }
+  | { action: 'delete_event'; eventId: string; equipmentId: string }
+  | { action: 'delete_equipment'; equipmentId: string }
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -64,12 +69,17 @@ Deno.serve(async (req) => {
       .eq('id', authData.user.id)
       .single()
 
-    if (profileError || !['admin', 'tecnico'].includes(String(profile?.role || ''))) {
+    const role = String(profile?.role || '')
+    if (profileError || !['admin', 'tecnico'].includes(role)) {
       throw new Error('Only admins and technicians can export events to Sheets.')
     }
 
     const body = await req.json()
-    const event = validateEventSummary(body?.event)
+    const payload = validateSheetsPayload(body)
+
+    if (payload.action !== 'upsert_event' && role !== 'admin') {
+      throw new Error('Only admins can delete rows in Sheets.')
+    }
 
     const response = await fetch(sheetsWebhookUrl, {
       method: 'POST',
@@ -77,7 +87,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
         'X-Calibra-Token': sheetsToken,
       },
-      body: JSON.stringify({ token: sheetsToken, event }),
+      body: JSON.stringify({ token: sheetsToken, ...payload }),
     })
 
     const responseText = await response.text()
@@ -89,19 +99,45 @@ Deno.serve(async (req) => {
     try {
       parsed = JSON.parse(responseText)
     } catch {
-      parsed = { ok: true, message: responseText || 'Resumen exportado a Google Sheets.' }
+      parsed = { ok: true, message: responseText || 'Google Sheets actualizado.' }
     }
 
     if (parsed.ok === false) {
       throw new Error(parsed.message || 'Google Sheets rejected the event summary.')
     }
 
-    return json({ ok: true, message: parsed.message || 'Resumen exportado a Google Sheets.' })
+    return json({ ok: true, message: parsed.message || 'Google Sheets actualizado.' })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error.'
     return json({ ok: false, message }, 400)
   }
 })
+
+function validateSheetsPayload(value: unknown): SheetsPayload {
+  if (!value || typeof value !== 'object') throw new Error('Missing Sheets payload.')
+  const item = value as Record<string, unknown>
+  const action = String(item.action || 'upsert_event')
+
+  if (action === 'upsert_event') {
+    return { action, event: validateEventSummary(item.event) }
+  }
+
+  if (action === 'delete_event') {
+    const eventId = String(item.eventId || '').trim()
+    const equipmentId = String(item.equipmentId || '').trim()
+    if (!eventId) throw new Error('Missing eventId.')
+    if (!equipmentId) throw new Error('Missing equipmentId.')
+    return { action, eventId, equipmentId }
+  }
+
+  if (action === 'delete_equipment') {
+    const equipmentId = String(item.equipmentId || '').trim()
+    if (!equipmentId) throw new Error('Missing equipmentId.')
+    return { action, equipmentId }
+  }
+
+  throw new Error(`Unsupported Sheets action: ${action}.`)
+}
 
 function validateEventSummary(value: unknown): SheetsEventSummary {
   if (!value || typeof value !== 'object') throw new Error('Missing event summary.')

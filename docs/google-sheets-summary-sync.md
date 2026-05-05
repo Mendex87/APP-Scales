@@ -31,6 +31,7 @@ Este script:
 - crea `Configuracion` editable desde Sheets;
 - crea `Dashboard` con el resumen operativo;
 - crea `Alertas` automaticamente segun reglas configurables;
+- procesa borrados de eventos/equipos para mantener Sheets alineado con Supabase;
 - aplica colores y formato visual alineados a la app.
 
 Despues de pegarlo en Apps Script, ejecutar manualmente `setupCalibraSheets()` una vez para crear/migrar/formatear las hojas sin esperar a un evento nuevo.
@@ -138,17 +139,26 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents || '{}')
     const expectedToken = PropertiesService.getScriptProperties().getProperty('CALIBRA_SHEETS_TOKEN')
     if (!expectedToken || body.token !== expectedToken) throw new Error('Unauthorized')
-    if (!body.event || !body.event.id) throw new Error('Missing event')
 
     const context = getWorkbookContext()
     migrateLegacySheets(context.eventsSheet, context.equipmentSheet)
     ensureConfig(context.configSheet)
 
-    const event = body.event
-    const equipmentCode = getOrCreateEquipmentCode(context.equipmentSheet, event.equipmentId)
+    const action = body.action || 'upsert_event'
+    if (action === 'upsert_event') {
+      if (!body.event || !body.event.id) throw new Error('Missing event')
+      const event = body.event
+      const equipmentCode = getOrCreateEquipmentCode(context.equipmentSheet, event.equipmentId)
+      upsertEvent(context.eventsSheet, event, equipmentCode)
+      upsertEquipment(context.equipmentSheet, context.eventsSheet, event, equipmentCode)
+    } else if (action === 'delete_event') {
+      deleteEventFromSheets(context.equipmentSheet, context.eventsSheet, body.eventId, body.equipmentId)
+    } else if (action === 'delete_equipment') {
+      deleteEquipmentFromSheets(context.equipmentSheet, context.eventsSheet, body.equipmentId)
+    } else {
+      throw new Error(`Unsupported action: ${action}`)
+    }
 
-    upsertEvent(context.eventsSheet, event, equipmentCode)
-    upsertEquipment(context.equipmentSheet, context.eventsSheet, event, equipmentCode)
     rebuildAlerts(context.alertsSheet, context.equipmentSheet, context.config)
     rebuildDashboard(context.dashboardSheet, context.equipmentSheet, context.eventsSheet, context.alertsSheet, context.config)
     hideLegacySummary(context.ss)
@@ -316,6 +326,71 @@ function upsertEquipment(sheet, eventsSheet, event, equipmentCode) {
   const rowIndex = findRowByValue(sheet, 2, event.equipmentId)
   if (rowIndex > 0) sheet.getRange(rowIndex, 1, 1, row.length).setValues([row])
   else sheet.appendRow(row)
+}
+
+function deleteEventFromSheets(equipmentSheet, eventsSheet, eventId, equipmentId) {
+  const cleanEventId = String(eventId || '').trim()
+  const cleanEquipmentId = String(equipmentId || '').trim()
+  if (!cleanEventId) throw new Error('Missing eventId')
+  if (!cleanEquipmentId) throw new Error('Missing equipmentId')
+
+  const equipmentRow = findRowByValue(equipmentSheet, 2, cleanEquipmentId)
+  const equipmentCode = equipmentRow > 0 ? String(equipmentSheet.getRange(equipmentRow, 1).getValue()) : ''
+  const currentLastEvent = equipmentRow > 0 ? String(equipmentSheet.getRange(equipmentRow, 8).getValue()) : ''
+  const eventRow = findRowByValue(eventsSheet, 1, cleanEventId)
+  if (eventRow > 0) eventsSheet.deleteRow(eventRow)
+
+  if (equipmentRow <= 0) return
+  if (currentLastEvent === cleanEventId) rebuildEquipmentFromEvents(equipmentSheet, eventsSheet, equipmentRow, equipmentCode)
+  else equipmentSheet.getRange(equipmentRow, 14).setValue(countEventsForEquipment(eventsSheet, equipmentCode))
+}
+
+function deleteEquipmentFromSheets(equipmentSheet, eventsSheet, equipmentId) {
+  const cleanEquipmentId = String(equipmentId || '').trim()
+  if (!cleanEquipmentId) throw new Error('Missing equipmentId')
+
+  const equipmentRow = findRowByValue(equipmentSheet, 2, cleanEquipmentId)
+  const equipmentCode = equipmentRow > 0 ? String(equipmentSheet.getRange(equipmentRow, 1).getValue()) : ''
+  if (equipmentCode) deleteRowsByValue(eventsSheet, 3, equipmentCode)
+  if (equipmentRow > 0) equipmentSheet.deleteRow(equipmentRow)
+}
+
+function rebuildEquipmentFromEvents(equipmentSheet, eventsSheet, equipmentRow, equipmentCode) {
+  const eventRows = getEventsForEquipment(eventsSheet, equipmentCode)
+  if (eventRows.length === 0) {
+    equipmentSheet.getRange(equipmentRow, 7, 1, 8).setValues([['Sin eventos', '', '', '', '', '', '', 0]])
+    return
+  }
+
+  eventRows.sort((a, b) => getDateTimeMs(b[1]) - getDateTimeMs(a[1]))
+  const latest = eventRows[0]
+  equipmentSheet.getRange(equipmentRow, 3, 1, 12).setValues([[
+    latest[3],
+    latest[4],
+    latest[5],
+    latest[6],
+    latest[7],
+    latest[0],
+    latest[1],
+    latest[7],
+    latest[8],
+    '',
+    latest[14],
+    eventRows.length,
+  ]])
+}
+
+function getEventsForEquipment(sheet, equipmentCode) {
+  return getDataRows(sheet).filter((row) => String(row[2]) === String(equipmentCode))
+}
+
+function deleteRowsByValue(sheet, column, value) {
+  const lastRow = sheet.getLastRow()
+  if (lastRow < 2) return
+  const values = sheet.getRange(2, column, lastRow - 1, 1).getValues()
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    if (String(values[index][0]) === String(value)) sheet.deleteRow(index + 2)
+  }
 }
 
 function rebuildAlerts(sheet, equipmentSheet, config) {
@@ -558,6 +633,13 @@ function parseSheetDate(value) {
   const match = String(value || '').match(/^(\d{2})\/(\d{2})\/(\d{4})/)
   if (!match) return null
   return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]))
+}
+
+function getDateTimeMs(value) {
+  if (value instanceof Date) return value.getTime()
+  const match = String(value || '').match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/)
+  if (!match) return 0
+  return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]), Number(match[4] || 0), Number(match[5] || 0)).getTime()
 }
 
 function toNumber(value, fallback) {

@@ -18,6 +18,8 @@ import {
   XCircle,
 } from 'lucide-react'
 import {
+  buildDeleteEquipmentSheetsPayload,
+  buildDeleteEventSheetsPayload,
   deleteCalibrationEventRecord,
   deleteChainRecord,
   deleteEquipmentRecord,
@@ -75,7 +77,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.1'
+const APP_VERSION = 'v2.0.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1829,6 +1831,7 @@ function App() {
   }
 
   async function handleDeleteEvent(eventId: string) {
+    const targetEvent = events.find((item) => item.id === eventId)
     setConfirmDialog({
       title: 'Eliminar evento',
       message: `Eliminar definitivamente el evento ${eventId}?`,
@@ -1839,7 +1842,17 @@ function App() {
           const result = await deleteCalibrationEventRecord(eventId)
           setEvents((current) => current.filter((item) => item.id !== eventId))
           setDataSource(result.source)
-          setSyncNotice(`Evento ${eventId} eliminado.`)
+          if (result.source === 'supabase' && targetEvent) {
+            try {
+              await syncCalibrationEventToSheets(buildDeleteEventSheetsPayload(eventId, targetEvent.equipmentId))
+              setSyncNotice(`Evento ${eventId} eliminado y actualizado en Google Sheets.`)
+            } catch (syncError) {
+              const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo actualizar Google Sheets.'
+              setSyncNotice(`Evento ${eventId} eliminado. Error al actualizar Sheets: ${syncMessage}`)
+            }
+          } else {
+            setSyncNotice(`Evento ${eventId} eliminado.`)
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : 'No se pudo eliminar el evento.'
           setSyncNotice(`Error al eliminar evento: ${message}`)
@@ -1864,7 +1877,17 @@ function App() {
             setSelectedEquipmentId('')
           }
           setDataSource(result.source)
-          setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
+          if (result.source === 'supabase') {
+            try {
+              await syncCalibrationEventToSheets(buildDeleteEquipmentSheetsPayload(item.id))
+              setSyncNotice(`Balanza ${item.scaleName} dada de baja y actualizada en Google Sheets.`)
+            } catch (syncError) {
+              const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo actualizar Google Sheets.'
+              setSyncNotice(`Balanza ${item.scaleName} dada de baja. Error al actualizar Sheets: ${syncMessage}`)
+            }
+          } else {
+            setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : 'No se pudo dar de baja la balanza.'
           setSyncNotice(`Error al dar de baja balanza: ${message}`)

@@ -24,9 +24,23 @@ export type SheetsEventSummary = {
   syncedAt: string
 }
 
-export type SheetsEventPayload = {
+export type SheetsUpsertEventPayload = {
+  action?: 'upsert_event'
   event: SheetsEventSummary
 }
+
+export type SheetsDeleteEventPayload = {
+  action: 'delete_event'
+  eventId: string
+  equipmentId: string
+}
+
+export type SheetsDeleteEquipmentPayload = {
+  action: 'delete_equipment'
+  equipmentId: string
+}
+
+export type SheetsEventPayload = SheetsUpsertEventPayload | SheetsDeleteEventPayload | SheetsDeleteEquipmentPayload
 
 type EquipmentRow = {
   id: string
@@ -286,6 +300,21 @@ export async function syncCalibrationEventToSheets(payload: SheetsEventPayload) 
   }
 
   return { ok: true, message: String(data.message || 'Resumen exportado a Google Sheets.') }
+}
+
+export function buildDeleteEventSheetsPayload(eventId: string, equipmentId: string): SheetsDeleteEventPayload {
+  return {
+    action: 'delete_event',
+    eventId,
+    equipmentId,
+  }
+}
+
+export function buildDeleteEquipmentSheetsPayload(equipmentId: string): SheetsDeleteEquipmentPayload {
+  return {
+    action: 'delete_equipment',
+    equipmentId,
+  }
 }
 
 function toError(value: unknown) {
