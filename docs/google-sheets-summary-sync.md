@@ -108,10 +108,10 @@ const CONFIG_HEADERS = ['Parametro', 'Valor', 'Descripcion']
 const DEFAULT_CONFIG = [
   ['Empresa', 'ENERBLOCK', 'Titulo principal del dashboard'],
   ['Subtitulo dashboard', 'Tablero operativo de calibracion de cintas', 'Texto debajo del titulo'],
-  ['Tolerancia alerta %', '1', 'Alerta si el error absoluto supera este valor'],
+  ['Tolerancia alerta %', '1', 'Alerta si el error absoluto es mayor o igual a este valor'],
   ['Dias sin control', '30', 'Alerta si un equipo supera esta cantidad de dias sin evento'],
   ['Regla fuera tolerancia activa', 'Si', 'Activa alertas por estado fuera de tolerancia'],
-  ['Regla error alto activa', 'Si', 'Activa alertas por error mayor a Tolerancia alerta %'],
+  ['Regla error alto activa', 'Si', 'Activa alertas por error positivo o negativo fuera de Tolerancia alerta %'],
   ['Regla sin control activa', 'Si', 'Activa alertas por dias sin control'],
   ['Mostrar alertas cerradas', 'No', 'Reservado para futuros flujos manuales'],
   ['Color principal', DEFAULT_COLORS.orange, 'Color naranja de la app'],
@@ -330,13 +330,14 @@ function rebuildAlerts(sheet, equipmentSheet, config) {
   rows.forEach((row) => {
     const equipment = toEquipmentObject(row)
     const status = equipment.status.toLowerCase()
-    const error = Math.abs(toNumber(equipment.error, 0))
+    const signedError = toNumber(equipment.error, 0)
+    const absoluteError = Math.abs(signedError)
     const daysSince = getDaysSince(equipment.lastDate)
 
     if (enableOutOfTolerance && status.includes('fuera')) {
       alerts.push(buildAlert('Alta', equipment, 'Fuera de tolerancia', 'Revisar/calibrar'))
-    } else if (enableHighError && error > tolerance) {
-      alerts.push(buildAlert('Alta', equipment, `Error mayor a ${tolerance}%`, 'Verificar ajuste y repetir pasada'))
+    } else if (enableHighError && absoluteError >= tolerance) {
+      alerts.push(buildAlert('Alta', equipment, `Error fuera de +/-${tolerance}%`, 'Verificar ajuste y repetir pasada'))
     }
 
     if (enableStale && daysSince !== null && daysSince > maxDays) {
@@ -588,7 +589,7 @@ Parametros principales:
 
 - `Empresa`: titulo principal del dashboard.
 - `Subtitulo dashboard`: texto secundario.
-- `Tolerancia alerta %`: umbral de error para alerta alta.
+- `Tolerancia alerta %`: umbral absoluto para alerta alta; `1` alerta tanto con `-1%` como con `+1%`.
 - `Dias sin control`: dias maximos sin evento antes de alerta media.
 - `Regla fuera tolerancia activa`: `Si`/`No`.
 - `Regla error alto activa`: `Si`/`No`.

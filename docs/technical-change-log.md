@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - Google Sheets - Alertas por error absoluto
+
+- Contexto: el error final puede ser positivo o negativo; una configuracion de `1%` debe alertar tanto `+1%` como `-1%`.
+- Cambio: el Apps Script documentado calcula alertas por error usando valor absoluto (`Math.abs`) y compara `>= Tolerancia alerta %`.
+- Motivo: evitar que desvios negativos queden fuera del tablero operativo de Google Sheets.
+- Verificacion requerida: en `Configuracion`, dejar `Tolerancia alerta % = 1` y confirmar que `Alertas` se genere para errores `-1`, `-1.2`, `1` y `1.2`.
+
 ## 2026-05-05 - Google Sheets - Codigo corto de equipo
 
 - Contexto: el `ID equipo` interno enviado a Google Sheets es un UUID largo, poco legible para operacion.
