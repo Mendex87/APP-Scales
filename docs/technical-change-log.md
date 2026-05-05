@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - Google Sheets - Codigo corto de equipo
+
+- Contexto: el `ID equipo` interno enviado a Google Sheets es un UUID largo, poco legible para operacion.
+- Decision: no cambiar el ID real de Supabase ni las claves usadas por eventos/fotos; Apps Script genera un `Codigo equipo` corto (`EQ-001`, `EQ-002`, etc.) solo para la planilla.
+- Cambio: `docs/google-sheets-summary-sync.md` documenta un Apps Script que migra hojas existentes, oculta `ID interno equipo`, actualiza `Eventos`/`Equipos`, crea `Resumen` y aplica formato visual con los colores de la app.
+- Motivo: mejorar lectura en Google Sheets sin migrar base de datos, eventos historicos, relaciones ni rutas de fotos en Storage.
+- Verificacion requerida: pegar el script en Apps Script, ejecutar `setupCalibraSheets()` una vez y confirmar que `Eventos` use `Codigo equipo`, `Equipos` oculte `ID interno equipo` y `Resumen` muestre KPIs.
+
 ## 2026-05-05 - v2.0.1 - Fecha de evento legible en Sheets
 
 - Contexto: `Fecha sincronizacion` ya llegaba en formato legible, pero `Fecha evento` seguia llegando como ISO en Google Sheets.
