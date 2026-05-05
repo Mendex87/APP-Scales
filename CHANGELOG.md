@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.1 - Fecha de evento legible en Sheets
+
+- La Edge Function de Google Sheets ahora normaliza `Fecha evento` y `Fecha sincronizacion` a `dd/mm/aaaa hh:mm` antes de reenviar el resumen a Apps Script.
+- El cambio solo afecta el resumen enviado a Sheets; Supabase conserva sus fechas internas sin cambios.
+
 ## v2.0.0 - Corte estable operativo
 
 - Se consolida la app como version estable con Supabase, roles, manuales internos/publicos, dashboard operativo, reportes y exportacion resumida a Google Sheets.

@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.1 - Fecha de evento legible en Sheets
+
+- Contexto: `Fecha sincronizacion` ya llegaba en formato legible, pero `Fecha evento` seguia llegando como ISO en Google Sheets.
+- Cambio: la Edge Function `sync-sheets-event` normaliza `eventDate` y `syncedAt` a `dd/mm/aaaa hh:mm` antes de llamar al Web App de Apps Script.
+- Motivo: corregir la presentacion en Sheets sin modificar los timestamps almacenados en Supabase.
+- Verificacion requerida: desplegar la Edge Function y guardar un evento; Sheets debe mostrar `Fecha evento` como `05/05/2026 00:08`.
+
 ## 2026-05-04 - v2.0.0 - Corte estable operativo
 
 - Contexto: la app ya opera con Supabase, roles, manual admin interno, manual tecnico publico, dashboard corregido y resumen automatico hacia Google Sheets.

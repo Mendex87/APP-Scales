@@ -12,7 +12,7 @@ La integracion con Google Sheets es solo de salida. Supabase sigue siendo la fue
 6. Apps Script actualiza `Eventos` y `Equipos`.
 7. La hoja `Alertas` se trabaja aparte dentro de Google Sheets con Apps Script o formulas.
 
-Las fechas se reciben ya formateadas desde la app como `dd/mm/aaaa hh:mm` para evitar valores ISO UTC en la planilla.
+Las fechas se reciben ya formateadas como `dd/mm/aaaa hh:mm` para evitar valores ISO UTC en la planilla. La app intenta enviarlas asi y la Edge Function vuelve a normalizarlas antes de reenviar a Apps Script.
 
 ## Secrets requeridos en Supabase
 

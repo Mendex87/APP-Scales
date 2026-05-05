@@ -113,7 +113,7 @@ function validateEventSummary(value: unknown): SheetsEventSummary {
 
   return {
     id: String(item.id),
-    eventDate: String(item.eventDate),
+    eventDate: formatSheetDateTime(String(item.eventDate)),
     equipmentId: String(item.equipmentId),
     plant: String(item.plant),
     line: String(item.line),
@@ -130,8 +130,29 @@ function validateEventSummary(value: unknown): SheetsEventSummary {
     technician: String(item.technician),
     diagnosisSummary: String(item.diagnosisSummary || ''),
     notesSummary: String(item.notesSummary || ''),
-    syncedAt: String(item.syncedAt),
+    syncedAt: formatSheetDateTime(String(item.syncedAt)),
   }
+}
+
+function formatSheetDateTime(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}$/.test(trimmed)) return trimmed
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+  if (isoMatch) {
+    const [, year, month, day, hours, minutes] = isoMatch
+    return `${day}/${month}/${year} ${hours}:${minutes}`
+  }
+
+  const date = new Date(trimmed)
+  if (Number.isNaN(date.getTime())) return trimmed
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year} ${hours}:${minutes}`
 }
 
 function toFiniteNumber(value: unknown) {

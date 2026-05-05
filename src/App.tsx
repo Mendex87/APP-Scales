@@ -75,7 +75,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.0'
+const APP_VERSION = 'v2.0.1'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
