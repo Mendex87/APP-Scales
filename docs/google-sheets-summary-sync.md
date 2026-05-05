@@ -34,7 +34,7 @@ Este script:
 - procesa borrados de eventos/equipos para mantener Sheets alineado con Supabase;
 - aplica colores y formato visual alineados a la app.
 
-Despues de pegarlo en Apps Script, ejecutar manualmente `setupCalibraSheets()` una vez para crear/migrar/formatear las hojas sin esperar a un evento nuevo.
+Despues de pegarlo en Apps Script, `doPost` crea, migra, repara y formatea las hojas automaticamente con cada evento recibido. `setupCalibraSheets()` queda como accion manual opcional para inicializar o reparar la planilla sin esperar a un evento nuevo.
 
 ```js
 const DEFAULT_COLORS = {
@@ -127,6 +127,7 @@ const DEFAULT_CONFIG = [
 function setupCalibraSheets() {
   const context = getWorkbookContext()
   migrateLegacySheets(context.eventsSheet, context.equipmentSheet)
+  normalizeSheetState(context.eventsSheet, context.equipmentSheet)
   ensureConfig(context.configSheet)
   rebuildAlerts(context.alertsSheet, context.equipmentSheet, context.config)
   rebuildDashboard(context.dashboardSheet, context.equipmentSheet, context.eventsSheet, context.alertsSheet, context.config)
@@ -142,6 +143,7 @@ function doPost(e) {
 
     const context = getWorkbookContext()
     migrateLegacySheets(context.eventsSheet, context.equipmentSheet)
+    normalizeSheetState(context.eventsSheet, context.equipmentSheet)
     ensureConfig(context.configSheet)
 
     const action = body.action || 'upsert_event'
@@ -218,6 +220,13 @@ function migrateLegacySheets(eventsSheet, equipmentSheet) {
   ensureHeaders(equipmentSheet, EQUIPMENT_HEADERS)
 }
 
+function normalizeSheetState(eventsSheet, equipmentSheet) {
+  repairEquipmentCodes(equipmentSheet)
+  repairEventEquipmentCodes(eventsSheet, equipmentSheet)
+  ensureHeaders(eventsSheet, EVENT_HEADERS)
+  ensureHeaders(equipmentSheet, EQUIPMENT_HEADERS)
+}
+
 function migrateLegacyEquipmentSheet(sheet) {
   const firstHeader = String(sheet.getRange(1, 1).getValue())
   const secondHeader = String(sheet.getRange(1, 2).getValue())
@@ -246,6 +255,60 @@ function migrateLegacyEventsSheet(eventsSheet, equipmentSheet) {
   const equipmentIds = eventsSheet.getRange(2, 3, lastRow - 1, 1).getValues()
   const migratedIds = equipmentIds.map((row) => [codeByInternalId[String(row[0])] || row[0]])
   eventsSheet.getRange(2, 3, migratedIds.length, 1).setValues(migratedIds)
+}
+
+function repairEquipmentCodes(sheet) {
+  const lastRow = sheet.getLastRow()
+  if (lastRow < 2) return
+
+  const firstDataCode = String(sheet.getRange(2, 1).getValue())
+  const firstInternalId = String(sheet.getRange(2, 2).getValue())
+  if (firstDataCode && !isEquipmentCode(firstDataCode) && firstInternalId && !looksLikeInternalId(firstInternalId)) {
+    sheet.insertColumnBefore(1)
+    ensureHeaders(sheet, EQUIPMENT_HEADERS)
+  }
+
+  const repairedLastRow = sheet.getLastRow()
+  const rows = sheet.getRange(2, 1, repairedLastRow - 1, 2).getValues()
+  let maxNumber = rows.reduce((max, row) => {
+    const match = String(row[0]).match(/^EQ-(\d+)$/)
+    return match ? Math.max(max, Number(match[1])) : max
+  }, 0)
+
+  rows.forEach((row, index) => {
+    const code = String(row[0])
+    const internalId = String(row[1])
+    if (!isEquipmentCode(code) && looksLikeInternalId(code) && !looksLikeInternalId(internalId)) {
+      maxNumber += 1
+      sheet.getRange(index + 2, 1).setValue(`EQ-${String(maxNumber).padStart(3, '0')}`)
+      sheet.getRange(index + 2, 2).setValue(code)
+    } else if (!isEquipmentCode(code)) {
+      maxNumber += 1
+      sheet.getRange(index + 2, 1).setValue(`EQ-${String(maxNumber).padStart(3, '0')}`)
+    }
+  })
+}
+
+function repairEventEquipmentCodes(eventsSheet, equipmentSheet) {
+  const lastRow = eventsSheet.getLastRow()
+  if (lastRow < 2) return
+
+  const codeByInternalId = getEquipmentCodeMap(equipmentSheet)
+  const values = eventsSheet.getRange(2, 3, lastRow - 1, 1).getValues()
+  const repaired = values.map((row) => {
+    const value = String(row[0])
+    return [isEquipmentCode(value) ? value : codeByInternalId[value] || value]
+  })
+  eventsSheet.getRange(2, 3, repaired.length, 1).setValues(repaired)
+}
+
+function isEquipmentCode(value) {
+  return /^EQ-\d+$/.test(String(value || ''))
+}
+
+function looksLikeInternalId(value) {
+  const text = String(value || '')
+  return text.length >= 12 && !isEquipmentCode(text)
 }
 
 function getEquipmentCodeMap(sheet) {

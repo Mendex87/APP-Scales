@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - Google Sheets - Reparacion automatica desde doPost
+
+- Contexto: la planilla podia quedar sin actualizar si no se ejecutaba manualmente `setupCalibraSheets()` despues de pegar el script, y algunas hojas existentes podian conservar UUIDs en la columna visible de equipo.
+- Cambio: el Apps Script documentado ahora ejecuta reparacion de estructura y codigos desde `doPost` en cada evento recibido, ademas de mantener `setupCalibraSheets()` como accion manual opcional.
+- Cambio: se agrego reparacion defensiva para convertir UUIDs visibles o estados intermedios a `Codigo equipo` (`EQ-001`, etc.) y reescribir `Eventos` con el codigo corto cuando exista el mapeo.
+- Motivo: que Google Sheets se mantenga alineado automaticamente sin depender de una accion manual posterior al deploy del script.
+- Verificacion requerida: actualizar Apps Script, guardar un evento nuevo sin ejecutar `setupCalibraSheets()` y confirmar que `Eventos`, `Equipos`, `Alertas` y `Dashboard` se creen/formateen y usen `Codigo equipo` corto.
+
 ## 2026-05-05 - v2.0.2 - Borrados sincronizados con Sheets
 
 - Contexto: Supabase elimina eventos y equipos desde la app, pero Google Sheets solo recibia altas/actualizaciones de eventos.
