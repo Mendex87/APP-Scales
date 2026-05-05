@@ -9,7 +9,7 @@ La integracion con Google Sheets es solo de salida. Supabase sigue siendo la fue
 3. Si Supabase confirma el guardado, la app arma un resumen minimo del evento.
 4. La app llama a la Edge Function `sync-sheets-event`.
 5. La Edge Function valida el usuario y reenvia el resumen al Web App de Google Apps Script.
-6. Apps Script actualiza `Eventos`, `Equipos` y `Resumen`.
+6. Apps Script actualiza `Eventos`, `Equipos`, `Alertas`, `Dashboard` y `Configuracion`.
 
 Las fechas se reciben ya formateadas como `dd/mm/aaaa hh:mm` para evitar valores ISO UTC en la planilla. La app intenta enviarlas asi y la Edge Function vuelve a normalizarlas antes de reenviar a Apps Script.
 
@@ -28,14 +28,15 @@ Este script:
 - genera un `Codigo equipo` corto (`EQ-001`, `EQ-002`, etc.);
 - migra hojas existentes que todavia tengan `ID equipo` largo;
 - mantiene el ID interno de Supabase solo en `Equipos` y lo oculta;
-- actualiza/crea `Eventos` y `Equipos`;
-- genera `Resumen` automaticamente;
+- crea `Configuracion` editable desde Sheets;
+- crea `Dashboard` con el resumen operativo;
+- crea `Alertas` automaticamente segun reglas configurables;
 - aplica colores y formato visual alineados a la app.
 
-Despues de pegarlo en Apps Script, se puede ejecutar manualmente `setupCalibraSheets()` una vez para crear/migrar/formatear las hojas sin esperar a un evento nuevo.
+Despues de pegarlo en Apps Script, ejecutar manualmente `setupCalibraSheets()` una vez para crear/migrar/formatear las hojas sin esperar a un evento nuevo.
 
 ```js
-const COLORS = {
+const DEFAULT_COLORS = {
   ink: '#0c0b11',
   paper: '#f0efeb',
   paperStrong: '#faf9f6',
@@ -45,6 +46,7 @@ const COLORS = {
   success: '#1f8f5f',
   warning: '#c98500',
   error: '#c43b30',
+  border: '#d8d3ca',
 }
 
 const EVENT_HEADERS = [
@@ -85,15 +87,50 @@ const EQUIPMENT_HEADERS = [
   'Cantidad eventos',
 ]
 
-function setupCalibraSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet()
-  const eventsSheet = getSheet(ss, 'Eventos', EVENT_HEADERS)
-  const equipmentSheet = getSheet(ss, 'Equipos', EQUIPMENT_HEADERS)
-  const summarySheet = getSheet(ss, 'Resumen', ['Indicador', 'Valor'])
+const ALERT_HEADERS = [
+  'Prioridad',
+  'Estado',
+  'Codigo equipo',
+  'Planta',
+  'Linea',
+  'Cinta',
+  'Nombre balanza',
+  'Motivo',
+  'Ultimo evento',
+  'Fecha ultimo evento',
+  'Error final %',
+  'Tecnico',
+  'Accion recomendada',
+]
 
-  migrateLegacySheets(eventsSheet, equipmentSheet)
-  rebuildSummary(summarySheet, equipmentSheet, eventsSheet)
-  formatWorkbook(ss)
+const CONFIG_HEADERS = ['Parametro', 'Valor', 'Descripcion']
+
+const DEFAULT_CONFIG = [
+  ['Empresa', 'ENERBLOCK', 'Titulo principal del dashboard'],
+  ['Subtitulo dashboard', 'Tablero operativo de calibracion de cintas', 'Texto debajo del titulo'],
+  ['Tolerancia alerta %', '1', 'Alerta si el error absoluto supera este valor'],
+  ['Dias sin control', '30', 'Alerta si un equipo supera esta cantidad de dias sin evento'],
+  ['Regla fuera tolerancia activa', 'Si', 'Activa alertas por estado fuera de tolerancia'],
+  ['Regla error alto activa', 'Si', 'Activa alertas por error mayor a Tolerancia alerta %'],
+  ['Regla sin control activa', 'Si', 'Activa alertas por dias sin control'],
+  ['Mostrar alertas cerradas', 'No', 'Reservado para futuros flujos manuales'],
+  ['Color principal', DEFAULT_COLORS.orange, 'Color naranja de la app'],
+  ['Color fondo', DEFAULT_COLORS.paper, 'Color de fondo calido'],
+  ['Color fondo fuerte', DEFAULT_COLORS.paperStrong, 'Color de tarjetas/filas'],
+  ['Color texto', DEFAULT_COLORS.ink, 'Color principal de texto'],
+  ['Color correcto', DEFAULT_COLORS.success, 'Color de estados OK'],
+  ['Color advertencia', DEFAULT_COLORS.warning, 'Color de advertencias'],
+  ['Color error', DEFAULT_COLORS.error, 'Color de alertas criticas'],
+]
+
+function setupCalibraSheets() {
+  const context = getWorkbookContext()
+  migrateLegacySheets(context.eventsSheet, context.equipmentSheet)
+  ensureConfig(context.configSheet)
+  rebuildAlerts(context.alertsSheet, context.equipmentSheet, context.config)
+  rebuildDashboard(context.dashboardSheet, context.equipmentSheet, context.eventsSheet, context.alertsSheet, context.config)
+  hideLegacySummary(context.ss)
+  formatWorkbook(context)
 }
 
 function doPost(e) {
@@ -103,23 +140,42 @@ function doPost(e) {
     if (!expectedToken || body.token !== expectedToken) throw new Error('Unauthorized')
     if (!body.event || !body.event.id) throw new Error('Missing event')
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet()
-    const eventsSheet = getSheet(ss, 'Eventos', EVENT_HEADERS)
-    const equipmentSheet = getSheet(ss, 'Equipos', EQUIPMENT_HEADERS)
-    const summarySheet = getSheet(ss, 'Resumen', ['Indicador', 'Valor'])
-    migrateLegacySheets(eventsSheet, equipmentSheet)
+    const context = getWorkbookContext()
+    migrateLegacySheets(context.eventsSheet, context.equipmentSheet)
+    ensureConfig(context.configSheet)
 
     const event = body.event
-    const equipmentCode = getOrCreateEquipmentCode(equipmentSheet, event.equipmentId)
+    const equipmentCode = getOrCreateEquipmentCode(context.equipmentSheet, event.equipmentId)
 
-    upsertEvent(eventsSheet, event, equipmentCode)
-    upsertEquipment(equipmentSheet, eventsSheet, event, equipmentCode)
-    rebuildSummary(summarySheet, equipmentSheet, eventsSheet)
-    formatWorkbook(ss)
+    upsertEvent(context.eventsSheet, event, equipmentCode)
+    upsertEquipment(context.equipmentSheet, context.eventsSheet, event, equipmentCode)
+    rebuildAlerts(context.alertsSheet, context.equipmentSheet, context.config)
+    rebuildDashboard(context.dashboardSheet, context.equipmentSheet, context.eventsSheet, context.alertsSheet, context.config)
+    hideLegacySummary(context.ss)
+    formatWorkbook(context)
 
-    return json({ ok: true, message: 'Resumen recibido en Google Sheets.' })
+    return json({ ok: true, message: 'Evento recibido en Google Sheets.' })
   } catch (error) {
     return json({ ok: false, message: String(error.message || error) })
+  }
+}
+
+function getWorkbookContext() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet()
+  const eventsSheet = getSheet(ss, 'Eventos', EVENT_HEADERS)
+  const equipmentSheet = getSheet(ss, 'Equipos', EQUIPMENT_HEADERS)
+  const configSheet = getSheet(ss, 'Configuracion', CONFIG_HEADERS)
+  ensureConfig(configSheet)
+  const config = getConfig(configSheet)
+
+  return {
+    ss,
+    eventsSheet,
+    equipmentSheet,
+    configSheet,
+    alertsSheet: getSheet(ss, 'Alertas', ALERT_HEADERS),
+    dashboardSheet: getSheet(ss, 'Dashboard', ['Indicador', 'Valor']),
+    config,
   }
 }
 
@@ -127,6 +183,22 @@ function getSheet(ss, name, headers) {
   const sheet = ss.getSheetByName(name) || ss.insertSheet(name)
   if (sheet.getLastRow() === 0) sheet.appendRow(headers)
   return sheet
+}
+
+function ensureConfig(sheet) {
+  ensureHeaders(sheet, CONFIG_HEADERS)
+  const existing = getConfig(sheet)
+  const rowsToAdd = DEFAULT_CONFIG.filter((row) => !Object.prototype.hasOwnProperty.call(existing, row[0]))
+  if (rowsToAdd.length > 0) sheet.getRange(sheet.getLastRow() + 1, 1, rowsToAdd.length, 3).setValues(rowsToAdd)
+}
+
+function getConfig(sheet) {
+  const rows = getDataRows(sheet)
+  return rows.reduce((config, row) => {
+    const key = String(row[0] || '').trim()
+    if (key) config[key] = row[1]
+    return config
+  }, {})
 }
 
 function migrateLegacySheets(eventsSheet, equipmentSheet) {
@@ -246,27 +318,141 @@ function upsertEquipment(sheet, eventsSheet, event, equipmentCode) {
   else sheet.appendRow(row)
 }
 
-function rebuildSummary(sheet, equipmentSheet, eventsSheet) {
+function rebuildAlerts(sheet, equipmentSheet, config) {
+  const rows = getDataRows(equipmentSheet)
+  const tolerance = toNumber(config['Tolerancia alerta %'], 1)
+  const maxDays = toNumber(config['Dias sin control'], 30)
+  const enableOutOfTolerance = isYes(config['Regla fuera tolerancia activa'])
+  const enableHighError = isYes(config['Regla error alto activa'])
+  const enableStale = isYes(config['Regla sin control activa'])
+  const alerts = []
+
+  rows.forEach((row) => {
+    const equipment = toEquipmentObject(row)
+    const status = equipment.status.toLowerCase()
+    const error = Math.abs(toNumber(equipment.error, 0))
+    const daysSince = getDaysSince(equipment.lastDate)
+
+    if (enableOutOfTolerance && status.includes('fuera')) {
+      alerts.push(buildAlert('Alta', equipment, 'Fuera de tolerancia', 'Revisar/calibrar'))
+    } else if (enableHighError && error > tolerance) {
+      alerts.push(buildAlert('Alta', equipment, `Error mayor a ${tolerance}%`, 'Verificar ajuste y repetir pasada'))
+    }
+
+    if (enableStale && daysSince !== null && daysSince > maxDays) {
+      alerts.push(buildAlert('Media', equipment, `Sin control hace ${daysSince} dias`, 'Programar control preventivo'))
+    }
+  })
+
+  sheet.clear()
+  ensureHeaders(sheet, ALERT_HEADERS)
+  if (alerts.length > 0) sheet.getRange(2, 1, alerts.length, ALERT_HEADERS.length).setValues(alerts)
+}
+
+function buildAlert(priority, equipment, reason, action) {
+  return [
+    priority,
+    'Abierta',
+    equipment.code,
+    equipment.plant,
+    equipment.line,
+    equipment.belt,
+    equipment.name,
+    reason,
+    equipment.lastEvent,
+    equipment.lastDate,
+    equipment.error,
+    equipment.technician,
+    action,
+  ]
+}
+
+function toEquipmentObject(row) {
+  return {
+    code: row[0],
+    plant: row[2],
+    line: row[3],
+    belt: row[4],
+    name: row[5],
+    status: String(row[6] || ''),
+    lastEvent: row[7],
+    lastDate: row[8],
+    error: row[10],
+    technician: row[12],
+  }
+}
+
+function rebuildDashboard(sheet, equipmentSheet, eventsSheet, alertsSheet, config) {
   const equipmentRows = getDataRows(equipmentSheet)
   const eventRows = getDataRows(eventsSheet)
+  const alertRows = getDataRows(alertsSheet)
+  const colors = getColors(config)
   const currentMonth = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MM/yyyy')
   const monthEvents = eventRows.filter((row) => String(row[1]).includes(currentMonth)).length
+  const criticalAlerts = alertRows.filter((row) => String(row[0]).toLowerCase() === 'alta').length
+  const mediumAlerts = alertRows.filter((row) => String(row[0]).toLowerCase() === 'media').length
   const openDeviations = equipmentRows.filter((row) => String(row[6]).toLowerCase().includes('fuera')).length
   const calibrated = equipmentRows.filter((row) => String(row[6]).toLowerCase().includes('calibrada')).length
   const conform = equipmentRows.filter((row) => String(row[6]).toLowerCase().includes('conforme')).length
 
+  sheet.getRange('A1:F28').breakApart()
   sheet.clear()
-  sheet.getRange(1, 1, 1, 2).setValues([['Indicador', 'Valor']])
-  sheet.getRange(2, 1, 8, 2).setValues([
-    ['Equipos registrados', equipmentRows.length],
-    ['Eventos registrados', eventRows.length],
-    ['Eventos del mes', monthEvents],
-    ['Equipos fuera de tolerancia', openDeviations],
-    ['Equipos calibrados', calibrated],
-    ['Controles conformes', conform],
-    ['Ultima actualizacion', Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm')],
-    ['Accion recomendada', openDeviations > 0 ? 'Revisar desvios abiertos' : 'Seguimiento normal'],
-  ])
+  sheet.setHiddenGridlines(true)
+  sheet.getRange('A1:F1').merge().setValue(String(config['Empresa'] || 'ENERBLOCK'))
+  sheet.getRange('A2:F2').merge().setValue(String(config['Subtitulo dashboard'] || 'Tablero operativo de calibracion de cintas'))
+  sheet.getRange('A4:B4').merge().setValue('Equipos')
+  sheet.getRange('C4:D4').merge().setValue('Eventos')
+  sheet.getRange('E4:F4').merge().setValue('Alertas abiertas')
+  sheet.getRange('A5:B6').merge().setValue(equipmentRows.length)
+  sheet.getRange('C5:D6').merge().setValue(eventRows.length)
+  sheet.getRange('E5:F6').merge().setValue(alertRows.length)
+  sheet.getRange('A8:B8').merge().setValue('Eventos del mes')
+  sheet.getRange('C8:D8').merge().setValue('Fuera tolerancia')
+  sheet.getRange('E8:F8').merge().setValue('Sin control / medias')
+  sheet.getRange('A9:B10').merge().setValue(monthEvents)
+  sheet.getRange('C9:D10').merge().setValue(openDeviations)
+  sheet.getRange('E9:F10').merge().setValue(mediumAlerts)
+  sheet.getRange('A12:B12').merge().setValue('Calibradas')
+  sheet.getRange('C12:D12').merge().setValue('Controles conformes')
+  sheet.getRange('E12:F12').merge().setValue('Criticas')
+  sheet.getRange('A13:B14').merge().setValue(calibrated)
+  sheet.getRange('C13:D14').merge().setValue(conform)
+  sheet.getRange('E13:F14').merge().setValue(criticalAlerts)
+  sheet.getRange('A16:F16').merge().setValue('Alertas principales')
+
+  const topAlerts = alertRows.slice(0, 8).map((row) => [row[0], row[2], row[3], row[5], row[7], row[12]])
+  sheet.getRange(17, 1, 1, 6).setValues([['Prioridad', 'Equipo', 'Planta', 'Cinta', 'Motivo', 'Accion']])
+  if (topAlerts.length > 0) sheet.getRange(18, 1, topAlerts.length, 6).setValues(topAlerts)
+  else sheet.getRange('A18:F18').merge().setValue('Sin alertas abiertas segun la configuracion actual')
+
+  sheet.getRange('A28:F28').merge().setValue(`Ultima actualizacion: ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm')}`)
+  formatDashboard(sheet, colors)
+}
+
+function formatDashboard(sheet, colors) {
+  sheet.setColumnWidths(1, 6, 150)
+  sheet.setRowHeights(1, 28, 28)
+  sheet.getRange('A1:F28').setBackground(colors.paper).setFontColor(colors.ink).setFontFamily('Arial')
+  sheet.getRange('A1:F1').setBackground(colors.ink).setFontColor(colors.paper).setFontSize(24).setFontWeight('bold').setHorizontalAlignment('center')
+  sheet.getRange('A2:F2').setBackground(colors.orange).setFontColor(colors.ink).setFontWeight('bold').setHorizontalAlignment('center')
+  sheet.getRangeList(['A4:B4', 'C4:D4', 'E4:F4', 'A8:B8', 'C8:D8', 'E8:F8', 'A12:B12', 'C12:D12', 'E12:F12'])
+    .setBackground(colors.ink)
+    .setFontColor(colors.paper)
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center')
+  sheet.getRangeList(['A5:B6', 'C5:D6', 'E5:F6', 'A9:B10', 'C9:D10', 'E9:F10', 'A13:B14', 'C13:D14', 'E13:F14'])
+    .setBackground(colors.paperStrong)
+    .setFontColor(colors.ink)
+    .setFontSize(28)
+    .setFontWeight('bold')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+  sheet.getRange('E5:F6').setBackground(colors.error).setFontColor(colors.paper)
+  sheet.getRange('E13:F14').setBackground(colors.error).setFontColor(colors.paper)
+  sheet.getRange('A16:F16').setBackground(colors.orange).setFontColor(colors.ink).setFontWeight('bold').setHorizontalAlignment('center')
+  sheet.getRange('A17:F17').setBackground(colors.ink).setFontColor(colors.paper).setFontWeight('bold')
+  sheet.getRange('A28:F28').setBackground(colors.ink).setFontColor(colors.paper).setHorizontalAlignment('right')
+  sheet.getRange('A1:F28').setBorder(true, true, true, true, true, true, colors.border, SpreadsheetApp.BorderStyle.SOLID)
 }
 
 function getDataRows(sheet) {
@@ -293,56 +479,98 @@ function countEventsForEquipment(sheet, equipmentCode) {
     .filter((row) => String(row[0]) === String(equipmentCode)).length
 }
 
-function formatWorkbook(ss) {
-  formatSheet(ss.getSheetByName('Eventos'), 'Eventos')
-  formatSheet(ss.getSheetByName('Equipos'), 'Equipos')
-  formatSheet(ss.getSheetByName('Resumen'), 'Resumen')
+function formatWorkbook(context) {
+  const colors = getColors(context.config)
+  formatSheet(context.eventsSheet, 'Eventos', colors)
+  formatSheet(context.equipmentSheet, 'Equipos', colors)
+  formatSheet(context.alertsSheet, 'Alertas', colors)
+  formatSheet(context.configSheet, 'Configuracion', colors)
+  context.dashboardSheet.setTabColor(colors.orange)
 }
 
-function formatSheet(sheet, name) {
+function formatSheet(sheet, name, colors) {
   if (!sheet) return
   const lastRow = sheet.getLastRow()
   const lastColumn = sheet.getLastColumn()
   if (lastRow < 1 || lastColumn < 1) return
 
   sheet.setFrozenRows(1)
+  sheet.setTabColor(name === 'Alertas' ? colors.error : name === 'Configuracion' ? colors.warning : colors.orange)
   sheet.getRange(1, 1, 1, lastColumn)
-    .setBackground(COLORS.ink)
-    .setFontColor(COLORS.paper)
+    .setBackground(colors.ink)
+    .setFontColor(colors.paper)
     .setFontWeight('bold')
     .setHorizontalAlignment('center')
 
   if (lastRow > 1) {
     sheet.getRange(2, 1, lastRow - 1, lastColumn)
-      .setBackground(COLORS.paperStrong)
-      .setFontColor(COLORS.ink)
+      .setBackground(colors.paperStrong)
+      .setFontColor(colors.ink)
       .setVerticalAlignment('middle')
-    colorStatusRows(sheet, name, lastRow, lastColumn)
+    colorStatusRows(sheet, name, lastRow, lastColumn, colors)
   }
 
   sheet.autoResizeColumns(1, lastColumn)
-  sheet.getDataRange().setBorder(true, true, true, true, true, true, '#d8d3ca', SpreadsheetApp.BorderStyle.SOLID)
+  sheet.getDataRange().setBorder(true, true, true, true, true, true, colors.border, SpreadsheetApp.BorderStyle.SOLID)
 
   if (name === 'Equipos' && lastColumn >= 2) sheet.hideColumns(2)
-  if (name === 'Resumen') {
-    sheet.setColumnWidths(1, 2, 230)
-    sheet.getRange('A1:B1').setBackground(COLORS.orange).setFontColor(COLORS.ink)
-    if (lastRow > 1) sheet.getRange(2, 1, lastRow - 1, 2).setFontSize(12)
-  }
+  if (name === 'Configuracion') sheet.getRange(2, 2, Math.max(lastRow - 1, 1), 1).setBackground('#fff4d6')
 }
 
-function colorStatusRows(sheet, name, lastRow, lastColumn) {
-  const statusColumn = name === 'Eventos' ? 8 : name === 'Equipos' ? 7 : -1
+function colorStatusRows(sheet, name, lastRow, lastColumn, colors) {
+  const statusColumn = name === 'Eventos' ? 8 : name === 'Equipos' ? 7 : name === 'Alertas' ? 1 : -1
   if (statusColumn < 1) return
 
   const values = sheet.getRange(2, statusColumn, lastRow - 1, 1).getValues()
   values.forEach((row, index) => {
     const status = String(row[0]).toLowerCase()
     const target = sheet.getRange(index + 2, 1, 1, lastColumn)
-    if (status.includes('fuera')) target.setBackground('#f8d7d4')
+    if (status.includes('alta') || status.includes('fuera')) target.setBackground('#f8d7d4')
+    else if (status.includes('media')) target.setBackground('#fff0c2')
     else if (status.includes('calibrada') || status.includes('conforme')) target.setBackground('#dff0e8')
-    else target.setBackground(COLORS.paperStrong)
+    else target.setBackground(colors.paperStrong)
   })
+}
+
+function getColors(config) {
+  return {
+    ink: String(config['Color texto'] || DEFAULT_COLORS.ink),
+    paper: String(config['Color fondo'] || DEFAULT_COLORS.paper),
+    paperStrong: String(config['Color fondo fuerte'] || DEFAULT_COLORS.paperStrong),
+    orange: String(config['Color principal'] || DEFAULT_COLORS.orange),
+    orangeDark: DEFAULT_COLORS.orangeDark,
+    success: String(config['Color correcto'] || DEFAULT_COLORS.success),
+    warning: String(config['Color advertencia'] || DEFAULT_COLORS.warning),
+    error: String(config['Color error'] || DEFAULT_COLORS.error),
+    border: DEFAULT_COLORS.border,
+  }
+}
+
+function getDaysSince(value) {
+  const date = parseSheetDate(value)
+  if (!date) return null
+  return Math.floor((new Date().getTime() - date.getTime()) / 86400000)
+}
+
+function parseSheetDate(value) {
+  if (value instanceof Date) return value
+  const match = String(value || '').match(/^(\d{2})\/(\d{2})\/(\d{4})/)
+  if (!match) return null
+  return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]))
+}
+
+function toNumber(value, fallback) {
+  const parsed = Number(String(value || '').replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function isYes(value) {
+  return String(value || '').trim().toLowerCase() === 'si'
+}
+
+function hideLegacySummary(ss) {
+  const sheet = ss.getSheetByName('Resumen')
+  if (sheet) sheet.hideSheet()
 }
 
 function json(value) {
@@ -352,12 +580,26 @@ function json(value) {
 }
 ```
 
-## Hoja `Alertas`
+## Hoja `Configuracion`
 
-Con este enfoque, `Resumen` ya se genera automaticamente. Si se necesita una hoja `Alertas` separada, conviene crearla luego tomando como base `Equipos` y reglas propias de seguimiento.
+`Configuracion` es editable desde Google Sheets. Apps Script respeta los valores existentes y solo agrega parametros nuevos si faltan.
 
-Reglas sugeridas:
+Parametros principales:
 
-- `Fuera de tolerancia`: prioridad alta.
-- Mas de X dias sin control: prioridad media.
-- `Calibrada` o `Control conforme`: seguimiento normal.
+- `Empresa`: titulo principal del dashboard.
+- `Subtitulo dashboard`: texto secundario.
+- `Tolerancia alerta %`: umbral de error para alerta alta.
+- `Dias sin control`: dias maximos sin evento antes de alerta media.
+- `Regla fuera tolerancia activa`: `Si`/`No`.
+- `Regla error alto activa`: `Si`/`No`.
+- `Regla sin control activa`: `Si`/`No`.
+- `Color principal`, `Color fondo`, `Color texto`, `Color correcto`, `Color advertencia`, `Color error`: colores editables.
+
+## Hojas generadas
+
+- `Dashboard`: reemplaza a `Resumen`; muestra KPIs, estado operativo y alertas principales.
+- `Alertas`: lista operativa generada desde `Equipos` y las reglas de `Configuracion`.
+- `Eventos`: historial resumido por evento.
+- `Equipos`: estado actual por equipo, con `ID interno equipo` oculto.
+
+Si existe una hoja vieja `Resumen`, el script la oculta para evitar duplicar informacion.
