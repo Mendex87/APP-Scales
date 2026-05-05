@@ -12,6 +12,8 @@ La integracion con Google Sheets es solo de salida. Supabase sigue siendo la fue
 6. Apps Script actualiza `Eventos` y `Equipos`.
 7. La hoja `Alertas` se trabaja aparte dentro de Google Sheets con Apps Script o formulas.
 
+Las fechas se reciben ya formateadas desde la app como `dd/mm/aaaa hh:mm` para evitar valores ISO UTC en la planilla.
+
 ## Secrets requeridos en Supabase
 
 - `SERVICE_ROLE_KEY`: ya usado por funciones administrativas.

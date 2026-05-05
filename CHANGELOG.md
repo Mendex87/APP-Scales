@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.0 - Corte estable operativo
+
+- Se consolida la app como version estable con Supabase, roles, manuales internos/publicos, dashboard operativo, reportes y exportacion resumida a Google Sheets.
+- Las fechas enviadas a Google Sheets ahora usan formato legible `dd/mm/aaaa hh:mm` en lugar de ISO UTC.
+- La sincronizacion interna del evento conserva timestamp ISO para Supabase y trazabilidad tecnica.
+
 ## v1.1.24 - Resumen automatico a Google Sheets
 
 - Se agrego exportacion automatica de un resumen por calibracion/control hacia Google Sheets despues de guardar el evento en Supabase.

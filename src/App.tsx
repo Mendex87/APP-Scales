@@ -75,7 +75,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v1.1.24'
+const APP_VERSION = 'v2.0.0'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -271,6 +271,17 @@ function reportValue(value: unknown) {
 
 function reportRow(label: string, value: unknown) {
   return `<div><span>${reportValue(label)}</span><strong>${reportValue(value ?? '-')}</strong></div>`
+}
+
+function formatSheetsDateTime(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year} ${hours}:${minutes}`
 }
 
 function buildAdminManualHtml(user: AuthUser) {
@@ -627,12 +638,12 @@ function buildSheetsEventPayload(item: CalibrationEvent, equipmentItem: Equipmen
     item.precheck.idlersOk &&
     item.precheck.structureOk &&
     item.precheck.speedSensorOk
-  const syncedAt = new Date().toISOString()
+  const syncedAt = formatSheetsDateTime(new Date())
 
   return {
     event: {
       id: item.id,
-      eventDate: item.eventDate,
+      eventDate: formatSheetsDateTime(item.eventDate),
       equipmentId: item.equipmentId,
       plant: equipmentItem.plant,
       line: equipmentItem.line,
@@ -1788,7 +1799,7 @@ function App() {
           const syncValues = {
             syncStatus: 'sincronizado' as const,
             syncMessage: sheetsResult.message,
-            syncedAt: payload.event.syncedAt,
+            syncedAt: new Date().toISOString(),
           }
           await updateCalibrationEventSync(record.id, syncValues)
           setEvents((current) => current.map((item) => (item.id === record.id ? { ...item, ...syncValues } : item)))

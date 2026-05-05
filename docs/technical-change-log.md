@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-04 - v2.0.0 - Corte estable operativo
+
+- Contexto: la app ya opera con Supabase, roles, manual admin interno, manual tecnico publico, dashboard corregido y resumen automatico hacia Google Sheets.
+- Cambio: se subio la version a `v2.0.0` como corte estable del avance funcional.
+- Cambio: el payload enviado a Google Sheets formatea `Fecha evento` y `Fecha sincronizacion` como `dd/mm/aaaa hh:mm` para lectura operativa en planilla.
+- Motivo: cerrar la etapa v1.x y dejar Google Sheets con fechas legibles sin perder timestamps ISO internos en Supabase.
+- Verificacion requerida: guardar una calibracion y confirmar que Sheets muestre fechas como `05/05/2026 00:08`.
+
 ## 2026-05-04 - v1.1.24 - Resumen automatico a Google Sheets
 
 - Contexto: Google Sheets debe funcionar como tablero externo resumido, sin replicar el detalle completo de Supabase.
