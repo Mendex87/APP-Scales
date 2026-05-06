@@ -1665,12 +1665,13 @@ async function handleLogin(event: FormEvent) {
       return
     }
 
-    setSyncNotice('Verificando credenciales...')
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
       password: loginPassword,
     })
+
+    // Debug: ver qué devuelve Supabase
+    console.log('Login result - error:', error, 'data.session:', !!data?.session, 'user:', data?.user?.email)
 
     if (error) {
       setSyncNotice('Usuario o contrasenia incorrectos.')
