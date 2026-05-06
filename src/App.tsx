@@ -1090,8 +1090,9 @@ function App() {
 
         return { item, lastEvent, statusText, statusKey, rank, action, detail }
       })
+      .filter((row) => row.rank < 3)
       .sort((a, b) => a.rank - b.rank || `${a.item.plant}${a.item.line}${a.item.beltCode}`.localeCompare(`${b.item.plant}${b.item.line}${b.item.beltCode}`))
-      .slice(0, 5)
+      .slice(0, 4)
   }, [equipmentWithLastEvent])
 
   const precheckPassed = useMemo(
@@ -2248,28 +2249,29 @@ function App() {
               <Metric label="Calibradas" value={String(dashboardStats.calibrated)} />
             </div>
             <div className="ops-overview">
-              <div className="card ops-panel">
+              <div className="card ops-panel compact-ops-panel">
                 <div>
                   <span className="section-kicker">Comando de turno</span>
                   <h2>Pulso operativo</h2>
-                  <p className="hint">Resumen ejecutivo para decidir si corresponde intervenir, controlar o mantener seguimiento normal.</p>
+                  <p className="hint">Lectura ejecutiva del parque sin duplicar el detalle tecnico del historial.</p>
                 </div>
-                <div className="readiness-dial" style={{ '--readiness': `${fleetReadinessPercent}%` } as CSSProperties}>
+                <div className="readiness-score" style={{ '--readiness': `${fleetReadinessPercent}%` } as CSSProperties}>
+                  <span>Parque sin desvio abierto</span>
                   <strong>{fleetReadinessPercent}%</strong>
-                  <span>parque sin desvio abierto</span>
+                  <i aria-hidden="true"><b /></i>
                 </div>
-                <div className="grid three compact-top">
-                  <Metric label="Ultimo evento" value={latestEvent ? formatDateTime(latestEvent.eventDate) : '-'} />
-                  <Metric label="Fuente datos" value={dataSource === 'supabase' ? 'Supabase' : 'Local'} />
-                  <Metric label="Modo" value={canOperate ? 'Campo habilitado' : canReview ? 'Revision' : 'Consulta'} />
+                <div className="ops-facts compact-top">
+                  <div><span>Ultimo evento</span><strong>{latestEvent ? formatDateTime(latestEvent.eventDate) : '-'}</strong></div>
+                  <div><span>Fuente</span><strong>{dataSource === 'supabase' ? 'Supabase' : 'Local'}</strong></div>
+                  <div><span>Modo</span><strong>{canOperate ? 'Campo habilitado' : canReview ? 'Revision' : 'Consulta'}</strong></div>
                 </div>
               </div>
               <div className="card priority-panel">
                 <div className="row wrap">
                   <div>
                     <span className="section-kicker">Prioridad</span>
-                    <h2>Cola de accion</h2>
-                    <p className="hint">Ordenada por desvio abierto, primera calibracion pendiente y controles a revisar.</p>
+                    <h2>{priorityEquipment.length > 0 ? 'Cola de accion' : 'Sin prioridades abiertas'}</h2>
+                    <p className="hint">{priorityEquipment.length > 0 ? 'Solo se muestran desvios, primeras calibraciones pendientes o controles a completar.' : 'Los equipos en seguimiento normal no se listan como alerta.'}</p>
                   </div>
                 </div>
                 <div className="priority-list compact-top">
@@ -2301,7 +2303,7 @@ function App() {
                       </button>
                     </div>
                   ))}
-                  {priorityEquipment.length === 0 && <div className="empty-state">Carga la primera balanza para activar la cola operativa.</div>}
+                  {priorityEquipment.length === 0 && <div className="empty-state success-state">Parque sin desvios abiertos segun el ultimo estado registrado.</div>}
                 </div>
               </div>
             </div>
