@@ -1624,10 +1624,41 @@ function App() {
     })
   }
 
+  async function handleLogout() {
+    const userId = currentUser?.id
+    if (supabase) {
+      if (userId) {
+        const { data: openSession } = await supabase
+          .from('user_sessions')
+          .select('id')
+          .eq('user_id', userId)
+          .is('logout_at', null)
+          .order('login_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (openSession) {
+          const { error } = await supabase
+            .from('user_sessions')
+            .update({ logout_at: new Date().toISOString() })
+            .eq('id', openSession.id)
+          if (error) {
+            console.error('Error al registrar cierre de sesion:', error)
+          }
+        }
+      }
+
+      await supabase.auth.signOut()
+    }
+    setCurrentUser(null)
+    setScreen('dashboard')
+    setSyncNotice('Sesion cerrada.')
+  }
+
   async function handleLogin(event: FormEvent) {
     event.preventDefault()
     if (!supabase) {
-      setSyncNotice('Supabase Auth no está configurado.')
+      setSyncNotice('Supabase Auth no esta configurado.')
       return
     }
 
@@ -1637,7 +1668,14 @@ function App() {
     })
 
     if (error) {
-      setSyncNotice(`Error de acceso: ${error.message}`)
+      const message = error.message.toLowerCase()
+      if (message.includes('invalid login credentials') || message.includes('invalid credentials')) {
+        setSyncNotice('Usuario o contrasenia incorrectos.')
+      } else if (message.includes('user not found') || message.includes('email not confirmed')) {
+        setSyncNotice('Usuario no encontrado o email no confirmado.')
+      } else {
+        setSyncNotice(`Error de acceso: ${error.message}`)
+      }
       return
     }
 
@@ -1646,31 +1684,6 @@ function App() {
     setLoginPassword('')
     setScreen('dashboard')
     setSyncNotice('Sesion iniciada.')
-  }
-
-  async function handleLogout() {
-    if (supabase && currentUser) {
-      const { data: openSession } = await supabase
-        .from('user_sessions')
-        .select('id')
-        .eq('user_id', currentUser.id)
-        .is('logout_at', null)
-        .order('login_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (openSession) {
-        await supabase
-          .from('user_sessions')
-          .update({ logout_at: new Date().toISOString() })
-          .eq('id', openSession.id)
-      }
-
-      await supabase.auth.signOut()
-    }
-    setCurrentUser(null)
-    setScreen('dashboard')
-    setSyncNotice('Sesion cerrada.')
   }
 
   function primeEventForm(item: Equipment) {
