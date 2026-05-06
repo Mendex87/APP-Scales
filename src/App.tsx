@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -2311,6 +2311,21 @@ function App() {
 
   const manualHref = '/manual/tecnico/'
 
+  const handleActionPulse = (event: PointerEvent<HTMLDivElement>) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement | HTMLAnchorElement>('.primary, .secondary')
+      : null
+    if (!target || target.classList.contains('nav-item') || target.classList.contains('theme-toggle')) return
+    if (target instanceof HTMLButtonElement && (target.disabled || target.type === 'submit')) return
+
+    target.classList.remove('action-pulse')
+    void target.offsetWidth
+    target.classList.add('action-pulse')
+    window.setTimeout(() => target.classList.remove('action-pulse'), 780)
+  }
+
   const handleNavSelect = (nextScreen: Screen) => {
     setScreen(nextScreen)
 
@@ -2373,7 +2388,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" onPointerDownCapture={handleActionPulse}>
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">

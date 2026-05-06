@@ -8,6 +8,7 @@ Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y 
 - Decision: usar `document.startViewTransition` para animar el cambio como transicion same-document del navegador, con un barrido diagonal tipo placa industrial en lugar de un reveal circular.
 - Fallback: si el navegador no soporta View Transition API, se aplica una transicion CSS temporal sobre color, fondo, borde y sombra.
 - Accesibilidad: si `prefers-reduced-motion: reduce` esta activo, se omite la animacion y solo se cambia el tema.
+- Cambio adicional: se agrego un pulso angular delegado para botones `.primary` y `.secondary` no-submit, excluyendo `nav-item` y `theme-toggle` para no duplicar animaciones existentes.
 - Verificacion requerida: correr `npm run build`, alternar claro/oscuro desde desktop y mobile, y confirmar que no haya saltos de layout.
 
 ## 2026-05-05 - v2.0.8 - Tema oscuro en preview

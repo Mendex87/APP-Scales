@@ -2050,6 +2050,38 @@ body::before {
   border-color: var(--color-error);
 }
 
+.primary.action-pulse,
+.primary.action-pulse:hover:enabled,
+.secondary.action-pulse,
+.secondary.action-pulse:hover:enabled {
+  background-position: 0 0;
+}
+
+.primary.action-pulse::after,
+.secondary.action-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -35% -55%;
+  border-radius: 0;
+  background:
+    linear-gradient(105deg, transparent 0 24%, rgba(255, 89, 73, 0.84) 24% 34%, rgba(240, 239, 235, 0.82) 34% 39%, transparent 39% 100%),
+    repeating-linear-gradient(105deg, transparent 0 7px, rgba(255, 89, 73, 0.42) 7px 9px, transparent 9px 15px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-28%) skewX(-18deg);
+  animation: theme-toggle-shear 760ms var(--ease-industrial) both;
+}
+
+.secondary.small.action-pulse::after {
+  inset: -48% -62%;
+}
+
+.secondary.danger.action-pulse::after {
+  background:
+    linear-gradient(105deg, transparent 0 24%, rgba(255, 107, 94, 0.82) 24% 35%, rgba(255, 190, 69, 0.46) 35% 40%, transparent 40% 100%),
+    repeating-linear-gradient(105deg, transparent 0 7px, rgba(255, 107, 94, 0.36) 7px 9px, transparent 9px 15px);
+}
+
 :root[data-theme='dark'] .secondary.danger {
   background-color: rgba(255, 107, 94, 0.1);
   background-image: linear-gradient(105deg, rgba(255, 107, 94, 0.12) 0 50%, var(--color-error) 50% 100%);
@@ -3032,6 +3064,11 @@ body::before {
   }
 
   .nav-item.nav-pulse::after {
+    animation: none !important;
+  }
+
+  .primary.action-pulse::after,
+  .secondary.action-pulse::after {
     animation: none !important;
   }
 }

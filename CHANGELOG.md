@@ -4,6 +4,7 @@
 
 - Se agrego una transicion diagonal tipo placa industrial al alternar claro/oscuro usando View Transition API cuando el navegador lo soporta.
 - El boton de tema dispara un barrido angular naranja y conserva fallback suave para navegadores sin soporte.
+- Se extendio el barrido angular a botones de accion no-submit, dejando el nav inferior y el selector de tema con sus interacciones especificas.
 - Se respeta `prefers-reduced-motion` para evitar animaciones a usuarios que pidan reducir movimiento.
 
 ## v2.0.8 - Tema oscuro en preview
