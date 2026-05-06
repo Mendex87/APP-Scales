@@ -182,7 +182,8 @@
       margin-top: 22px;
     }
 
-    .manual-actions a {
+    .manual-actions a,
+    .manual-actions button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -191,10 +192,12 @@
       color: var(--ink);
       background: var(--orange);
       border: 2px solid var(--ink);
+      font: inherit;
       font-weight: 800;
       letter-spacing: 0.04em;
       text-decoration: none;
       text-transform: uppercase;
+      cursor: pointer;
     }
 
     .toc {
@@ -364,11 +367,11 @@
         <h1>Calibra Cinta</h1>
         <p class="subtitle">Guia completa para administracion y supervision integral de balanzas dinamicas, cadenas patron, calibraciones, controles preventivos, historial, reportes, herramientas tecnicas y usuarios.</p>
         <div class="manual-actions">
-          <a href="/manual-admin.pdf" download>Descargar PDF administrador</a>
+          <button type="button" onclick="window.print()">Imprimir o guardar PDF</button>
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v1.1.13</strong></div>
+        <div><span>Version documentada</span><strong>v2.0.5</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -405,7 +408,7 @@
         <div class="metric"><span>Equipo</span><strong>Balanzas dinamicas</strong></div>
         <div class="metric"><span>Patron</span><strong>Cadenas calibradas</strong></div>
         <div class="metric"><span>Prueba final</span><strong>Material real pesado</strong></div>
-        <div class="metric"><span>Salida</span><strong>Historial + PDF</strong></div>
+        <div class="metric"><span>Salida</span><strong>Historial + PDF + Sheets</strong></div>
       </div>
       <p>La aplicacion no reemplaza el criterio tecnico. Su funcion es ordenar el procedimiento, evitar omisiones, conservar trazabilidad y mostrar con claridad si un evento fue una calibracion con ajuste, un control preventivo conforme o una condicion fuera de tolerancia.</p>
       <div class="callout success"><strong>Objetivo operativo:</strong> que cualquier evento quede registrado con responsable, fecha, equipo, prechequeos, cero, parametros relevantes, prueba con cadena cuando corresponde, pasadas con material real y resultado final.</div>
@@ -473,7 +476,7 @@
         <li>Guardar balanza.</li>
       </ol>
       <h3>Edicion y baja</h3>
-      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en Supabase por cascada. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
+      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en Supabase por cascada. Cuando Google Sheets esta configurado, la baja tambien elimina la fila del equipo y sus eventos asociados en la planilla externa. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
     </section>
 
     <section id="cadenas">
@@ -546,7 +549,8 @@
       </table>
 
       <h3>Paso 8: Cierre</h3>
-      <p>Revisar resultado final, error final, si hubo ajuste y factor final. Completar observaciones cuando corresponda. Guardar evento.</p>
+      <p>Revisar resultado final, error final, si hubo ajuste y completar obligatoriamente <strong>Factor final</strong>. Este campo debe reflejar el factor que queda cargado en el controlador al cerrar el evento. Si queda vacio o en cero, la app bloquea el guardado.</p>
+      <div class="callout warning"><strong>Regla obligatoria:</strong> el factor final no se infiere automaticamente desde el factor usado, sugerido o anterior. Debe confirmarse en el cierre, incluso en controles conformes sin ajuste.</div>
     </section>
 
     <section id="controles-preventivos">
@@ -597,7 +601,7 @@
 
     <section id="historial">
       <h2>11. Historial y reportes</h2>
-      <p>El historial muestra eventos guardados, ordenados por fecha descendente. Permite filtrar por balanza, revisar detalle, imprimir reporte y, para administradores, eliminar eventos.</p>
+      <p>El historial muestra eventos guardados, ordenados por fecha descendente. Permite filtrar por balanza, revisar detalle, imprimir reporte y, para administradores, eliminar eventos. Si Google Sheets esta configurado, la eliminacion de un evento tambien se replica en la planilla y reconstruye el estado del equipo, alertas y dashboard externo.</p>
       <h3>Lectura de tarjetas</h3>
       <table>
         <thead><tr><th>Elemento</th><th>Descripcion</th></tr></thead>
@@ -647,6 +651,19 @@
       </ul>
       <h3>Seguridad por RLS</h3>
       <p>Las policies de Supabase limitan acciones segun rol. Por ejemplo, el tecnico puede insertar eventos, pero la actualizacion administrativa de equipos queda reservada a administradores.</p>
+      <h3>Google Sheets operativo</h3>
+      <p>Google Sheets funciona como salida operativa, no como fuente principal. La app envia resumenes mediante la Edge Function <code>sync-sheets-event</code> hacia Apps Script. Supabase sigue siendo la fuente de verdad.</p>
+      <table>
+        <thead><tr><th>Hoja</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td><code>Eventos</code></td><td>Registro resumido por calibracion/control, con <code>Codigo equipo</code> corto.</td></tr>
+          <tr><td><code>Equipos</code></td><td>Estado actual por equipo; el ID interno de Supabase queda oculto.</td></tr>
+          <tr><td><code>Dashboard</code></td><td>KPIs operativos y alertas principales configurables desde Sheets.</td></tr>
+          <tr><td><code>Alertas</code></td><td>Alertas por fuera de tolerancia, error absoluto y equipos sin control reciente.</td></tr>
+          <tr><td><code>Configuracion</code></td><td>Reglas editables: tolerancia, dias sin control, colores y textos.</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, la app notifica a Sheets para remover filas y reconstruir <code>Dashboard</code> y <code>Alertas</code>. Si Sheets falla, Supabase queda actualizado y la app muestra aviso.</div>
       <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de RLS, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
     </section>
 
@@ -668,6 +685,7 @@
           <li>Usar balanza certificada para el peso real.</li>
           <li>Registrar cada pasada en orden.</li>
           <li>No cerrar como calibrada si se ajusto factor y no se hizo verificacion posterior.</li>
+          <li>Confirmar y cargar el factor final en el Paso 8 antes de guardar.</li>
           <li>Si la primera pasada esta dentro de tolerancia, dejar constancia como control conforme.</li>
           <li>Usar notas para registrar condiciones excepcionales.</li>
         </ul>
@@ -694,6 +712,10 @@
       <p>Revisar bloqueador de ventanas emergentes. El reporte se abre en una ventana nueva para poder imprimirlo.</p>
       <h3>El evento queda fuera de tolerancia aunque ajuste factor</h3>
       <p>Registrar una pasada posterior al ajuste. La app toma la ultima pasada completa como resultado final.</p>
+      <h3>No puedo guardar porque falta Factor final</h3>
+      <p>El Paso 8 exige cargar <strong>Factor final</strong> con valor mayor a cero. Debe coincidir con el factor que queda en el controlador, incluso si no hubo ajuste.</p>
+      <h3>Google Sheets no refleja un borrado</h3>
+      <p>Confirmar que la Edge Function <code>sync-sheets-event</code> este desplegada, que el Web App de Apps Script tenga el script actualizado y que los secrets <code>GOOGLE_SHEETS_WEBHOOK_URL</code> y <code>GOOGLE_SHEETS_TOKEN</code> sean correctos.</p>
       <h3>Veo datos antiguos despues de un deploy</h3>
       <p>Actualizar la pagina, cerrar y abrir sesion o limpiar cache del navegador si Vercel ya termino el despliegue.</p>
     </section>

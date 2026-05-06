@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.5 - Manuales actualizados
+
+- Se actualizo el manual tecnico HTML publico y fuente con `Factor final` obligatorio.
+- Se actualizo el manual administrador fuente y el manual admin interno generado por la app con Google Sheets, Dashboard, Alertas, codigos cortos y sincronizacion de borrados.
+- Los manuales HTML ahora ofrecen imprimir/guardar PDF desde el navegador para evitar descargar PDFs estaticos desactualizados.
+
 ## v2.0.4 - Factor final obligatorio
 
 - El cierre de una calibracion/control ahora exige cargar `Factor final` antes de guardar el evento.

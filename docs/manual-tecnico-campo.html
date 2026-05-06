@@ -174,7 +174,8 @@
       margin-top: 22px;
     }
 
-    .manual-actions a {
+    .manual-actions a,
+    .manual-actions button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -183,10 +184,12 @@
       color: var(--ink);
       background: var(--orange);
       border: 2px solid var(--ink);
+      font: inherit;
       font-weight: 800;
       letter-spacing: 0.04em;
       text-decoration: none;
       text-transform: uppercase;
+      cursor: pointer;
     }
 
     .toc {
@@ -339,11 +342,11 @@
         <h1>Calibra Cinta</h1>
         <p class="subtitle">Guia operativa para realizar controles y calibraciones en campo. Este documento se enfoca en el procedimiento tecnico: preparar el equipo, registrar datos confiables, interpretar tolerancias y cerrar el trabajo correctamente.</p>
         <div class="manual-actions">
-          <a href="/manual-tecnico-campo.pdf" download>Descargar PDF tecnico</a>
+          <button type="button" onclick="window.print()">Imprimir o guardar PDF</button>
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v1.1.13</strong></div>
+        <div><span>Version documentada</span><strong>v2.0.5</strong></div>
         <div><span>Alcance</span><strong>Uso en campo</strong></div>
         <div><span>Usuario</span><strong>Tecnico</strong></div>
       </div>
@@ -498,6 +501,7 @@
         </tbody>
       </table>
       <div class="callout warning"><strong>Regla obligatoria:</strong> si se cambia el factor, debe existir una pasada posterior completa para demostrar que quedo dentro de tolerancia.</div>
+      <div class="callout"><strong>Factor final obligatorio:</strong> antes de guardar, cargar el factor que queda efectivamente en el controlador. La app no infiere este valor desde el factor usado, sugerido o anterior.</div>
     </section>
 
     <section id="resultado">
@@ -543,6 +547,8 @@
       <p>Falta registrar una pasada posterior al ajuste, o la ultima pasada sigue fuera de tolerancia.</p>
       <h3>No puedo cerrar porque falta factor usado</h3>
       <p>En verificaciones post-ajuste, cargar el factor usado en esa pasada.</p>
+      <h3>No puedo guardar porque falta Factor final</h3>
+      <p>En el Paso 8, cargar el factor que queda en el controlador al cerrar el evento. Debe ser mayor a cero, incluso si fue un control conforme sin ajuste.</p>
       <h3>No estoy seguro del peso real</h3>
       <p>No cerrar el evento como conforme. Repetir el pesaje o registrar la condicion en observaciones.</p>
     </section>
@@ -559,6 +565,7 @@
           <tr><td>Si fue control preventivo, hay pasada con material?</td><td>Si, al menos una completa.</td></tr>
           <tr><td>Si se ajusto factor, hay verificacion posterior?</td><td>Si.</td></tr>
           <tr><td>El factor final coincide con el controlador?</td><td>Si.</td></tr>
+          <tr><td>El campo Factor final fue completado?</td><td>Si, con valor mayor a cero.</td></tr>
           <tr><td>Se registraron observaciones relevantes?</td><td>Si, cuando corresponde.</td></tr>
         </tbody>
       </table>

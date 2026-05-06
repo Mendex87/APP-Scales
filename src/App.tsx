@@ -77,7 +77,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.4'
+const APP_VERSION = 'v2.0.5'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -446,13 +446,14 @@ function buildAdminManualHtml(user: AuthUser) {
 
     <section>
       <h2>7. Calibraciones y controles preventivos</h2>
-      <p>El wizard se divide en ocho pasos: eleccion, inspeccion, cero, parametros, cadena, acumulado, material real y cierre.</p>
+      <p>El wizard se divide en ocho pasos: eleccion, inspeccion, cero, parametros, cadena, acumulado, material real y cierre. El cierre exige cargar explicitamente el <strong>Factor final</strong> que queda en el controlador.</p>
       <table>
         <thead><tr><th>Situacion</th><th>Criterio</th><th>Resultado esperado</th></tr></thead>
         <tbody>
           <tr><td>Primera carga sin historial</td><td>Completar cadena, acumulado y material.</td><td>Calibrada o fuera de tolerancia.</td></tr>
           <tr><td>Control preventivo</td><td>Una pasada dentro de tolerancia sin ajuste puede cerrar.</td><td>Control conforme.</td></tr>
           <tr><td>Ajuste de factor</td><td>Debe existir pasada posterior completa.</td><td>Calibrada si queda dentro.</td></tr>
+          <tr><td>Factor final vacio o cero</td><td>No se permite guardar.</td><td>Completar valor confirmado en controlador.</td></tr>
           <tr><td>Ultima pasada fuera</td><td>No forzar cierre conforme.</td><td>Fuera de tolerancia.</td></tr>
         </tbody>
       </table>
@@ -475,6 +476,8 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>No usar service role en el navegador.</li>
         <li>Si aparece un error RLS, revisar tabla, accion y rol antes de cambiar policies.</li>
         <li>La Edge Function de usuarios usa <code>SERVICE_ROLE_KEY</code>.</li>
+        <li>Google Sheets es salida operativa: <code>Eventos</code>, <code>Equipos</code>, <code>Dashboard</code>, <code>Alertas</code> y <code>Configuracion</code> se actualizan via Apps Script.</li>
+        <li>Los borrados de eventos/equipos se notifican a Sheets mediante <code>sync-sheets-event</code>; si Sheets falla, Supabase queda como fuente de verdad y la app informa el error.</li>
         <li>El guardado de eventos no debe actualizar <code>equipments</code>, porque eso rompio previamente al rol tecnico.</li>
       </ul>
     </section>
@@ -495,6 +498,7 @@ function buildAdminManualHtml(user: AuthUser) {
       <p>Eliminar balanzas, cadenas o eventos es una accion administrativa. Confirmar siempre impacto operativo antes de avanzar.</p>
       <ul>
         <li>Eliminar una balanza puede eliminar eventos asociados por cascada en Supabase.</li>
+        <li>Eliminar una balanza o evento tambien intenta limpiar Google Sheets y reconstruir su dashboard externo.</li>
         <li>Eliminar una cadena no modifica los datos historicos ya guardados en eventos.</li>
         <li>Eliminar eventos reduce la trazabilidad y debe quedar justificado por procedimiento interno.</li>
       </ul>
@@ -507,6 +511,8 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>Usuarios tienen rol minimo necesario.</li>
         <li>Balanzas nuevas tienen planta, linea, cinta, nombre y foto si corresponde.</li>
         <li>Cadenas tienen kg/m verificado.</li>
+        <li>Eventos recientes tienen Factor final confirmado y guardado.</li>
+        <li>Sheets muestra codigos cortos de equipo, dashboard y alertas actualizadas.</li>
         <li>Eventos fuera de tolerancia tienen seguimiento.</li>
         <li>Reportes importantes fueron impresos o guardados.</li>
         <li>No hay material admin publicado en rutas publicas.</li>

@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.5 - Manuales actualizados
+
+- Contexto: los manuales HTML habian quedado atrasados respecto de `v2.0.2` a `v2.0.4`.
+- Cambio: se actualizo el manual tecnico publico/fuente con `Factor final` obligatorio y el bloqueo de guardado si falta.
+- Cambio: se actualizo el manual administrador fuente y el manual admin interno generado desde la app con Sheets como salida operativa, `Dashboard`, `Alertas`, `Configuracion`, codigos cortos de equipo y borrados sincronizados.
+- Motivo: alinear documentacion operativa con el comportamiento actual de la app y evitar instrucciones obsoletas en campo/admin.
+- Cambio: el manual tecnico HTML deja de enlazar la descarga directa del PDF estatico y ofrece imprimir/guardar PDF desde el navegador, evitando distribuir un PDF viejo.
+- Pendiente: regenerar PDFs estaticos si se requiere distribuirlos fuera del HTML, ya que el repo no tiene script automatizado de generacion PDF.
+- Verificacion requerida: correr `npm run build`, abrir `/manual/tecnico/` y abrir el manual admin interno desde una sesion admin.
+
 ## 2026-05-05 - v2.0.4 - Factor final obligatorio
 
 - Contexto: el evento podia guardarse sin completar `Factor final` porque la app usaba valores de respaldo como el factor usado en la pasada, sugerido o anterior.
