@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.11 - Sheets seguro (preview separada)
+
+- La Edge Function `sync-sheets-event` ahora recibe solo `eventId` del cliente y consulta Supabase con service role para armar el payload oficial hacia Google Sheets.
+- El navegador ya no construye el resumen del evento; la Edge Function lo genera servidor-side, eliminando la posibilidad de enviar datos falsos a Sheets.
+- Los payloads de `delete_event` y `delete_equipment` siguen funcionando igual; los deletes requieren rol `admin`.
+- Esta preview requiere redeploy de la Edge Function `sync-sheets-event` para tomar efecto.
+
 ## v2.0.10 - Endurecimiento de datos (preview separada)
 
 - Los eventos de calibracion ahora se guardan con `insert` en lugar de `upsert` para evitar sobrescrituras por collision de ID.

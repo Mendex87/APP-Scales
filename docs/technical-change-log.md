@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-06 - v2.0.11 - Sheets seguro
+
+- Contexto: la Edge Function `sync-sheets-event` recibia del navegador un payload armado por el cliente con todos los datos del evento. Un usuario autenticado podia manipular esos datos antes de enviarlos a Sheets.
+- Decision: cambiar el payload del cliente de `upsert_event` para que solo envie `{ action: 'upsert_event', eventId: '...' }` en lugar del resumen completo.
+- Cambio: la Edge Function ahora recibe `eventId`, consulta `calibration_events` y `equipments` con service role, y construye el payload oficial servidor-side.
+- Beneficio: Sheets recibe datos verificados直接从 Supabase, sin posibilidad de manipulacion por el cliente.
+- Delete actions (`delete_event`, `delete_equipment`) siguen igual, pero ahora requieren rol `admin` en la Edge Function.
+- Importante: esta preview requiere redeploy de la Edge Function `sync-sheets-event` para que tome efecto en producción.
+- Verificacion requerida: correr `npm run build`, crear una calibracion y verificar que llega correctamente a Google Sheets, verificar que la Edge Function muestra el evento en logs.
+
 ## 2026-05-06 - v2.0.10 - Endurecimiento de datos
 
 - Contexto: la auditoria integral identifico tres riesgos P0: (1) `upsert` de eventos podia sobrescribir historia si dos tecnicos generaban el mismo ID, (2) `on delete cascade` podia borrar historial de calibraciones al dar de baja un equipo, (3) `check_interval_days` vivia en un marcador interno dentro de `notes` sin validacion de tipo.
