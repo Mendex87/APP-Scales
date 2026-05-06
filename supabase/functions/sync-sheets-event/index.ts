@@ -1,32 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.56.1'
 
-type SheetsEventSummary = {
-  id: string
-  eventDate: string
-  equipmentId: string
-  plant: string
-  line: string
-  beltCode: string
-  scaleName: string
-  result: string
-  finalErrorPct: number
-  tolerancePct: number
-  withinTolerance: boolean
-  finalExternalWeightKg: number
-  finalBeltWeightKg: number
-  finalFactor: number
-  inspectionOk: boolean
-  technician: string
-  diagnosisSummary: string
-  notesSummary: string
-  syncedAt: string
-}
-
-type SheetsPayload =
-  | { action: 'upsert_event'; event: SheetsEventSummary }
-  | { action: 'delete_event'; eventId: string; equipmentId: string }
-  | { action: 'delete_equipment'; equipmentId: string }
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -44,7 +17,7 @@ Deno.serve(async (req) => {
     const sheetsWebhookUrl = Deno.env.get('GOOGLE_SHEETS_WEBHOOK_URL')
     const sheetsToken = Deno.env.get('GOOGLE_SHEETS_TOKEN')
 
-    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey) {
       throw new Error('Missing Supabase environment variables.')
     }
 
@@ -53,7 +26,7 @@ Deno.serve(async (req) => {
     }
 
     const authHeader = req.headers.get('Authorization') || ''
-    const userClient = createClient(supabaseUrl, anonKey, {
+    const userClient = createClient(supabaseUrl, anonKey || '', {
       global: { headers: { Authorization: authHeader } },
     })
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
@@ -63,111 +36,190 @@ Deno.serve(async (req) => {
       throw new Error('Unauthorized.')
     }
 
-    const { data: profile, error: profileError } = await adminClient
+    const { data: profile } = await adminClient
       .from('profiles')
       .select('role')
       .eq('id', authData.user.id)
       .single()
 
     const role = String(profile?.role || '')
-    if (profileError || !['admin', 'tecnico'].includes(role)) {
+    if (!['admin', 'tecnico'].includes(role)) {
       throw new Error('Only admins and technicians can export events to Sheets.')
     }
 
     const body = await req.json()
-    const payload = validateSheetsPayload(body)
 
-    if (payload.action !== 'upsert_event' && role !== 'admin') {
-      throw new Error('Only admins can delete rows in Sheets.')
+    if (!body || typeof body !== 'object') {
+      throw new Error('Missing request body.')
     }
 
-    const response = await fetch(sheetsWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Calibra-Token': sheetsToken,
-      },
-      body: JSON.stringify({ token: sheetsToken, ...payload }),
-    })
+    const action = String(body.action || 'upsert_event')
 
-    const responseText = await response.text()
-    if (!response.ok) {
-      throw new Error(`Google Sheets returned ${response.status}: ${responseText}`)
+    if (action === 'upsert_event') {
+      const eventId = String(body.eventId || '').trim()
+      if (!eventId) {
+        throw new Error('Missing eventId.')
+      }
+
+      const { data: event, error: eventError } = await adminClient
+        .from('calibration_events')
+        .select('*')
+        .eq('id', eventId)
+        .single()
+
+      if (eventError || !event) {
+        throw new Error('Event not found.')
+      }
+
+      const { data: equipment, error: equipError } = await adminClient
+        .from('equipments')
+        .select('*')
+        .eq('id', event.equipment_id)
+        .single()
+
+      if (equipError || !equipment) {
+        throw new Error('Equipment not found for this event.')
+      }
+
+      const sheetsPayload = buildSheetsPayload(event, equipment)
+
+      const response = await fetch(sheetsWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Calibra-Token': sheetsToken,
+        },
+        body: JSON.stringify({ token: sheetsToken, action: 'upsert_event', event: sheetsPayload }),
+      })
+
+      const responseText = await response.text()
+      if (!response.ok) {
+        throw new Error(`Google Sheets returned ${response.status}: ${responseText}`)
+      }
+
+      let parsed: { ok?: boolean; message?: string } = {}
+      try {
+        parsed = JSON.parse(responseText)
+      } catch {
+        parsed = { ok: true, message: responseText || 'Google Sheets actualizado.' }
+      }
+
+      if (parsed.ok === false) {
+        throw new Error(parsed.message || 'Google Sheets rejected the event summary.')
+      }
+
+      return json({ ok: true, message: parsed.message || 'Google Sheets actualizado.' })
     }
 
-    let parsed: { ok?: boolean; message?: string } = {}
-    try {
-      parsed = JSON.parse(responseText)
-    } catch {
-      parsed = { ok: true, message: responseText || 'Google Sheets actualizado.' }
+    if (action === 'delete_event') {
+      if (role !== 'admin') {
+        throw new Error('Only admins can delete events from Sheets.')
+      }
+      const eventId = String(body.eventId || '').trim()
+      const equipmentId = String(body.equipmentId || '').trim()
+      if (!eventId || !equipmentId) {
+        throw new Error('Missing eventId or equipmentId.')
+      }
+
+      const response = await fetch(sheetsWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Calibra-Token': sheetsToken,
+        },
+        body: JSON.stringify({ token: sheetsToken, action: 'delete_event', eventId, equipmentId }),
+      })
+
+      const responseText = await response.text()
+      if (!response.ok) {
+        throw new Error(`Google Sheets returned ${response.status}: ${responseText}`)
+      }
+
+      return json({ ok: true, message: 'Evento eliminado de Google Sheets.' })
     }
 
-    if (parsed.ok === false) {
-      throw new Error(parsed.message || 'Google Sheets rejected the event summary.')
+    if (action === 'delete_equipment') {
+      if (role !== 'admin') {
+        throw new Error('Only admins can delete equipment from Sheets.')
+      }
+      const equipmentId = String(body.equipmentId || '').trim()
+      if (!equipmentId) {
+        throw new Error('Missing equipmentId.')
+      }
+
+      const response = await fetch(sheetsWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Calibra-Token': sheetsToken,
+        },
+        body: JSON.stringify({ token: sheetsToken, action: 'delete_equipment', equipmentId }),
+      })
+
+      const responseText = await response.text()
+      if (!response.ok) {
+        throw new Error(`Google Sheets returned ${response.status}: ${responseText}`)
+      }
+
+      return json({ ok: true, message: 'Equipo eliminado de Google Sheets.' })
     }
 
-    return json({ ok: true, message: parsed.message || 'Google Sheets actualizado.' })
+    throw new Error(`Unsupported action: ${action}.`)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error.'
     return json({ ok: false, message }, 400)
   }
 })
 
-function validateSheetsPayload(value: unknown): SheetsPayload {
-  if (!value || typeof value !== 'object') throw new Error('Missing Sheets payload.')
-  const item = value as Record<string, unknown>
-  const action = String(item.action || 'upsert_event')
+function buildSheetsPayload(event: Record<string, unknown>, equipment: Record<string, unknown>) {
+  const materialValidation = (event.material_validation || {}) as Record<string, unknown>
+  const finalAdjustment = (event.final_adjustment || {}) as Record<string, unknown>
+  const precheck = (event.precheck || {}) as Record<string, unknown>
+  const chainSpan = (event.chain_span || {}) as Record<string, unknown>
 
-  if (action === 'upsert_event') {
-    return { action, event: validateEventSummary(item.event) }
-  }
+  const inspectionOk = Boolean(
+    precheck.beltEmpty && precheck.beltClean && precheck.noMaterialBuildup &&
+    precheck.idlersOk && precheck.structureOk && precheck.speedSensorOk
+  )
 
-  if (action === 'delete_event') {
-    const eventId = String(item.eventId || '').trim()
-    const equipmentId = String(item.equipmentId || '').trim()
-    if (!eventId) throw new Error('Missing eventId.')
-    if (!equipmentId) throw new Error('Missing equipmentId.')
-    return { action, eventId, equipmentId }
-  }
+  const errorPct = toFiniteNumber(materialValidation.errorPct)
+  const tolerancePct = toFiniteNumber(event.tolerance_percent)
+  const status = getMaterialOutcome(materialValidation, errorPct, tolerancePct)
 
-  if (action === 'delete_equipment') {
-    const equipmentId = String(item.equipmentId || '').trim()
-    if (!equipmentId) throw new Error('Missing equipmentId.')
-    return { action, equipmentId }
-  }
-
-  throw new Error(`Unsupported Sheets action: ${action}.`)
-}
-
-function validateEventSummary(value: unknown): SheetsEventSummary {
-  if (!value || typeof value !== 'object') throw new Error('Missing event summary.')
-  const item = value as Record<string, unknown>
-  const required = ['id', 'eventDate', 'equipmentId', 'plant', 'line', 'beltCode', 'scaleName', 'result', 'technician', 'syncedAt']
-  for (const key of required) {
-    if (!String(item[key] || '').trim()) throw new Error(`Missing event.${key}.`)
-  }
+  const syncedAt = formatSheetDateTime(new Date().toISOString())
+  const eventDate = formatSheetDateTime(String(event.event_date))
 
   return {
-    id: String(item.id),
-    eventDate: formatSheetDateTime(String(item.eventDate)),
-    equipmentId: String(item.equipmentId),
-    plant: String(item.plant),
-    line: String(item.line),
-    beltCode: String(item.beltCode),
-    scaleName: String(item.scaleName),
-    result: String(item.result),
-    finalErrorPct: toFiniteNumber(item.finalErrorPct),
-    tolerancePct: toFiniteNumber(item.tolerancePct),
-    withinTolerance: Boolean(item.withinTolerance),
-    finalExternalWeightKg: toFiniteNumber(item.finalExternalWeightKg),
-    finalBeltWeightKg: toFiniteNumber(item.finalBeltWeightKg),
-    finalFactor: toFiniteNumber(item.finalFactor),
-    inspectionOk: Boolean(item.inspectionOk),
-    technician: String(item.technician),
-    diagnosisSummary: String(item.diagnosisSummary || ''),
-    notesSummary: String(item.notesSummary || ''),
-    syncedAt: formatSheetDateTime(String(item.syncedAt)),
+    id: String(event.id),
+    eventDate,
+    equipmentId: String(event.equipment_id),
+    plant: String(equipment.plant || ''),
+    line: String(equipment.line || ''),
+    beltCode: String(equipment.belt_code || ''),
+    scaleName: String(equipment.scale_name || ''),
+    result: status,
+    finalErrorPct: errorPct,
+    tolerancePct,
+    withinTolerance: Math.abs(errorPct) <= tolerancePct,
+    finalExternalWeightKg: toFiniteNumber(materialValidation.externalWeightKg),
+    finalBeltWeightKg: toFiniteNumber(materialValidation.beltWeightKg),
+    finalFactor: toFiniteNumber(finalAdjustment.factorAfter),
+    inspectionOk,
+    technician: String((event.approval as Record<string, unknown>)?.technician || ''),
+    diagnosisSummary: String(event.diagnosis || ''),
+    notesSummary: String(event.notes || ''),
+    syncedAt,
   }
+}
+
+function getMaterialOutcome(materialValidation: Record<string, unknown>, errorPct: number, tolerancePct: number) {
+  const outcome = String(materialValidation.outcome || '')
+  if (outcome === 'control_conforme') return 'Control conforme'
+  if (outcome === 'calibrada_ajustada') return 'Calibrada'
+  if (outcome === 'fuera_tolerancia') return 'Fuera de tolerancia'
+  if (outcome === 'ajuste_sin_verificacion') return 'Ajuste sin verificacion'
+  if (Math.abs(errorPct) <= tolerancePct) return 'Control conforme'
+  return 'Fuera de tolerancia'
 }
 
 function formatSheetDateTime(value: string) {

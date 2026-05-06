@@ -789,40 +789,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
 </html>`
 }
 
-function buildSheetsEventPayload(item: CalibrationEvent, equipmentItem: Equipment): SheetsEventPayload {
-  const materialSummary = getEventMaterialOutcome(item)
-  const finalPass = materialSummary.finalPass
-  const inspectionOk =
-    item.precheck.beltEmpty &&
-    item.precheck.beltClean &&
-    item.precheck.noMaterialBuildup &&
-    item.precheck.idlersOk &&
-    item.precheck.structureOk &&
-    item.precheck.speedSensorOk
-  const syncedAt = formatSheetsDateTime(new Date())
-
+function buildSheetsEventPayload(item: CalibrationEvent): SheetsEventPayload {
   return {
-    event: {
-      id: item.id,
-      eventDate: formatSheetsDateTime(item.eventDate),
-      equipmentId: item.equipmentId,
-      plant: equipmentItem.plant,
-      line: equipmentItem.line,
-      beltCode: equipmentItem.beltCode,
-      scaleName: equipmentItem.scaleName,
-      result: materialSummary.status,
-      finalErrorPct: round(materialSummary.errorPct),
-      tolerancePct: item.tolerancePercent,
-      withinTolerance: statusClass(materialSummary.status) !== 'danger',
-      finalExternalWeightKg: finalPass?.externalWeightKg || item.materialValidation.externalWeightKg || 0,
-      finalBeltWeightKg: finalPass?.beltWeightKg || item.materialValidation.beltWeightKg || 0,
-      finalFactor: item.finalAdjustment.factorAfter,
-      inspectionOk,
-      technician: item.approval.technician,
-      diagnosisSummary: item.diagnosis,
-      notesSummary: item.notes,
-      syncedAt,
-    },
+    eventId: item.id,
   }
 }
 
@@ -2047,7 +2016,7 @@ function App() {
 
       if (result.source === 'supabase') {
         try {
-          const payload = buildSheetsEventPayload(record, selectedEquipment)
+          const payload = buildSheetsEventPayload(record)
           const sheetsResult = await syncCalibrationEventToSheets(payload)
           const syncValues = {
             syncStatus: 'sincronizado' as const,

@@ -27,7 +27,7 @@ export type SheetsEventSummary = {
 
 export type SheetsUpsertEventPayload = {
   action?: 'upsert_event'
-  event: SheetsEventSummary
+  eventId: string
 }
 
 export type SheetsDeleteEventPayload = {
