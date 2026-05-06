@@ -1,3 +1,5 @@
+export const DEFAULT_CHECK_INTERVAL_DAYS = 30
+
 export type SpeedSource = 'automatica' | 'calculada' | 'rpm'
 export type SyncStatus = 'pendiente' | 'sincronizado' | 'error'
 
@@ -18,6 +20,7 @@ export type Equipment = {
   rpmRollDiameterMm: number
   calibrationFactorCurrent: number
   adjustmentFactorCurrent: number
+  checkIntervalDays: number
   totalizerUnit: string
   photoPath: string
   notes: string

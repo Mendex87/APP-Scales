@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.7 - Vencimientos por frecuencia de control
+
+- Se agrego frecuencia de control en dias por balanza, con valor default de 30 dias.
+- El dashboard ahora calcula controles vencidos, proximos a vencer y balanzas al dia segun el ultimo evento valido.
+- La cola de accion prioriza desvio abierto, control vencido, control proximo y equipos sin historial.
+- La implementacion preview guarda la frecuencia de forma compatible sin requerir migracion inmediata de Supabase.
+
 ## v2.0.6 - Pulido frontend operativo
 
 - Se agrego un bloque de pulso operativo en dashboard con salud del parque, ultimo evento, fuente de datos y modo de uso.

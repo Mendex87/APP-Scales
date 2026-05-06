@@ -33,6 +33,7 @@ import {
 import type { SheetsEventPayload } from './repository'
 import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
+import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
 import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, SpeedSource } from './types'
 import {
   computePercentError,
@@ -77,7 +78,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.6'
+const APP_VERSION = 'v2.0.7'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -96,6 +97,7 @@ const defaultEquipmentForm = {
   rpmRollDiameterMm: '',
   calibrationFactorCurrent: '',
   adjustmentFactorCurrent: '1',
+  checkIntervalDays: String(DEFAULT_CHECK_INTERVAL_DAYS),
   totalizerUnit: 'tn',
   photoPath: '',
   notes: '',
@@ -259,6 +261,144 @@ function getEventMaterialOutcome(item: CalibrationEvent) {
     outcome,
     passes,
     status: outcomeLabel(outcome),
+  }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const DUE_SOON_DAYS = 7
+
+type MaintenanceStatus = 'out_of_tolerance' | 'overdue' | 'due_soon' | 'ok' | 'no_history'
+
+type EquipmentMaintenance = {
+  status: MaintenanceStatus
+  label: string
+  rowClass: 'danger' | 'warning' | 'success' | 'neutral'
+  priorityRank: number
+  action: string
+  detail: string
+  lastValidDateText: string
+  nextDueDateText: string
+  daysRemaining: number | null
+  daysText: string
+}
+
+function dateOnly(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+}
+
+function addDays(value: string, days: number) {
+  const date = new Date(value)
+  date.setDate(date.getDate() + days)
+  return date
+}
+
+function formatDateOnly(value: Date) {
+  return value.toLocaleDateString('es-AR')
+}
+
+function getEquipmentMaintenance(item: Equipment, equipmentEvents: CalibrationEvent[], today = new Date()): EquipmentMaintenance {
+  const sortedEvents = equipmentEvents
+    .slice()
+    .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
+  const lastEvent = sortedEvents[0]
+  const intervalDays = Number.isFinite(item.checkIntervalDays) && item.checkIntervalDays > 0
+    ? Math.round(item.checkIntervalDays)
+    : DEFAULT_CHECK_INTERVAL_DAYS
+
+  if (!lastEvent) {
+    return {
+      status: 'no_history',
+      label: 'Sin historial',
+      rowClass: 'warning',
+      priorityRank: 3,
+      action: 'Primera calibracion',
+      detail: `Sin control registrado · frecuencia ${intervalDays} dias`,
+      lastValidDateText: '-',
+      nextDueDateText: 'Pendiente',
+      daysRemaining: null,
+      daysText: 'Pendiente',
+    }
+  }
+
+  const lastOutcome = getEventMaterialOutcome(lastEvent)
+  if (statusClass(lastOutcome.status) === 'danger') {
+    return {
+      status: 'out_of_tolerance',
+      label: 'Fuera de tolerancia',
+      rowClass: 'danger',
+      priorityRank: 0,
+      action: 'Revisar desvio',
+      detail: `Ultimo error ${lastOutcome.errorPct} % · ${formatDateTime(lastEvent.eventDate)}`,
+      lastValidDateText: '-',
+      nextDueDateText: 'Bloqueado',
+      daysRemaining: null,
+      daysText: 'Requiere accion',
+    }
+  }
+
+  const lastValidEvent = sortedEvents.find((eventItem) => statusClass(getEventMaterialOutcome(eventItem).status) === 'success')
+  if (!lastValidEvent) {
+    return {
+      status: 'no_history',
+      label: 'Sin control valido',
+      rowClass: 'warning',
+      priorityRank: 3,
+      action: 'Registrar control',
+      detail: `No hay control conforme o calibracion valida · frecuencia ${intervalDays} dias`,
+      lastValidDateText: '-',
+      nextDueDateText: 'Pendiente',
+      daysRemaining: null,
+      daysText: 'Pendiente',
+    }
+  }
+
+  const dueDate = addDays(lastValidEvent.eventDate, intervalDays)
+  const daysRemaining = Math.ceil((dateOnly(dueDate).getTime() - dateOnly(today).getTime()) / DAY_MS)
+  const lastValidDateText = formatDateOnly(new Date(lastValidEvent.eventDate))
+  const nextDueDateText = formatDateOnly(dueDate)
+
+  if (daysRemaining < 0) {
+    const overdueDays = Math.abs(daysRemaining)
+    return {
+      status: 'overdue',
+      label: 'Control vencido',
+      rowClass: 'danger',
+      priorityRank: 1,
+      action: 'Control vencido',
+      detail: `Vencio hace ${overdueDays} dia${overdueDays === 1 ? '' : 's'} · ultimo valido ${lastValidDateText}`,
+      lastValidDateText,
+      nextDueDateText,
+      daysRemaining,
+      daysText: `${overdueDays} dia${overdueDays === 1 ? '' : 's'} vencido`,
+    }
+  }
+
+  if (daysRemaining <= DUE_SOON_DAYS) {
+    return {
+      status: 'due_soon',
+      label: daysRemaining === 0 ? 'Vence hoy' : 'Vence pronto',
+      rowClass: 'warning',
+      priorityRank: 2,
+      action: daysRemaining === 0 ? 'Control hoy' : 'Programar control',
+      detail: daysRemaining === 0 ? `Vence hoy · ultimo valido ${lastValidDateText}` : `Vence en ${daysRemaining} dias · ultimo valido ${lastValidDateText}`,
+      lastValidDateText,
+      nextDueDateText,
+      daysRemaining,
+      daysText: daysRemaining === 0 ? 'Hoy' : `${daysRemaining} dias`,
+    }
+  }
+
+  return {
+    status: 'ok',
+    label: 'Al dia',
+    rowClass: 'success',
+    priorityRank: 4,
+    action: 'Seguimiento normal',
+    detail: `Proximo control ${nextDueDateText} · ${daysRemaining} dias restantes`,
+    lastValidDateText,
+    nextDueDateText,
+    daysRemaining,
+    daysText: `${daysRemaining} dias`,
   }
 }
 
@@ -971,10 +1111,10 @@ function App() {
 
   const equipmentWithLastEvent = useMemo(() => {
     return equipment.map((item) => {
-      const lastEvent = events
-        .filter((eventItem) => eventItem.equipmentId === item.id)
+      const equipmentEvents = events.filter((eventItem) => eventItem.equipmentId === item.id)
+      const lastEvent = equipmentEvents
         .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())[0]
-      return { item, lastEvent }
+      return { item, lastEvent, maintenance: getEquipmentMaintenance(item, equipmentEvents) }
     })
   }, [equipment, events])
 
@@ -1049,19 +1189,26 @@ function App() {
     const now = new Date()
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     const withoutHistory = equipmentWithLastEvent.filter(({ lastEvent }) => !lastEvent).length
+    const overdue = equipmentWithLastEvent.filter(({ maintenance }) => maintenance.status === 'overdue').length
+    const dueSoon = equipmentWithLastEvent.filter(({ maintenance }) => maintenance.status === 'due_soon').length
+    const upToDate = equipmentWithLastEvent.filter(({ maintenance }) => maintenance.status === 'ok').length
     const conform = events.filter((item) => getEventMaterialOutcome(item).outcome === 'control_conforme').length
     const calibrated = events.filter((item) => getEventMaterialOutcome(item).outcome === 'calibrada_ajustada').length
     const monthEvents = events.filter((item) => item.eventDate.slice(0, 7) === currentMonth).length
     const nextAction = outOfToleranceCount > 0
       ? 'Revisar equipos fuera de tolerancia'
-      : withoutHistory > 0
-        ? 'Completar primera calibracion'
-        : 'Mantener controles preventivos'
-    return { withoutHistory, conform, calibrated, monthEvents, nextAction }
+      : overdue > 0
+        ? 'Atender controles vencidos'
+        : dueSoon > 0
+          ? 'Programar controles proximos'
+          : withoutHistory > 0
+            ? 'Completar primera calibracion'
+            : 'Mantener controles preventivos'
+    return { withoutHistory, overdue, dueSoon, upToDate, conform, calibrated, monthEvents, nextAction }
   }, [equipmentWithLastEvent, events, outOfToleranceCount])
 
   const fleetReadinessPercent = equipment.length
-    ? Math.max(0, Math.round(((equipment.length - dashboardStats.withoutHistory - outOfToleranceCount) / equipment.length) * 100))
+    ? Math.max(0, Math.round((dashboardStats.upToDate / equipment.length) * 100))
     : 0
 
   const latestEvent = useMemo(() => {
@@ -1072,28 +1219,26 @@ function App() {
 
   const priorityEquipment = useMemo(() => {
     return equipmentWithLastEvent
-      .map(({ item, lastEvent }) => {
-        const materialSummary = lastEvent ? getEventMaterialOutcome(lastEvent) : null
-        const statusText = materialSummary?.status || 'Sin calibraciones'
-        const statusKey = statusClass(statusText)
-        const rank = statusKey === 'danger' ? 0 : !lastEvent ? 1 : statusKey === 'warning' ? 2 : 3
-        const action = statusKey === 'danger'
-          ? 'Revisar desvio'
-          : !lastEvent
-            ? 'Primera calibracion'
-            : statusKey === 'warning'
-              ? 'Completar control'
-              : 'Seguimiento normal'
-        const detail = lastEvent && materialSummary
-          ? `Ultimo error ${materialSummary.errorPct} % · ${formatDateTime(lastEvent.eventDate)}`
-          : 'Sin historial registrado para esta balanza'
-
-        return { item, lastEvent, statusText, statusKey, rank, action, detail }
+      .map(({ item, lastEvent, maintenance }) => {
+        return {
+          item,
+          lastEvent,
+          maintenance,
+          statusText: maintenance.label,
+          statusKey: maintenance.rowClass,
+          rank: maintenance.priorityRank,
+          action: maintenance.action,
+          detail: maintenance.detail,
+        }
       })
-      .filter((row) => row.rank < 3)
+      .filter((row) => row.rank < 4)
       .sort((a, b) => a.rank - b.rank || `${a.item.plant}${a.item.line}${a.item.beltCode}`.localeCompare(`${b.item.plant}${b.item.line}${b.item.beltCode}`))
       .slice(0, 4)
   }, [equipmentWithLastEvent])
+
+  const selectedEquipmentMaintenance = selectedEquipment
+    ? getEquipmentMaintenance(selectedEquipment, events.filter((item) => item.equipmentId === selectedEquipment.id))
+    : null
 
   const precheckPassed = useMemo(
     () =>
@@ -1122,6 +1267,7 @@ function App() {
     if (!equipmentForm.controllerModel.trim()) issues.push('Falta modelo de controlador.')
     if (!(toNumber(equipmentForm.bridgeLengthM) > 0)) issues.push('La distancia de puente debe ser mayor a 0.')
     if (!(toNumber(equipmentForm.nominalSpeedMs) > 0)) issues.push('La velocidad nominal debe ser mayor a 0.')
+    if (!(toNumber(equipmentForm.checkIntervalDays) > 0)) issues.push('La frecuencia de control debe ser mayor a 0 dias.')
     return issues
   }, [equipmentForm])
 
@@ -1179,7 +1325,7 @@ function App() {
 
   const wizardReadinessPercent = Math.round((calibrationStepStates.filter(({ complete }) => complete).length / calibrationSteps.length) * 100)
   const wizardStepCue = [
-    selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}.` : 'Selecciona una balanza para iniciar el circuito.',
+    selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}. ${selectedEquipmentMaintenance?.detail || ''}` : 'Selecciona una balanza para iniciar el circuito.',
     precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
     eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
     eventForm.calibrationFactor || eventForm.zeroValue || eventForm.spanValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
@@ -1526,6 +1672,7 @@ function App() {
       rpmRollDiameterMm: String(item.rpmRollDiameterMm || ''),
       calibrationFactorCurrent: String(item.calibrationFactorCurrent || ''),
       adjustmentFactorCurrent: String(item.adjustmentFactorCurrent || 1),
+      checkIntervalDays: String(item.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS),
       totalizerUnit: item.totalizerUnit || 'tn',
       photoPath: item.photoPath || '',
       notes: item.notes,
@@ -1670,6 +1817,7 @@ function App() {
         rpmRollDiameterMm: toNumber(equipmentForm.rpmRollDiameterMm) || 0,
         calibrationFactorCurrent: toNumber(equipmentForm.calibrationFactorCurrent) || 0,
         adjustmentFactorCurrent: toNumber(equipmentForm.adjustmentFactorCurrent) || 1,
+        checkIntervalDays: Math.round(toNumber(equipmentForm.checkIntervalDays) || DEFAULT_CHECK_INTERVAL_DAYS),
         totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
         photoPath,
         notes: equipmentForm.notes.trim(),
@@ -2242,9 +2390,12 @@ function App() {
                 <p>{outOfToleranceCount > 0 ? 'Hay eventos que requieren seguimiento.' : 'El parque no muestra desvíos abiertos según el historial cargado.'}</p>
               </div>
               <Metric label="Balanzas" value={String(equipment.length)} />
+              <Metric label="Vencidos" value={String(dashboardStats.overdue)} />
+              <Metric label="Vencen pronto" value={String(dashboardStats.dueSoon)} />
               <Metric label="Sin historial" value={String(dashboardStats.withoutHistory)} />
               <Metric label="Eventos del mes" value={String(dashboardStats.monthEvents)} />
               <Metric label="Fuera tolerancia" value={String(outOfToleranceCount)} />
+              <Metric label="Al dia" value={String(dashboardStats.upToDate)} />
               <Metric label="Controles conformes" value={String(dashboardStats.conform)} />
               <Metric label="Calibradas" value={String(dashboardStats.calibrated)} />
             </div>
@@ -2256,7 +2407,7 @@ function App() {
                   <p className="hint">Lectura ejecutiva del parque sin duplicar el detalle tecnico del historial.</p>
                 </div>
                 <div className="readiness-score" style={{ '--readiness': `${fleetReadinessPercent}%` } as CSSProperties}>
-                  <span>Parque sin desvio abierto</span>
+                  <span>Controles al dia</span>
                   <strong>{fleetReadinessPercent}%</strong>
                   <i aria-hidden="true"><b /></i>
                 </div>
@@ -2271,7 +2422,7 @@ function App() {
                   <div>
                     <span className="section-kicker">Prioridad</span>
                     <h2>{priorityEquipment.length > 0 ? 'Cola de accion' : 'Sin prioridades abiertas'}</h2>
-                    <p className="hint">{priorityEquipment.length > 0 ? 'Solo se muestran desvios, primeras calibraciones pendientes o controles a completar.' : 'Los equipos en seguimiento normal no se listan como alerta.'}</p>
+                    <p className="hint">{priorityEquipment.length > 0 ? 'Se muestran desvios, vencidos, proximos a vencer o sin historial.' : 'Los equipos al dia no se listan como alerta.'}</p>
                   </div>
                 </div>
                 <div className="priority-list compact-top">
@@ -2303,7 +2454,7 @@ function App() {
                       </button>
                     </div>
                   ))}
-                  {priorityEquipment.length === 0 && <div className="empty-state success-state">Parque sin desvios abiertos segun el ultimo estado registrado.</div>}
+                  {priorityEquipment.length === 0 && <div className="empty-state success-state">Parque al dia segun frecuencia de control configurada.</div>}
                 </div>
               </div>
             </div>
@@ -2320,17 +2471,17 @@ function App() {
               </div>
             </div>
             {canReview && <div className="stack">
-              {equipmentWithLastEvent.slice(0, 4).map(({ item, lastEvent }) => {
-                const statusText = lastEvent ? getEventMaterialOutcome(lastEvent).status : 'Sin calibraciones'
+              {equipmentWithLastEvent.slice(0, 4).map(({ item, lastEvent, maintenance }) => {
+                const statusText = maintenance.label
                 return (
-                  <div className={`card equipment-card status-${statusClass(statusText)}`} key={item.id}>
+                  <div className={`card equipment-card status-${maintenance.rowClass}`} key={item.id}>
                     <div className="equipment-card-header">
                       <div className="equipment-card-head">
                         <EquipmentPhoto photoUrl={getEquipmentPhotoUrl(item.photoPath)} label={item.scaleName} status={statusText} compact onOpen={() => openEquipmentPhoto(item)} />
                         <div>
                           <span className="section-kicker">{statusText}</span>
                           <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
-                          <p className="hint">{lastEvent ? `Ultimo error: ${getEventMaterialOutcome(lastEvent).errorPct} %` : 'Requiere primera carga/calibracion.'}</p>
+                          <p className="hint">{lastEvent ? maintenance.detail : 'Requiere primera carga/calibracion.'}</p>
                         </div>
                       </div>
                       <div className="equipment-card-actions row compact-actions">
@@ -2379,6 +2530,7 @@ function App() {
                   <Field label="Velocidad nominal (m/s)" type="number" value={equipmentForm.nominalSpeedMs} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalSpeedMs: value }))} />
                   <Field label="Factor calibracion actual" type="number" value={equipmentForm.calibrationFactorCurrent} onChange={(value) => setEquipmentForm((current) => ({ ...current, calibrationFactorCurrent: value }))} />
                   <Field label="Factor ajuste actual" type="number" value={equipmentForm.adjustmentFactorCurrent} onChange={(value) => setEquipmentForm((current) => ({ ...current, adjustmentFactorCurrent: value }))} />
+                  <Field label="Frecuencia control (dias)" type="number" value={equipmentForm.checkIntervalDays} onChange={(value) => setEquipmentForm((current) => ({ ...current, checkIntervalDays: value }))} />
                   <div>
                     <label className="label">Origen velocidad</label>
                     <select className="input" value={equipmentForm.speedSource} onChange={(e) => setEquipmentForm((current) => ({ ...current, speedSource: e.target.value as SpeedSource }))}>
@@ -2479,12 +2631,10 @@ function App() {
             </CollapsibleCard>
 
             <div className="stack">
-              {equipmentWithLastEvent.map(({ item, lastEvent }) => {
-                const statusText = lastEvent
-                  ? getEventMaterialOutcome(lastEvent).status
-                  : 'Sin calibraciones'
+              {equipmentWithLastEvent.map(({ item, lastEvent, maintenance }) => {
+                const statusText = maintenance.label
                 return (
-                  <div className={`card equipment-card status-${statusClass(statusText)}`} key={item.id}>
+                  <div className={`card equipment-card status-${maintenance.rowClass}`} key={item.id}>
                     <div className="equipment-card-header">
                       <div className="equipment-card-head">
                         <EquipmentPhoto
@@ -2509,7 +2659,10 @@ function App() {
                     <div className="grid four compact-top">
                       <Metric label="Ultimo factor" value={lastEvent ? String(lastEvent.finalAdjustment.factorAfter) : '-'} />
                       <Metric label="Factor ajuste" value={String(item.adjustmentFactorCurrent || 1)} />
-                      <Metric label="Ultima calibracion" value={lastEvent ? formatDateTime(lastEvent.eventDate) : '-'} />
+                      <Metric label="Ultimo control valido" value={maintenance.lastValidDateText} />
+                      <Metric label="Proximo control" value={maintenance.nextDueDateText} />
+                      <Metric label="Dias restantes" value={maintenance.daysText} />
+                      <Metric label="Frecuencia" value={`${item.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
                       <Metric label="Ultimo error" value={lastEvent ? `${lastEvent.materialValidation.errorPct} %` : '-'} />
                       <Metric label="Estado" value={statusText} />
                     </div>
@@ -2563,6 +2716,8 @@ function App() {
                 <Metric label="Cadena" value={selectedChain ? selectedChain.name : requiresFullCalibration ? 'Pendiente' : 'No requerida'} />
                 <Metric label="Tolerancia" value={`${eventForm.tolerancePercent || 1} %`} />
                 <Metric label="Estado previo" value={selectedEquipmentStatus} />
+                <Metric label="Control" value={selectedEquipmentMaintenance?.label || '-'} />
+                <Metric label="Proximo" value={selectedEquipmentMaintenance?.nextDueDateText || '-'} />
               </div>
               <div className="wizard-guidance compact-top">
                 <div>
@@ -2591,7 +2746,7 @@ function App() {
                   <EquipmentPhoto
                     photoUrl={getEquipmentPhotoUrl(selectedEquipment.photoPath)}
                     label={selectedEquipment.scaleName}
-                    status={selectedEquipmentStatus}
+                    status={selectedEquipmentMaintenance?.label || selectedEquipmentStatus}
                     onOpen={() => openEquipmentPhoto(selectedEquipment)}
                   />
                   <div className="grid four">
@@ -2599,6 +2754,8 @@ function App() {
                     <Metric label="Velocidad" value={`${selectedEquipment.nominalSpeedMs} m/s`} />
                     <Metric label="Capacidad" value={`${selectedEquipment.nominalCapacityTph} t/h`} />
                     <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
+                    <Metric label="Frecuencia control" value={`${selectedEquipment.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
+                    <Metric label="Dias restantes" value={selectedEquipmentMaintenance?.daysText || '-'} />
                   </div>
                 </div>
               )}

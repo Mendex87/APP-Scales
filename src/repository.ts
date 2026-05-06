@@ -1,5 +1,6 @@
 import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
+import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
 import type { CalibrationEvent, Chain, Equipment, SyncStatus } from './types'
 
 export type SheetsEventSummary = {
@@ -183,6 +184,8 @@ export async function saveEquipmentRecord(item: Equipment) {
   return { source: 'supabase' as const }
 }
 
+const CHECK_INTERVAL_NOTE_PATTERN = /(?:\r?\n)?\[calibracinta:check_interval_days=(\d+)\]\s*/i
+
 export async function deleteEquipmentRecord(equipmentId: string) {
   if (!isSupabaseConfigured || !supabase) {
     saveEquipment(loadEquipment().filter((item) => item.id !== equipmentId))
@@ -333,7 +336,24 @@ function toError(value: unknown) {
   return new Error(String(value || 'Error desconocido'))
 }
 
+function parseEquipmentNotes(notes: string) {
+  const match = notes.match(CHECK_INTERVAL_NOTE_PATTERN)
+  const parsedDays = Number(match?.[1])
+  return {
+    notes: notes.replace(CHECK_INTERVAL_NOTE_PATTERN, '').trim(),
+    checkIntervalDays: Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : DEFAULT_CHECK_INTERVAL_DAYS,
+  }
+}
+
+function serializeEquipmentNotes(notes: string, checkIntervalDays: number) {
+  const cleanNotes = notes.replace(CHECK_INTERVAL_NOTE_PATTERN, '').trim()
+  const days = Number.isFinite(checkIntervalDays) && checkIntervalDays > 0 ? Math.round(checkIntervalDays) : DEFAULT_CHECK_INTERVAL_DAYS
+  const marker = `[calibracinta:check_interval_days=${days}]`
+  return cleanNotes ? `${cleanNotes}\n${marker}` : marker
+}
+
 function mapEquipmentRow(row: EquipmentRow): Equipment {
+  const parsedNotes = parseEquipmentNotes(row.notes || '')
   return {
     id: row.id,
     plant: row.plant,
@@ -351,9 +371,10 @@ function mapEquipmentRow(row: EquipmentRow): Equipment {
     rpmRollDiameterMm: row.rpm_roll_diameter_mm,
     calibrationFactorCurrent: row.calibration_factor_current,
     adjustmentFactorCurrent: row.adjustment_factor_current,
+    checkIntervalDays: parsedNotes.checkIntervalDays,
     totalizerUnit: row.totalizer_unit,
     photoPath: row.photo_path || '',
-    notes: row.notes,
+    notes: parsedNotes.notes,
     createdAt: row.created_at,
   }
 }
@@ -378,7 +399,7 @@ function toEquipmentRow(item: Equipment): EquipmentRow {
     adjustment_factor_current: item.adjustmentFactorCurrent,
     totalizer_unit: item.totalizerUnit,
     photo_path: item.photoPath || '',
-    notes: item.notes,
+    notes: serializeEquipmentNotes(item.notes, item.checkIntervalDays),
     created_at: item.createdAt,
   }
 }

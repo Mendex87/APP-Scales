@@ -1,3 +1,4 @@
+import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
 import type { CalibrationEvent, Chain, Equipment } from './types'
 
 const EQUIPMENT_KEY = 'balanzas-equipment-v2'
@@ -16,7 +17,7 @@ function parseStorage<T>(key: string, fallback: T): T {
 }
 
 export function loadEquipment(): Equipment[] {
-  return parseStorage<Equipment[]>(EQUIPMENT_KEY, [])
+  return parseStorage<Equipment[]>(EQUIPMENT_KEY, []).map(normalizeEquipment)
 }
 
 export function saveEquipment(items: Equipment[]) {
@@ -37,4 +38,13 @@ export function loadEvents(): CalibrationEvent[] {
 
 export function saveEvents(items: CalibrationEvent[]) {
   localStorage.setItem(EVENTS_KEY, JSON.stringify(items))
+}
+
+function normalizeEquipment(item: Equipment): Equipment {
+  return {
+    ...item,
+    checkIntervalDays: Number.isFinite(item.checkIntervalDays) && item.checkIntervalDays > 0
+      ? item.checkIntervalDays
+      : DEFAULT_CHECK_INTERVAL_DAYS,
+  }
 }

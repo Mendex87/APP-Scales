@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.7 - Vencimientos por frecuencia de control
+
+- Contexto: la preview del frontend necesitaba priorizar mantenimiento/chequeo de calibraciones por dias, no solo por estado de tolerancia.
+- Cambio: se agrego frecuencia de control en dias por balanza con default de 30 dias.
+- Cambio: el dashboard calcula vencidos, proximos a vencer, sin historial y al dia usando el ultimo evento valido (`Control conforme` o `Calibrada`).
+- Cambio: si el ultimo evento esta fuera de tolerancia, ese estado tiene prioridad sobre el calendario.
+- Decision preview: para no bloquear la prueba con una migracion de Supabase, la frecuencia se serializa en `notes` con un marcador interno y se muestra limpia en la UI.
+- Pendiente si se aprueba: migrar a columna real `check_interval_days` en `equipments` y ajustar schema antes de pasar a produccion.
+- Verificacion requerida: correr `npm run build`, editar frecuencia de una balanza y revisar dashboard/listado/wizard con controles vencidos/proximos.
+
 ## 2026-05-05 - v2.0.6 - Pulido frontend operativo
 
 - Contexto: la app ya tenia el flujo estable, pero el dashboard y el wizard podian presentar mejor la prioridad operativa para uso profesional.
