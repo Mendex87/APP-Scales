@@ -1407,23 +1407,26 @@ body::before {
 
 .topbar-actions {
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(3, minmax(8.4rem, max-content));
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
+  justify-items: stretch;
+  gap: 0.55rem;
 }
 
 .topbar-actions .chip,
 .topbar-actions .secondary.small {
-  min-width: 6rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .topbar-actions .secondary.small {
-  box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08);
+  border-color: var(--color-orange-dark);
+  box-shadow: inset 0 0 0 1px rgba(255, 89, 73, 0.16);
 }
 
 .topbar-actions .theme-toggle {
-  min-width: 8.2rem;
+  min-width: 0;
 }
 
 .hero-strip {
@@ -1906,6 +1909,43 @@ body::before {
 .secondary.danger:hover:enabled {
   color: var(--color-white);
   border-color: var(--color-error);
+}
+
+:root[data-theme='dark'] .secondary.danger {
+  background-color: rgba(255, 107, 94, 0.1);
+  background-image: linear-gradient(105deg, rgba(255, 107, 94, 0.12) 0 50%, var(--color-error) 50% 100%);
+  color: var(--state-error-text);
+  border-color: rgba(255, 107, 94, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 94, 0.16);
+}
+
+:root[data-theme='dark'] .secondary.danger:hover:enabled {
+  color: #08080b;
+  border-color: var(--color-error);
+}
+
+:root[data-theme='dark'] .primary,
+:root[data-theme='dark'] .secondary,
+:root[data-theme='dark'] .nav-item,
+:root[data-theme='dark'] .wizard-step,
+:root[data-theme='dark'] .collapsible-indicator,
+:root[data-theme='dark'] .inline-details summary,
+:root[data-theme='dark'] .equipment-photo {
+  border-color: var(--color-orange-dark);
+  box-shadow: inset 0 0 0 1px rgba(255, 89, 73, 0.18);
+}
+
+:root[data-theme='dark'] .secondary.danger {
+  border-color: var(--color-orange-dark);
+}
+
+:root[data-theme='dark'] .primary:hover:enabled,
+:root[data-theme='dark'] .secondary:hover:enabled,
+:root[data-theme='dark'] .nav-item:hover,
+:root[data-theme='dark'] .wizard-step:hover,
+:root[data-theme='dark'] .equipment-photo:not(:disabled):hover {
+  border-color: var(--color-orange);
+  box-shadow: 0 0.85rem 1.6rem rgba(255, 89, 73, 0.16), inset 0 0 0 1px rgba(255, 89, 73, 0.22);
 }
 
 .primary:active:enabled,

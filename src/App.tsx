@@ -2300,7 +2300,6 @@ function App() {
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">
-          <div className="brand-kicker">Control Metrologico Industrial</div>
           <h1>Balanzas Dinamicas</h1>
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
         </div>
