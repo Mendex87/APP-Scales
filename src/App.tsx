@@ -864,6 +864,7 @@ function App() {
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
+  const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -1082,8 +1083,10 @@ function App() {
   useEffect(() => {
     if (screen !== 'nueva') return
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const isMobile = window.matchMedia('(max-width: 640px)').matches
     window.requestAnimationFrame(() => {
-      document.querySelector('.wizard-panel')?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
+      const target = isMobile ? calibrationStepAnchorRef.current : document.querySelector('.wizard-panel')
+      target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
     })
   }, [screen, calibrationStep])
 
@@ -2816,6 +2819,7 @@ function App() {
                 <small>{eventBlockingIssues.length === 0 ? 'Sin bloqueos de cierre.' : `${eventBlockingIssues.length} bloqueo(s) antes de cerrar.`}</small>
               </div>
             </div>
+            <div ref={calibrationStepAnchorRef} className="calibration-step-anchor" aria-hidden="true" />
 
             {calibrationStep === 0 && <>
             <div className="card">

@@ -1878,6 +1878,10 @@ body::before {
   scroll-margin-top: 1rem;
 }
 
+.calibration-step-anchor {
+  scroll-margin-top: 0.75rem;
+}
+
 .field-shell {
   min-width: 0;
 }
