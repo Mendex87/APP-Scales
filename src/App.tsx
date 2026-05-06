@@ -77,7 +77,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.3'
+const APP_VERSION = 'v2.0.4'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1108,7 +1108,7 @@ function App() {
     if (!finalMaterialPass) issues.push('Falta una pasada completa con material real.')
     if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) issues.push('Falta el factor usado en una verificacion post-ajuste.')
     if (materialAdjustmentApplied && completeMaterialPasses.length < 2) issues.push('Si se ajusta el factor, falta una pasada posterior de verificacion.')
-    if (!(toNumber(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || materialFactorBefore)) issues.push('Falta el factor final o usado en la pasada final.')
+    if (!(toNumber(eventForm.finalFactor) > 0)) issues.push('Falta el factor de calibracion final.')
     return issues
   }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, requiresFullCalibration, selectedEquipment, suggestedFactor])
 
@@ -1678,9 +1678,7 @@ function App() {
     if (!selectedEquipment) return
 
     const factorBeforeAdjustment = materialFactorBefore
-    const factorAfterAdjustment = materialOutcome === 'control_conforme'
-      ? factorBeforeAdjustment
-      : toNumber(eventForm.finalFactor) || finalMaterialPass?.factorUsed || suggestedFactor || factorBeforeAdjustment
+    const factorAfterAdjustment = toNumber(eventForm.finalFactor)
 
     const record: CalibrationEvent = {
       id: generateEventCode(eventForm.eventDate, events),
@@ -2676,6 +2674,7 @@ function App() {
                     <strong>{currentUser.username}</strong>
                   </div>
                 </div>
+                <p className="hint compact-top">El factor final es obligatorio: debe coincidir con el factor que queda cargado en el controlador al cerrar el evento.</p>
                 <div className="pre-report compact-top">
                   <span className="section-kicker">Pre-reporte</span>
                   <div className="grid four compact-top">

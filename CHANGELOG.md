@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.4 - Factor final obligatorio
+
+- El cierre de una calibracion/control ahora exige cargar `Factor final` antes de guardar el evento.
+- El factor final guardado corresponde al valor declarado en `Ajuste final y aprobacion`, evitando cierres con valores inferidos por fallback.
+
 ## v2.0.3 - Pulido UX navegador y movil
 
 - Se mejoro la navegacion principal como barra flotante en escritorio y barra tactil segura en movil.

@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.4 - Factor final obligatorio
+
+- Contexto: el evento podia guardarse sin completar `Factor final` porque la app usaba valores de respaldo como el factor usado en la pasada, sugerido o anterior.
+- Cambio: la validacion de cierre exige `Factor final > 0` y muestra un bloqueo si falta.
+- Cambio: el valor guardado como `finalAdjustment.factorAfter` sale del campo `Factor final`, no de un fallback automatico.
+- Motivo: asegurar que el tecnico confirme explicitamente el factor que queda cargado en el controlador al cerrar el evento.
+- Verificacion requerida: intentar guardar un evento sin `Factor final`; debe aparecer el bloqueo y no debe persistirse en Supabase.
+
 ## 2026-05-05 - v2.0.3 - Pulido UX responsive
 
 - Contexto: la identidad visual estaba estable, pero la experiencia podia mejorar en navegacion, formularios largos y uso movil en campo.
