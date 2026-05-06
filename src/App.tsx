@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -2311,7 +2311,7 @@ function App() {
 
   const manualHref = '/manual/tecnico/'
 
-  const handleActionPulse = (event: PointerEvent<HTMLDivElement>) => {
+  const handleActionPulse = (event: MouseEvent<HTMLDivElement>) => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     const target = event.target instanceof Element
@@ -2388,7 +2388,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell" onPointerDownCapture={handleActionPulse}>
+    <div className="app-shell" onClickCapture={handleActionPulse}>
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">
