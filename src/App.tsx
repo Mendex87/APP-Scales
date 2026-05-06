@@ -1625,11 +1625,18 @@ function App() {
   }
 
   async function handleLogout() {
-    if (!currentUser) return
+    if (!supabase) {
+      setCurrentUser(null)
+      setScreen('dashboard')
+      setSyncNotice('Sesion cerrada.')
+      return
+    }
 
-    const userId = currentUser.id
+    // Obtener userId desde la sesión de Supabase (no desde React state)
+    const { data: sessionData } = await supabase.auth.getSession()
+    const userId = sessionData?.session?.user?.id || currentUser?.id
 
-    if (supabase) {
+    if (userId) {
       try {
         const { data: openSession } = await supabase
           .from('user_sessions')
@@ -1649,29 +1656,28 @@ function App() {
       } catch (err) {
         console.error('Error registrando logout:', err)
       }
-
-      await supabase.auth.signOut()
     }
 
+    await supabase.auth.signOut()
     setCurrentUser(null)
     setScreen('dashboard')
     setSyncNotice('Sesion cerrada.')
   }
 
-async function handleLogin(event: FormEvent) {
+  async function handleLogin(event: FormEvent) {
     event.preventDefault()
     if (!supabase) {
       setSyncNotice('Supabase Auth no esta configurado.')
       return
     }
 
+    // Limpiar cualquier sesión existente antes de intentar login
+    await supabase.auth.signOut({ scope: 'local' })
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
       password: loginPassword,
     })
-
-    // Debug: ver qué devuelve Supabase
-    console.log('Login result - error:', error, 'data.session:', !!data?.session, 'user:', data?.user?.email)
 
     if (error) {
       setSyncNotice('Usuario o contrasenia incorrectos.')
