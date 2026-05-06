@@ -85,7 +85,17 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.11'
+type SessionLog = {
+  id: string
+  user_id: string
+  username: string
+  login_at: string
+  logout_at: string | null
+  ip_address: string | null
+  user_agent: string | null
+}
+
+const APP_VERSION = 'v2.0.12'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 
@@ -846,6 +856,8 @@ function App() {
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([])
   const [userForm, setUserForm] = useState({ email: '', username: '', password: '', role: 'viewer' as UserRole })
   const [userManagementLoading, setUserManagementLoading] = useState(false)
+  const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([])
+  const [sessionsTab, setSessionsTab] = useState(false)
 
   useEffect(() => {
     saveEquipment(equipment)
@@ -1592,11 +1604,23 @@ function App() {
       return
     }
 
+    const username = data.username || session.user.email || 'Usuario'
+
     setCurrentUser({
       id: session.user.id,
       email: session.user.email || '',
-      username: data.username || session.user.email || 'Usuario',
+      username,
       role: data.role as UserRole,
+    })
+
+    const userAgent = navigator.userAgent || ''
+    const ipAddress = (session as unknown as Record<string, unknown>)?.ip || null
+    await supabase.from('user_sessions').insert({
+      user_id: session.user.id,
+      username,
+      login_at: new Date().toISOString(),
+      ip_address: ipAddress ? String(ipAddress) : null,
+      user_agent: userAgent || null,
     })
   }
 
@@ -1625,7 +1649,23 @@ function App() {
   }
 
   async function handleLogout() {
-    if (supabase) {
+    if (supabase && currentUser) {
+      const { data: openSession } = await supabase
+        .from('user_sessions')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .is('logout_at', null)
+        .order('login_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (openSession) {
+        await supabase
+          .from('user_sessions')
+          .update({ logout_at: new Date().toISOString() })
+          .eq('id', openSession.id)
+      }
+
       await supabase.auth.signOut()
     }
     setCurrentUser(null)
@@ -1881,11 +1921,14 @@ function App() {
     const factorBeforeAdjustment = materialFactorBefore
     const factorAfterAdjustment = toNumber(eventForm.finalFactor)
 
+    const isAdmin = currentUser?.role === 'admin'
+    const eventDateValue = isAdmin ? new Date(eventForm.eventDate).toISOString() : new Date().toISOString()
+
     const record: CalibrationEvent = {
-      id: generateEventCode(eventForm.eventDate, events),
+      id: generateEventCode(eventDateValue, events),
       equipmentId: selectedEquipment.id,
       createdAt: new Date().toISOString(),
-      eventDate: new Date(eventForm.eventDate).toISOString(),
+      eventDate: eventDateValue,
       tolerancePercent: toNumber(eventForm.tolerancePercent) || 1,
       precheck: {
         beltEmpty: eventForm.precheckBeltEmpty,
@@ -1973,7 +2016,7 @@ function App() {
       },
       approval: {
         technician: currentUser?.username || '',
-        approvedAt: new Date(eventForm.eventDate).toISOString(),
+        approvedAt: eventDateValue,
       },
       diagnosis: automaticDiagnosis.join(' '),
       notes: eventForm.notes.trim(),
@@ -2154,6 +2197,26 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudieron cargar los usuarios.'
       setSyncNotice(`Error de usuarios: ${message}`)
+    } finally {
+      setUserManagementLoading(false)
+    }
+  }
+
+  async function loadSessionLogs() {
+    if (!supabase || currentUser?.role !== 'admin') return
+    setUserManagementLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .order('login_at', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+      setSessionLogs((data as SessionLog[]) || [])
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudieron cargar las sesiones.'
+      setSyncNotice(`Error de sesiones: ${message}`)
     } finally {
       setUserManagementLoading(false)
     }
@@ -2878,7 +2941,7 @@ function App() {
                 <div className="card-tag">Paso 1</div>
                 <h2>Eleccion de balanza/cinta</h2>
                 <div className="grid two">
-                  <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} />
+                  <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role !== 'admin' ? 'Fecha automatica al guardar' : undefined} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
               </div>}
@@ -3346,7 +3409,7 @@ function App() {
           </section>
         )}
 
-        {screen === 'usuarios' && canManageUsers && (
+{screen === 'usuarios' && canManageUsers && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Administracion</span>
@@ -3387,7 +3450,35 @@ function App() {
                   <button className="secondary small danger" disabled={user.id === currentUser.id || userManagementLoading} onClick={() => handleDeleteUser(user)}><Trash2 className="action-icon" aria-hidden="true" />Eliminar</button>
                 </div>
               ))}
-              {managedUsers.length === 0 && <div className="result-row"><span>No hay usuarios cargados o no se cargó la lista.</span><strong>-</strong></div>}
+              {managedUsers.length === 0 && <div className="result-row"><span>No hay usuarios cargados o no se cargo la lista.</span><strong>-</strong></div>}
+            </div>
+            <div className="card stack">
+              <div className="row wrap">
+                <div>
+                  <h2>Sesiones</h2>
+                  <p className="hint">Registro de ingresos y cierres de sesion de todos los usuarios.</p>
+                </div>
+                <div className="row gap">
+                  <button className={`secondary small ${!sessionsTab ? 'primary' : ''}`} onClick={() => { setSessionsTab(false); void loadManagedUsers() }} disabled={userManagementLoading}>Usuarios</button>
+                  <button className={`secondary small ${sessionsTab ? 'primary' : ''}`} onClick={() => { setSessionsTab(true); void loadSessionLogs() }} disabled={userManagementLoading}>Sesiones</button>
+                </div>
+              </div>
+              {!sessionsTab ? null : (
+                <>
+                  {sessionLogs.map((log) => (
+                    <div className="result-row" key={log.id}>
+                      <span>
+                        <strong>{log.username || 'Desconocido'}</strong>
+                        {' - '}{log.login_at ? formatDateTime(log.login_at) : '-'}
+                        {log.logout_at ? ` -> ${formatDateTime(log.logout_at)}` : ' -> Abierta'}
+                        {log.ip_address ? ` | IP: ${log.ip_address}` : ''}
+                      </span>
+                      <span className="hint">{log.user_agent || '-'}</span>
+                    </div>
+                  ))}
+                  {sessionLogs.length === 0 && <div className="result-row"><span>No hay sesiones registradas.</span><strong>-</strong></div>}
+                </>
+              )}
             </div>
           </section>
         )}
@@ -3461,9 +3552,9 @@ function EquipmentPhoto({
   )
 }
 
-type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string }
+type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean; hint?: string }
 
-function Field({ label, value, onChange, type = 'text' }: FieldProps) {
+function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldProps) {
   const id = useId()
   const inputType = type === 'number' ? 'text' : type
   const inputMode = type === 'number' ? 'decimal' : type === 'email' ? 'email' : undefined
@@ -3473,7 +3564,8 @@ function Field({ label, value, onChange, type = 'text' }: FieldProps) {
   return (
     <div className="field-shell">
       <label className="label" htmlFor={id}>{label}</label>
-      <input id={id} className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} />
+      <input id={id} className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} disabled={disabled} />
+      {hint && <p className="hint compact-top">{hint}</p>}
     </div>
   )
 }

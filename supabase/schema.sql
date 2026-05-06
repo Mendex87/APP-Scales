@@ -46,6 +46,33 @@ alter table public.profiles
   add constraint profiles_role_check
   check (role in ('admin', 'tecnico', 'supervisor', 'viewer'));
 
+create table if not exists public.user_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  username text not null default '',
+  login_at timestamptz not null default now(),
+  logout_at timestamptz,
+  ip_address text,
+  user_agent text
+);
+
+alter table public.user_sessions enable row level security;
+
+create policy "admin read user_sessions"
+on public.user_sessions for select
+to authenticated
+using (public.current_user_role() = 'admin');
+
+create policy "authenticated insert user_sessions"
+on public.user_sessions for insert
+to authenticated
+with check (true);
+
+create policy "authenticated update user_sessions"
+on public.user_sessions for update
+to authenticated
+using (true);
+
 create table if not exists public.chains (
   id text primary key,
   plant text not null default '',

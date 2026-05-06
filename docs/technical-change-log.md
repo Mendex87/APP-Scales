@@ -2,6 +2,18 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-06 - v2.0.12 - Fecha automatica y registro de sesiones
+
+- Contexto: los tecnicos pueden generar eventos con fecha anterior o posterior a lareal, lo cual compromete la trazabilidad historica. Ademas, no habia forma de auditar quienes acceden a la app.
+- Decision fecha: el campo `eventDate` del wizard queda `disabled` para roles `tecnico`, `supervisor` y `viewer`. En `handleEventSubmit` se usa `new Date().toISOString()` en lugar de `eventForm.eventDate` para esos roles. El admin puede seguir eligiendo fecha manualmente.
+- Decision sesiones: crear tabla `user_sessions` con `id`, `user_id`, `username`, `login_at`, `logout_at`, `ip_address`, `user_agent`. RLS permite lectura solo a admin, insercion y actualizacion a usuarios autenticados.
+- Cambio `loadAuthenticatedUser`: al cargar el perfil del usuario, se inserta un registro en `user_sessions` con los datos de login.
+- Cambio `handleLogout`: antes de cerrar sesion en Supabase Auth, se busca la sesion abierta del usuario y se actualiza `logout_at` con la hora actual.
+- Cambio UI: la seccion de Gestion de usuarios ahora tiene dos pestanas (Usuarios / Sesiones). La pestana Sesiones carga y muestra las ultimas 100 sesiones ordenadas por fecha descendente.
+- Cambio `Field`: se agregaron props `disabled` y `hint` para soportar el campo de fecha bloqueado con mensaje explicativo.
+- Sin retencion automatica: los registros de sesion se guardan indefinidamente.
+- Verificacion requerida: correr `npm run build`, ejecutar el SQL de migracion de `user_sessions`, hacer login/logout como distintos usuarios y verificar que la pestana Sesiones muestra los registros correctamente.
+
 ## 2026-05-06 - v2.0.11 - Sheets seguro
 
 - Contexto: la Edge Function `sync-sheets-event` recibia del navegador un payload armado por el cliente con todos los datos del evento. Un usuario autenticado podia manipular esos datos antes de enviarlos a Sheets.

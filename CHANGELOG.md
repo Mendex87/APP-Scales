@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.12 - Fecha automatica no-admin y sesiones (preview)
+
+- El campo de fecha/hora en el wizard de nueva calibracion queda bloqueado para roles no-admin (tecnico, supervisor, consulta); la fecha se asigna automaticamente al momento del guardado.
+- Solo el rol admin puede elegir fecha y hora manualmente en una calibracion.
+- Se creo la tabla `user_sessions` en Supabase para registrar ingresos y cierres de sesion de todos los usuarios.
+- Cada inicio de sesion registra usuario, fecha/hora, IP (si disponible) y user agent; el cierre de sesion actualiza `logout_at`.
+- La pantalla de Gestion de usuarios (solo admin) now tiene una pestana de Sesiones para ver el historial de accesos de todos los usuarios.
+- Los datos de sesion se guardan indefinidamente y solo son visibles para admins.
+
 ## v2.0.11 - Sheets seguro (preview separada)
 
 - La Edge Function `sync-sheets-event` ahora recibe solo `eventId` del cliente y consulta Supabase con service role para armar el payload oficial hacia Google Sheets.
