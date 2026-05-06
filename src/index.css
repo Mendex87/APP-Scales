@@ -45,6 +45,49 @@
   --motion-slow: 520ms;
   --ease-industrial: cubic-bezier(0.2, 0.72, 0.18, 1);
   --nav-height: 4.9rem;
+  --theme-transition-x: 50vw;
+  --theme-transition-y: 0;
+  --theme-transition-radius: 120vmax;
+}
+
+::view-transition-group(root) {
+  animation-duration: 760ms;
+  animation-timing-function: var(--ease-industrial);
+}
+
+::view-transition-image-pair(root) {
+  isolation: isolate;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 760ms;
+  animation-fill-mode: both;
+  animation-timing-function: var(--ease-industrial);
+  mix-blend-mode: normal;
+  pointer-events: none;
+}
+
+::view-transition-old(root) {
+  animation-name: theme-snapshot-recede;
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+:root[data-theme-transition]::view-transition-new(root) {
+  animation-name: theme-radial-reveal;
+}
+
+:root.theme-soft-transition,
+:root.theme-soft-transition *,
+:root.theme-soft-transition *::before,
+:root.theme-soft-transition *::after {
+  transition-duration: 520ms !important;
+  transition-property: background, background-color, border-color, box-shadow, color, filter, opacity !important;
+  transition-timing-function: var(--ease-industrial) !important;
 }
 
 :root[data-theme='dark'] {
@@ -1505,6 +1548,20 @@ body::before {
   min-width: 0;
 }
 
+:root[data-theme-transition] .theme-toggle::after {
+  content: '';
+  position: absolute;
+  inset: -38%;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle, rgba(255, 89, 73, 0.55), transparent 38%),
+    conic-gradient(from 90deg, transparent, rgba(255, 89, 73, 0.86), transparent 62%);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.72) rotate(-18deg);
+  animation: theme-toggle-burst 760ms var(--ease-industrial) both;
+}
+
 .hero-strip {
   display: grid;
   grid-template-columns: 1fr;
@@ -2928,6 +2985,12 @@ body::before {
   .public-scanline {
     display: none;
   }
+
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+  }
 }
 
 @keyframes rise-in {
@@ -3029,6 +3092,52 @@ body::before {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes theme-radial-reveal {
+  from {
+    clip-path: circle(0 at var(--theme-transition-x) var(--theme-transition-y));
+    filter: brightness(1.18) saturate(1.18);
+  }
+
+  58% {
+    filter: brightness(1.08) saturate(1.1);
+  }
+
+  to {
+    clip-path: circle(var(--theme-transition-radius) at var(--theme-transition-x) var(--theme-transition-y));
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes theme-snapshot-recede {
+  from {
+    opacity: 1;
+    filter: brightness(1) saturate(1);
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0.84;
+    filter: brightness(0.92) saturate(0.92);
+    transform: scale(1.012);
+  }
+}
+
+@keyframes theme-toggle-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.58) rotate(-20deg);
+  }
+
+  38% {
+    opacity: 0.92;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.35) rotate(22deg);
   }
 }
 

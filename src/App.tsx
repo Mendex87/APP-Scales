@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from 'react'
+import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
   ClipboardCheck,
@@ -52,6 +53,9 @@ import {
 type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 type AppTheme = 'light' | 'dark'
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (updateCallback: () => void) => { finished: Promise<void> }
+}
 
 type Toast = {
   id: string
@@ -81,7 +85,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.8'
+const APP_VERSION = 'v2.0.9'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 
@@ -2295,6 +2299,60 @@ function App() {
 
   const manualHref = '/manual/tecnico/'
 
+  const handleThemeToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    const nextTheme: AppTheme = theme === 'dark' ? 'light' : 'dark'
+    const root = document.documentElement
+    if (root.dataset.themeTransition) return
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const originX = event.clientX || centerX
+    const originY = event.clientY || centerY
+    const radius = Math.hypot(
+      Math.max(originX, window.innerWidth - originX),
+      Math.max(originY, window.innerHeight - originY),
+    ) + 48
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const transitionDocument = document as ViewTransitionDocument
+
+    const applyNextTheme = () => {
+      root.dataset.theme = nextTheme
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme)
+      flushSync(() => setTheme(nextTheme))
+    }
+
+    if (prefersReducedMotion) {
+      applyNextTheme()
+      return
+    }
+
+    const cleanup = () => {
+      delete root.dataset.themeTransition
+      root.style.removeProperty('--theme-transition-x')
+      root.style.removeProperty('--theme-transition-y')
+      root.style.removeProperty('--theme-transition-radius')
+    }
+
+    root.style.setProperty('--theme-transition-x', `${originX}px`)
+    root.style.setProperty('--theme-transition-y', `${originY}px`)
+    root.style.setProperty('--theme-transition-radius', `${radius}px`)
+    root.dataset.themeTransition = nextTheme === 'dark' ? 'to-dark' : 'to-light'
+
+    if (!transitionDocument.startViewTransition) {
+      root.classList.add('theme-soft-transition')
+      applyNextTheme()
+      window.setTimeout(() => {
+        root.classList.remove('theme-soft-transition')
+        cleanup()
+      }, 620)
+      return
+    }
+
+    const transition = transitionDocument.startViewTransition(applyNextTheme)
+    void transition.finished.then(cleanup, cleanup)
+  }
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
@@ -2312,7 +2370,7 @@ function App() {
           <button
             className="secondary small theme-toggle"
             type="button"
-            onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+            onClick={handleThemeToggle}
             aria-label={theme === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'}
           >
             {theme === 'dark' ? <Sun className="action-icon" aria-hidden="true" /> : <Moon className="action-icon" aria-hidden="true" />}
@@ -3445,4 +3503,3 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 export default App
-
