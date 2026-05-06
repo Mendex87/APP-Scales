@@ -927,11 +927,11 @@ function App() {
 
   useEffect(() => {
     if (!syncNotice) return
-    const tone: ToastTone = /^error|fallo/i.test(syncNotice)
+    const tone: ToastTone = /^error|fallo|incorrectos/i.test(syncNotice)
       ? 'error'
       : /pendiente|incompleta/i.test(syncNotice)
         ? 'warning'
-        : /ok|sincronizado|guardada|guardado|cargados/i.test(syncNotice)
+        : /ok|sincronizado|guardada|guardado|cargados|cerrada/i.test(syncNotice)
           ? 'success'
           : 'info'
 
