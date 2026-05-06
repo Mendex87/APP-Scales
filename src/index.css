@@ -45,9 +45,6 @@
   --motion-slow: 520ms;
   --ease-industrial: cubic-bezier(0.2, 0.72, 0.18, 1);
   --nav-height: 4.9rem;
-  --theme-transition-x: 50vw;
-  --theme-transition-y: 0;
-  --theme-transition-radius: 120vmax;
 }
 
 ::view-transition-group(root) {
@@ -78,7 +75,7 @@
 }
 
 :root[data-theme-transition]::view-transition-new(root) {
-  animation-name: theme-radial-reveal;
+  animation-name: theme-diagonal-plate-in;
 }
 
 :root.theme-soft-transition,
@@ -1551,15 +1548,15 @@ body::before {
 :root[data-theme-transition] .theme-toggle::after {
   content: '';
   position: absolute;
-  inset: -38%;
-  border-radius: inherit;
+  inset: -35% -55%;
+  border-radius: 0;
   background:
-    radial-gradient(circle, rgba(255, 89, 73, 0.55), transparent 38%),
-    conic-gradient(from 90deg, transparent, rgba(255, 89, 73, 0.86), transparent 62%);
+    linear-gradient(105deg, transparent 0 24%, rgba(255, 89, 73, 0.84) 24% 34%, rgba(240, 239, 235, 0.82) 34% 39%, transparent 39% 100%),
+    repeating-linear-gradient(105deg, transparent 0 7px, rgba(255, 89, 73, 0.42) 7px 9px, transparent 9px 15px);
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.72) rotate(-18deg);
-  animation: theme-toggle-burst 760ms var(--ease-industrial) both;
+  transform: translateX(-28%) skewX(-18deg);
+  animation: theme-toggle-shear 760ms var(--ease-industrial) both;
 }
 
 .hero-strip {
@@ -3095,19 +3092,22 @@ body::before {
   }
 }
 
-@keyframes theme-radial-reveal {
+@keyframes theme-diagonal-plate-in {
   from {
-    clip-path: circle(0 at var(--theme-transition-x) var(--theme-transition-y));
-    filter: brightness(1.18) saturate(1.18);
+    clip-path: polygon(118% 0, 118% 0, 100% 100%, 100% 100%);
+    filter: brightness(1.14) saturate(1.16);
+    transform: translateX(1.8rem);
   }
 
-  58% {
+  44% {
+    clip-path: polygon(38% 0, 118% 0, 100% 100%, 20% 100%);
     filter: brightness(1.08) saturate(1.1);
   }
 
   to {
-    clip-path: circle(var(--theme-transition-radius) at var(--theme-transition-x) var(--theme-transition-y));
+    clip-path: polygon(-18% 0, 118% 0, 100% 100%, -36% 100%);
     filter: brightness(1) saturate(1);
+    transform: translateX(0);
   }
 }
 
@@ -3119,25 +3119,25 @@ body::before {
   }
 
   to {
-    opacity: 0.84;
-    filter: brightness(0.92) saturate(0.92);
-    transform: scale(1.012);
+    opacity: 0.78;
+    filter: brightness(0.88) saturate(0.88);
+    transform: translateX(-0.8rem) skewX(-1.5deg) scale(1.006);
   }
 }
 
-@keyframes theme-toggle-burst {
+@keyframes theme-toggle-shear {
   0% {
     opacity: 0;
-    transform: scale(0.58) rotate(-20deg);
+    transform: translateX(-42%) skewX(-18deg);
   }
 
   38% {
-    opacity: 0.92;
+    opacity: 0.95;
   }
 
   100% {
     opacity: 0;
-    transform: scale(1.35) rotate(22deg);
+    transform: translateX(46%) skewX(-18deg);
   }
 }
 

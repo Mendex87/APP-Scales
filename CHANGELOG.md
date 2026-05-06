@@ -2,8 +2,8 @@
 
 ## v2.0.9 - Transicion de tema en preview
 
-- Se agrego una transicion radial al alternar claro/oscuro usando View Transition API cuando el navegador lo soporta.
-- El efecto nace desde el boton de tema y conserva fallback suave para navegadores sin soporte.
+- Se agrego una transicion diagonal tipo placa industrial al alternar claro/oscuro usando View Transition API cuando el navegador lo soporta.
+- El boton de tema dispara un barrido angular naranja y conserva fallback suave para navegadores sin soporte.
 - Se respeta `prefers-reduced-motion` para evitar animaciones a usuarios que pidan reducir movimiento.
 
 ## v2.0.8 - Tema oscuro en preview

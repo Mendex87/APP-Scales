@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -2299,20 +2299,11 @@ function App() {
 
   const manualHref = '/manual/tecnico/'
 
-  const handleThemeToggle = (event: MouseEvent<HTMLButtonElement>) => {
+  const handleThemeToggle = () => {
     const nextTheme: AppTheme = theme === 'dark' ? 'light' : 'dark'
     const root = document.documentElement
     if (root.dataset.themeTransition) return
 
-    const rect = event.currentTarget.getBoundingClientRect()
-    const centerX = rect.left + rect.width / 2
-    const centerY = rect.top + rect.height / 2
-    const originX = event.clientX || centerX
-    const originY = event.clientY || centerY
-    const radius = Math.hypot(
-      Math.max(originX, window.innerWidth - originX),
-      Math.max(originY, window.innerHeight - originY),
-    ) + 48
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const transitionDocument = document as ViewTransitionDocument
 
@@ -2329,14 +2320,8 @@ function App() {
 
     const cleanup = () => {
       delete root.dataset.themeTransition
-      root.style.removeProperty('--theme-transition-x')
-      root.style.removeProperty('--theme-transition-y')
-      root.style.removeProperty('--theme-transition-radius')
     }
 
-    root.style.setProperty('--theme-transition-x', `${originX}px`)
-    root.style.setProperty('--theme-transition-y', `${originY}px`)
-    root.style.setProperty('--theme-transition-radius', `${radius}px`)
     root.dataset.themeTransition = nextTheme === 'dark' ? 'to-dark' : 'to-light'
 
     if (!transitionDocument.startViewTransition) {

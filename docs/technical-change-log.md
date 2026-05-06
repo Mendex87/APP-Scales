@@ -5,7 +5,7 @@ Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y 
 ## 2026-05-06 - v2.0.9 - Transicion de tema con View Transition API
 
 - Contexto: el cambio claro/oscuro funcionaba, pero era instantaneo y visualmente brusco.
-- Decision: usar `document.startViewTransition` para animar el cambio como transicion same-document del navegador, con reveal radial desde el boton de tema.
+- Decision: usar `document.startViewTransition` para animar el cambio como transicion same-document del navegador, con un barrido diagonal tipo placa industrial en lugar de un reveal circular.
 - Fallback: si el navegador no soporta View Transition API, se aplica una transicion CSS temporal sobre color, fondo, borde y sombra.
 - Accesibilidad: si `prefers-reduced-motion: reduce` esta activo, se omite la animacion y solo se cambia el tema.
 - Verificacion requerida: correr `npm run build`, alternar claro/oscuro desde desktop y mobile, y confirmar que no haya saltos de layout.
