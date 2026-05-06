@@ -1665,21 +1665,29 @@ async function handleLogin(event: FormEvent) {
       return
     }
 
+    setSyncNotice('Verificando credenciales...')
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
       password: loginPassword,
     })
 
-    if (error || !data?.session) {
+    if (error) {
       setSyncNotice('Usuario o contrasenia incorrectos.')
+      setLoginPassword('')
       return
     }
 
-    setSyncNotice('Sesion iniciada.')
+    if (!data?.session) {
+      setSyncNotice('Error al iniciar sesion. Intenta de nuevo.')
+      return
+    }
+
     await loadAuthenticatedUser(data.session)
     setLoginEmail('')
     setLoginPassword('')
-setScreen('dashboard')
+    setSyncNotice('Sesion iniciada.')
+    setScreen('dashboard')
   }
 
   function primeEventForm(item: Equipment) {
