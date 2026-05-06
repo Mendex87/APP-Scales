@@ -860,8 +860,10 @@ function App() {
   const [theme, setTheme] = useState<AppTheme>(getInitialTheme)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
+  const [navPulseScreen, setNavPulseScreen] = useState<Screen | null>(null)
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const didMountScrollRef = useRef(false)
+  const navPulseTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -2299,6 +2301,28 @@ function App() {
 
   const manualHref = '/manual/tecnico/'
 
+  const handleNavSelect = (nextScreen: Screen) => {
+    setScreen(nextScreen)
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    if (navPulseTimeoutRef.current !== null) {
+      window.clearTimeout(navPulseTimeoutRef.current)
+    }
+
+    setNavPulseScreen(nextScreen)
+    navPulseTimeoutRef.current = window.setTimeout(() => {
+      setNavPulseScreen(null)
+      navPulseTimeoutRef.current = null
+    }, 460)
+  }
+
+  const navItemClass = (itemScreen: Screen) => [
+    'nav-item',
+    screen === itemScreen ? 'active' : '',
+    navPulseScreen === itemScreen ? 'nav-pulse' : '',
+  ].filter(Boolean).join(' ')
+
   const handleThemeToggle = () => {
     const nextTheme: AppTheme = theme === 'dark' ? 'light' : 'dark'
     const root = document.documentElement
@@ -3376,12 +3400,12 @@ function App() {
       </main>
 
       <nav className={`bottom-nav ${canManageUsers ? 'six' : canOperate ? 'five' : canReview ? 'four' : 'three'}`} aria-label="Navegacion principal">
-        <button type="button" className={screen === 'dashboard' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'dashboard' ? 'page' : undefined} onClick={() => setScreen('dashboard')}><Scale className="nav-icon" aria-hidden="true" />Inicio</button>
-        {canReview && <button type="button" className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'balanzas' ? 'page' : undefined} onClick={() => setScreen('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
-        <button type="button" className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'herramientas' ? 'page' : undefined} onClick={() => setScreen('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
-        {canOperate && <button type="button" className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'nueva' ? 'page' : undefined} onClick={() => setScreen('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
-        <button type="button" className={screen === 'historial' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'historial' ? 'page' : undefined} onClick={() => setScreen('historial')}><History className="nav-icon" aria-hidden="true" />Historial</button>
-        {canManageUsers && <button type="button" className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'usuarios' ? 'page' : undefined} onClick={() => setScreen('usuarios')}><Users className="nav-icon" aria-hidden="true" />Usuarios</button>}
+        <button type="button" className={navItemClass('dashboard')} aria-current={screen === 'dashboard' ? 'page' : undefined} onClick={() => handleNavSelect('dashboard')}><Scale className="nav-icon" aria-hidden="true" />Inicio</button>
+        {canReview && <button type="button" className={navItemClass('balanzas')} aria-current={screen === 'balanzas' ? 'page' : undefined} onClick={() => handleNavSelect('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
+        <button type="button" className={navItemClass('herramientas')} aria-current={screen === 'herramientas' ? 'page' : undefined} onClick={() => handleNavSelect('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
+        {canOperate && <button type="button" className={navItemClass('nueva')} aria-current={screen === 'nueva' ? 'page' : undefined} onClick={() => handleNavSelect('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
+        <button type="button" className={navItemClass('historial')} aria-current={screen === 'historial' ? 'page' : undefined} onClick={() => handleNavSelect('historial')}><History className="nav-icon" aria-hidden="true" />Historial</button>
+        {canManageUsers && <button type="button" className={navItemClass('usuarios')} aria-current={screen === 'usuarios' ? 'page' : undefined} onClick={() => handleNavSelect('usuarios')}><Users className="nav-icon" aria-hidden="true" />Usuarios</button>}
       </nav>
     </div>
   )
