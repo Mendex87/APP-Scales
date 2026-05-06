@@ -81,6 +81,10 @@
   --progress-track: #292631;
 }
 
+:root[data-theme='dark'] body {
+  color: var(--color-paper);
+}
+
 :root[data-theme='dark'] .card,
 :root[data-theme='dark'] .auth-card,
 :root[data-theme='dark'] .public-login,
@@ -129,9 +133,71 @@
   background: #17171d;
 }
 
+:root[data-theme='dark'] .input::placeholder {
+  color: rgba(243, 238, 231, 0.48);
+}
+
 :root[data-theme='dark'] .check-field {
   background: #17171d;
   border-color: rgba(255, 89, 73, 0.32);
+}
+
+:root[data-theme='dark'] .public-login {
+  background:
+    linear-gradient(180deg, rgba(17, 17, 22, 0.96), rgba(25, 24, 32, 0.96)),
+    repeating-linear-gradient(135deg, rgba(255, 89, 73, 0.1) 0 1px, transparent 1px 12px);
+}
+
+:root[data-theme='dark'] .public-login::before,
+:root[data-theme='dark'] .login-footnote {
+  border-color: rgba(243, 238, 231, 0.14);
+}
+
+:root[data-theme='dark'] .hint-panel strong {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .wizard-progress {
+  border-color: rgba(255, 89, 73, 0.22);
+}
+
+:root[data-theme='dark'] .priority-row {
+  background:
+    linear-gradient(90deg, rgba(255, 89, 73, 0.12), transparent 42%),
+    #17171d;
+  color: var(--color-paper);
+  border-color: rgba(243, 238, 231, 0.16);
+}
+
+:root[data-theme='dark'] .priority-danger {
+  background:
+    linear-gradient(90deg, rgba(255, 107, 94, 0.2), transparent 48%),
+    var(--state-error-bg);
+}
+
+:root[data-theme='dark'] .priority-warning {
+  background:
+    linear-gradient(90deg, rgba(255, 190, 69, 0.2), transparent 48%),
+    var(--state-warning-bg);
+}
+
+:root[data-theme='dark'] .priority-row strong {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .priority-row p,
+:root[data-theme='dark'] .empty-state {
+  color: rgba(243, 238, 231, 0.72);
+}
+
+:root[data-theme='dark'] .empty-state {
+  background: rgba(25, 24, 32, 0.78);
+}
+
+:root[data-theme='dark'] .success-state {
+  background: rgba(54, 200, 136, 0.12);
+  color: var(--state-success-text);
+  border-color: rgba(54, 200, 136, 0.34);
 }
 
 :root[data-theme='dark'] .chip {
