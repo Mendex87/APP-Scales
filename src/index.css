@@ -2457,11 +2457,17 @@ body::before {
 }
 
 .nav-item.active.nav-pulse {
+  color: var(--color-paper);
   box-shadow: inset 0 0 0 1px rgba(255, 89, 73, 0.18);
 }
 
 :root[data-theme='dark'] .nav-item.active.nav-pulse {
+  color: #08080b;
   box-shadow: inset 0 0 0 1px rgba(255, 89, 73, 0.22);
+}
+
+.nav-item.active.nav-pulse .nav-icon {
+  color: currentColor;
 }
 
 .nav-item.nav-pulse::after {
