@@ -97,6 +97,29 @@
   color: var(--color-paper);
 }
 
+:root[data-theme='dark'] .screen-banner,
+:root[data-theme='dark'] .hero-panel:not(.hero-panel-primary),
+:root[data-theme='dark'] .dashboard-card:not(.primary-dashboard-card) {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .screen-banner h2,
+:root[data-theme='dark'] .hero-panel:not(.hero-panel-primary) strong,
+:root[data-theme='dark'] .dashboard-card:not(.primary-dashboard-card) strong,
+:root[data-theme='dark'] .collapsible-summary strong,
+:root[data-theme='dark'] .equipment-card h3,
+:root[data-theme='dark'] .history-card h3 {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .screen-banner p,
+:root[data-theme='dark'] .hero-panel:not(.hero-panel-primary) p,
+:root[data-theme='dark'] .dashboard-card:not(.primary-dashboard-card) p,
+:root[data-theme='dark'] .hint,
+:root[data-theme='dark'] .collapsible-summary small {
+  color: rgba(243, 238, 231, 0.72);
+}
+
 :root[data-theme='dark'] .input {
   background: #17171d;
 }
@@ -1383,9 +1406,24 @@ body::before {
 }
 
 .topbar-actions {
+  display: grid;
+  grid-template-columns: repeat(3, max-content);
   align-items: center;
-  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.topbar-actions .chip,
+.topbar-actions .secondary.small {
+  min-width: 6rem;
+}
+
+.topbar-actions .secondary.small {
+  box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08);
+}
+
+.topbar-actions .theme-toggle {
+  min-width: 8.2rem;
 }
 
 .hero-strip {
@@ -2231,7 +2269,7 @@ body::before {
 
 @media (min-width: 861px) {
   .topbar-actions {
-    max-width: 34rem;
+    max-width: none;
   }
 
   .screen-banner,
