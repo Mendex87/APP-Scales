@@ -95,7 +95,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v2.0.12'
+const APP_VERSION = 'v3.0.0'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -2317,6 +2317,38 @@ function App() {
     }
   }
 
+  async function handleClearSessionLogs() {
+    if (!supabase || !canManageUsers) return
+    const client = supabase
+
+    setConfirmDialog({
+      title: 'Borrar registros de sesiones',
+      message: 'Se eliminaran todos los ingresos y cierres registrados.',
+      detail: 'Esta accion limpia el historial de auditoria de sesiones y no se puede deshacer.',
+      confirmLabel: 'Borrar registros',
+      onConfirm: async () => {
+        setUserManagementLoading(true)
+        try {
+          const { error } = await client
+            .from('user_sessions')
+            .delete()
+            .not('id', 'is', null)
+
+          if (error) throw error
+
+          localStorage.removeItem(SESSION_LOG_ID_KEY)
+          setSessionLogs([])
+          setSyncNotice('Registros de sesiones eliminados.')
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'No se pudieron borrar las sesiones.'
+          setSyncNotice(`Error de sesiones: ${message}`)
+        } finally {
+          setUserManagementLoading(false)
+        }
+      },
+    })
+  }
+
   async function handleUserSubmit(event: FormEvent) {
     event.preventDefault()
     if (!supabase || !canManageUsers) return
@@ -3564,6 +3596,7 @@ function App() {
                 <div className="row gap">
                   <button className={`secondary small ${!sessionsTab ? 'primary' : ''}`} onClick={() => { setSessionsTab(false); void loadManagedUsers() }} disabled={userManagementLoading}>Usuarios</button>
                   <button className={`secondary small ${sessionsTab ? 'primary' : ''}`} onClick={() => { setSessionsTab(true); void loadSessionLogs() }} disabled={userManagementLoading}>Sesiones</button>
+                  {sessionsTab && <button className="secondary small danger" onClick={handleClearSessionLogs} disabled={userManagementLoading}>Borrar registros</button>}
                 </div>
               </div>
               {!sessionsTab ? null : (

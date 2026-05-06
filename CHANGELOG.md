@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.0.0 - Corte estable de seguridad y sesiones
+
+- Se consolida en `main` el endurecimiento de datos, Sheets seguro, fecha automatica para no-admin y auditoria de sesiones.
+- Los avisos de login/logout ahora se renderizan tambien en la pantalla publica, por lo que errores de credenciales y cierres de sesion quedan visibles.
+- El registro de sesiones ahora se crea solo en logins exitosos, evitando duplicados generados por restauracion de sesion o cambios de estado de Supabase Auth.
+- El logout cierra la sesion actual por ID local y tambien limpia sesiones abiertas duplicadas creadas por versiones preview anteriores.
+- La pantalla `Usuarios > Sesiones` ahora muestra columnas `Usuario`, `Inicio`, `Cierre` y `Dispositivo` (`Movil` o `Navegador`).
+- La vista de sesiones deduplica registros repetidos y permite a un admin borrar todo el historial de sesiones desde la app.
+- Se agrego policy RLS `admin delete user_sessions` para que solo admins puedan eliminar registros de sesiones.
+- Se solicita limpiar el historial existente de `user_sessions` para iniciar v3.0.0 con auditoria limpia.
+
 ## v2.0.12 - Fecha automatica no-admin y sesiones (preview)
 
 - El campo de fecha/hora en el wizard de nueva calibracion queda bloqueado para roles no-admin (tecnico, supervisor, consulta); la fecha se asigna automaticamente al momento del guardado.

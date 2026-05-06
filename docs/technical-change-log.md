@@ -2,6 +2,21 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-06 - v3.0.0 - Corte estable de seguridad, sesiones y limpieza de auditoria
+
+- Contexto: la preview de sesiones confirmo que Supabase Auth devolvia correctamente errores de credenciales y que `logout_at` se actualizaba, pero los avisos no se veian porque el contenedor de toasts solo existia en la app autenticada. Tambien aparecieron registros duplicados por insertar sesiones desde `getSession`, `onAuthStateChange` y `handleLogin`.
+- Decision release: promover a `main` el conjunto completo de cambios de hardening (`insert` de eventos, FK restrict, `check_interval_days` real, Sheets server-side, fecha automatica no-admin y sesiones) como `v3.0.0`.
+- Cambio toasts: se reemplazo el estado intermedio `syncNotice` por una funcion `setSyncNotice(message)` que encola toasts directamente. El `toast-stack` se renderiza en carga, pantalla publica y app autenticada, permitiendo ver errores de login y mensajes de logout.
+- Cambio login: `loadAuthenticatedUser` carga perfil y estado; el registro de auditoria se separo en `recordLoginSession` y solo se ejecuta tras `signInWithPassword` exitoso desde `handleLogin`.
+- Cambio sesiones: al registrar login se guarda el ID de `user_sessions` en `localStorage` (`calibracinta:session-log-id`) para cerrar esa fila exacta en logout.
+- Cambio logout: `handleLogout` actualiza `logout_at` del registro actual y ademas cierra cualquier fila abierta del mismo usuario creada por versiones preview anteriores.
+- Cambio UI sesiones: `Usuarios > Sesiones` muestra columnas `Usuario`, `Inicio`, `Cierre`, `Dispositivo`; el dispositivo se deriva de `user_agent` como `Movil` o `Navegador`.
+- Cambio deduplicacion: la carga de sesiones deduplica registros repetidos en UI y, si la policy lo permite, borra los duplicados reales de `user_sessions`.
+- Cambio limpieza: se agrego accion admin `Borrar registros` para eliminar todo el historial de sesiones desde la app, previa confirmacion destructiva.
+- Cambio RLS: `schema.sql` ahora incluye `drop policy if exists` para policies de `user_sessions` y agrega `admin delete user_sessions`, restringida a `public.current_user_role() = 'admin'`.
+- Limpieza solicitada: para borrar inmediatamente todo el historial existente ejecutar `delete from public.user_sessions;` en Supabase SQL Editor con privilegios de owner/service role, o usar el boton `Borrar registros` una vez desplegada la policy.
+- Verificacion requerida: correr `npm run build`, desplegar `main`, aplicar `schema.sql` o al menos la policy `admin delete user_sessions`, limpiar `user_sessions`, hacer login con password incorrecta, confirmar toast rojo, hacer login/logout correcto y verificar una sesion nueva con cierre.
+
 ## 2026-05-06 - v2.0.12 - Fecha automatica y registro de sesiones
 
 - Contexto: los tecnicos pueden generar eventos con fecha anterior o posterior a lareal, lo cual compromete la trazabilidad historica. Ademas, no habia forma de auditar quienes acceden a la app.
