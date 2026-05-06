@@ -31,6 +31,7 @@ import {
   saveChainRecord,
   saveEquipmentRecord,
   syncCalibrationEventToSheets,
+  toEventRow,
   updateCalibrationEventSync,
 } from './repository'
 import type { SheetsEventPayload } from './repository'
@@ -1023,6 +1024,42 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return
+
+    function handleOnline() {
+      const client = supabase
+      if (!client) return
+
+      const pending = events.filter((e) => e.syncStatus === 'pendiente')
+      if (pending.length === 0) return
+
+      pending.forEach(async (event) => {
+        try {
+          const result = await client.from('calibration_events').insert(toEventRow(event))
+          if (!result.error) {
+            const syncValues = {
+              syncStatus: 'sincronizado' as const,
+              syncMessage: 'Sincronizado automaticamente tras reconexion.',
+              syncedAt: new Date().toISOString(),
+            }
+            await updateCalibrationEventSync(event.id, syncValues)
+            setEvents((current) =>
+              current.map((item) => (item.id === event.id ? { ...item, ...syncValues } : item)),
+            )
+            const sheetsPayload = { eventId: event.id }
+            await syncCalibrationEventToSheets(sheetsPayload)
+          }
+        } catch {
+          // Se mantiene pendiente para siguiente intento
+        }
+      })
+    }
+
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [events])
+
+  useEffect(() => {
     if (!selectedEquipmentId && equipment.length > 0) {
       setSelectedEquipmentId(equipment[0].id)
     }
@@ -1119,6 +1156,24 @@ function App() {
       target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
     })
   }, [screen, calibrationStep])
+
+  useEffect(() => {
+    if (screen !== 'nueva') return
+
+    const intervalId = window.setInterval(() => {
+      const draft: EventDraft = {
+        eventForm,
+        selectedEquipmentId,
+        selectedChainId,
+        materialPassCount,
+        savedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(CALIBRATION_DRAFT_KEY, JSON.stringify(draft))
+      setHasEventDraft(true)
+    }, 30_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [screen, eventForm, selectedEquipmentId, selectedChainId, materialPassCount])
 
   useEffect(() => {
     if (!selectedEquipment) return
@@ -3241,6 +3296,29 @@ function App() {
                     <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
                     <Metric label="Bloqueos" value={String(eventBlockingIssues.length)} />
                   </div>
+                  <div className="grid four compact-top">
+                    <Metric label="Cero" value={eventForm.zeroCompleted ? 'Registrado' : 'Pendiente'} />
+                    <Metric label="Factor" value={eventForm.calibrationFactor ? String(eventForm.calibrationFactor) : '-'} />
+                    <Metric label="Cadena kg/m" value={eventForm.chainLinearKgM ? `${eventForm.chainLinearKgM} kg/m` : '-'} />
+                    <Metric label="Caudal" value={eventForm.expectedFlowTph ? `${eventForm.expectedFlowTph} t/h` : '-'} />
+                  </div>
+                  <div className="grid four compact-top">
+                    <Metric label="Acum. tiempo" value={eventForm.accumulatedTestMinutes ? `${eventForm.accumulatedTestMinutes} min` : '-'} />
+                    <Metric label="Acum. indicado" value={eventForm.accumulatedIndicatedTotal ? `${eventForm.accumulatedIndicatedTotal} t` : '-'} />
+                    <Metric label="Factor final" value={eventForm.finalFactor ? String(eventForm.finalFactor) : '-'} />
+                    <Metric label="Responsable" value={currentUser.username} />
+                  </div>
+                  {completeMaterialPasses.length > 0 && (
+                    <div className="grid four compact-top">
+                      {completeMaterialPasses.slice(0, 3).map((pass, i) => (
+                        <Metric
+                          key={pass.index}
+                          label={`Pasada ${i + 1}`}
+                          value={pass.factorUsed ? `Ext: ${pass.externalWeightKg} kg | Factor: ${pass.factorUsed}` : '-'}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
                 {automaticDiagnosis.length > 0 && (

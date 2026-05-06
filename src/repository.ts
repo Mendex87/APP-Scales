@@ -243,7 +243,15 @@ export async function saveCalibrationEventRecord(item: CalibrationEvent) {
 
   const result = await supabase.from('calibration_events').insert(toEventRow(item))
   if (result.error) {
-    throw toError(result.error)
+    const offlineEvent: CalibrationEvent = {
+      ...item,
+      syncStatus: 'pendiente',
+      syncMessage: 'Guardado offline. Se sincronizara cuando haya conexion.',
+      syncedAt: '',
+    }
+    const next = [offlineEvent, ...loadEvents().filter((current) => current.id !== item.id)]
+    saveEvents(next)
+    return { source: 'local' as const }
   }
 
   return { source: 'supabase' as const }
@@ -489,7 +497,7 @@ function mapEventRow(row: EventRow): CalibrationEvent {
   }
 }
 
-function toEventRow(item: CalibrationEvent): EventRow {
+export function toEventRow(item: CalibrationEvent): EventRow {
   return {
     id: item.id,
     equipment_id: item.equipmentId,
