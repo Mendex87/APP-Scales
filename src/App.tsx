@@ -107,6 +107,49 @@ function getToastTone(message: string): ToastTone {
   return 'info'
 }
 
+function getSessionDevice(userAgent: string | null) {
+  const normalized = (userAgent || '').toLowerCase()
+  if (/android|iphone|ipad|ipod|mobile|windows phone/i.test(normalized)) return 'Movil'
+  return 'Navegador'
+}
+
+function getSessionDedupeKey(log: SessionLog) {
+  const normalizeDate = (value: string | null) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    date.setMilliseconds(0)
+    return date.toISOString()
+  }
+
+  return [
+    log.user_id,
+    log.username,
+    normalizeDate(log.login_at),
+    normalizeDate(log.logout_at),
+    log.user_agent || '',
+  ].join('|')
+}
+
+function dedupeSessionLogs(logs: SessionLog[]) {
+  const seen = new Set<string>()
+  const unique: SessionLog[] = []
+  const duplicates: SessionLog[] = []
+
+  for (const log of logs) {
+    const key = getSessionDedupeKey(log)
+    if (seen.has(key)) {
+      duplicates.push(log)
+      continue
+    }
+
+    seen.add(key)
+    unique.push(log)
+  }
+
+  return { unique, duplicates }
+}
+
 function getInitialTheme(): AppTheme {
   const stored = localStorage.getItem(THEME_STORAGE_KEY)
   return stored === 'dark' ? 'dark' : 'light'
@@ -2255,7 +2298,17 @@ function App() {
         .limit(100)
 
       if (error) throw error
-      setSessionLogs((data as SessionLog[]) || [])
+      const { unique, duplicates } = dedupeSessionLogs((data as SessionLog[]) || [])
+      setSessionLogs(unique)
+
+      if (duplicates.length > 0) {
+        const { error: cleanupError } = await supabase
+          .from('user_sessions')
+          .delete()
+          .in('id', duplicates.map((log) => log.id))
+
+        if (cleanupError) console.error('Error borrando sesiones duplicadas:', cleanupError)
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudieron cargar las sesiones.'
       setSyncNotice(`Error de sesiones: ${message}`)
@@ -3515,17 +3568,24 @@ function App() {
               </div>
               {!sessionsTab ? null : (
                 <>
-                  {sessionLogs.map((log) => (
-                    <div className="result-row" key={log.id}>
-                      <span>
-                        <strong>{log.username || 'Desconocido'}</strong>
-                        {' - '}{log.login_at ? formatDateTime(log.login_at) : '-'}
-                        {log.logout_at ? ` -> ${formatDateTime(log.logout_at)}` : ' -> Abierta'}
-                        {log.ip_address ? ` | IP: ${log.ip_address}` : ''}
-                      </span>
-                      <span className="hint">{log.user_agent || '-'}</span>
+                  {sessionLogs.length > 0 && (
+                    <div className="session-table">
+                      <div className="session-row session-row-head">
+                        <span>Usuario</span>
+                        <span>Inicio</span>
+                        <span>Cierre</span>
+                        <span>Dispositivo</span>
+                      </div>
+                      {sessionLogs.map((log) => (
+                        <div className="session-row" key={log.id}>
+                          <span>{log.username || 'Desconocido'}</span>
+                          <span>{log.login_at ? formatDateTime(log.login_at) : '-'}</span>
+                          <span>{log.logout_at ? formatDateTime(log.logout_at) : 'Abierta'}</span>
+                          <span>{getSessionDevice(log.user_agent)}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                   {sessionLogs.length === 0 && <div className="result-row"><span>No hay sesiones registradas.</span><strong>-</strong></div>}
                 </>
               )}

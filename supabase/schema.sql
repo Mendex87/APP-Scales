@@ -58,6 +58,11 @@ create table if not exists public.user_sessions (
 
 alter table public.user_sessions enable row level security;
 
+drop policy if exists "admin read user_sessions" on public.user_sessions;
+drop policy if exists "authenticated insert user_sessions" on public.user_sessions;
+drop policy if exists "authenticated update user_sessions" on public.user_sessions;
+drop policy if exists "admin delete user_sessions" on public.user_sessions;
+
 create policy "admin read user_sessions"
 on public.user_sessions for select
 to authenticated
@@ -72,6 +77,11 @@ create policy "authenticated update user_sessions"
 on public.user_sessions for update
 to authenticated
 using (true);
+
+create policy "admin delete user_sessions"
+on public.user_sessions for delete
+to authenticated
+using (public.current_user_role() = 'admin');
 
 create table if not exists public.chains (
   id text primary key,

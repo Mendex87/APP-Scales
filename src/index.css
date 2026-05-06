@@ -2318,6 +2318,34 @@ body::before {
   text-align: right;
 }
 
+.session-table {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.1fr) minmax(150px, 1.1fr) minmax(110px, 0.75fr);
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-card-strong);
+}
+
+.session-row span {
+  overflow-wrap: anywhere;
+}
+
+.session-row-head {
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .toast-stack {
   position: fixed;
   top: 1rem;
@@ -2967,6 +2995,15 @@ body::before {
 
   .result-row strong {
     text-align: left;
+  }
+
+  .session-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .session-row-head {
+    display: none;
   }
 
   .bottom-nav {
