@@ -2378,11 +2378,6 @@ function App() {
       <main id="main-content" className="content">
         {screen === 'dashboard' && (
           <section className="stack screen-shell">
-            <div className="screen-banner dashboard-banner">
-              <span className="section-kicker">Panel operativo</span>
-              <h2>Estado del parque en una mirada</h2>
-              <p>Priorizá equipos, controles pendientes y desvíos antes de entrar al detalle técnico.</p>
-            </div>
             <div className="dashboard-grid">
               <div className="dashboard-card primary-dashboard-card">
                 <span>Accion recomendada</span>
