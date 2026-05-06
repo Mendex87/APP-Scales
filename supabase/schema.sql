@@ -15,7 +15,8 @@ create table if not exists public.equipments (
   rpm_roll_diameter_mm double precision not null default 0,
   calibration_factor_current double precision not null default 0,
   adjustment_factor_current double precision not null default 1,
-  totalizer_unit text not null default 'tn',
+totalizer_unit text not null default 'tn',
+  check_interval_days integer not null default 30,
   photo_path text not null default '',
   notes text not null default '',
   created_at timestamptz not null default now()
@@ -75,10 +76,12 @@ create table if not exists public.calibration_events (
   sync_status text not null default 'pendiente',
   sync_message text not null default '',
   synced_at timestamptz,
+  constraint calibration_events_sync_status_check
+    check (sync_status in ('pendiente', 'sincronizado', 'error')),
   constraint calibration_events_equipment_id_fkey
     foreign key (equipment_id)
     references public.equipments (id)
-    on delete cascade
+    on delete restrict
 );
 
 create index if not exists calibration_events_equipment_id_idx
@@ -110,6 +113,9 @@ alter table public.equipments
 
 alter table public.equipments
   add column if not exists photo_path text not null default '';
+
+alter table public.equipments
+  add column if not exists check_interval_days integer not null default 30;
 
 insert into storage.buckets (id, name, public)
 values ('equipment-photos', 'equipment-photos', true)

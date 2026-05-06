@@ -2,6 +2,17 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-06 - v2.0.10 - Endurecimiento de datos
+
+- Contexto: la auditoria integral identifico tres riesgos P0: (1) `upsert` de eventos podia sobrescribir historia si dos tecnicos generaban el mismo ID, (2) `on delete cascade` podia borrar historial de calibraciones al dar de baja un equipo, (3) `check_interval_days` vivia en un marcador interno dentro de `notes` sin validacion de tipo.
+- Decision: cambiar `upsert` por `insert` en `saveCalibrationEventRecord` para que colisiones de ID fallen con error visible en lugar de sobrescribir.
+- Decision: cambiar `on delete cascade` por `on delete restrict` en la FK de `calibration_events` a `equipments`.
+- Decision: agregar columna real `check_interval_days integer not null default 30` en la tabla `equipments`.
+- Decision: agregar constraint `check (sync_status in ('pendiente', 'sincronizado', 'error'))` en `calibration_events.sync_status`.
+- Cambio: actualizar `mapEquipmentRow` y `toEquipmentRow` para leer/escribir la columna real de `check_interval_days`, con fallback al marcador interno para equipos existentes que no tengan la columna todavia.
+- Compatibilidad: el marcador interno `[calibracinta:check_interval_days=N]` sigue leyendose si la columna no existe o es null, permitiendo migrar datos existentes sin perdida.
+- Verificacion requerida: correr `npm run build`, crear una calibracion y confirmar que aparece en historial con `insert` (no `upsert`), editar frecuencia de una balanza y verificar que se persiste en la columna.
+
 ## 2026-05-06 - v2.0.9 - Transicion de tema con View Transition API
 
 - Contexto: el cambio claro/oscuro funcionaba, pero era instantaneo y visualmente brusco.

@@ -61,6 +61,7 @@ type EquipmentRow = {
   calibration_factor_current: number
   adjustment_factor_current: number
   totalizer_unit: string
+  check_interval_days: number
   photo_path: string
   notes: string
   created_at: string
@@ -240,7 +241,7 @@ export async function saveCalibrationEventRecord(item: CalibrationEvent) {
     return { source: 'local' as const }
   }
 
-  const result = await supabase.from('calibration_events').upsert(toEventRow(item))
+  const result = await supabase.from('calibration_events').insert(toEventRow(item))
   if (result.error) {
     throw toError(result.error)
   }
@@ -354,6 +355,9 @@ function serializeEquipmentNotes(notes: string, checkIntervalDays: number) {
 
 function mapEquipmentRow(row: EquipmentRow): Equipment {
   const parsedNotes = parseEquipmentNotes(row.notes || '')
+  const checkIntervalDays = Number.isFinite(row.check_interval_days) && row.check_interval_days > 0
+    ? row.check_interval_days
+    : parsedNotes.checkIntervalDays
   return {
     id: row.id,
     plant: row.plant,
@@ -371,7 +375,7 @@ function mapEquipmentRow(row: EquipmentRow): Equipment {
     rpmRollDiameterMm: row.rpm_roll_diameter_mm,
     calibrationFactorCurrent: row.calibration_factor_current,
     adjustmentFactorCurrent: row.adjustment_factor_current,
-    checkIntervalDays: parsedNotes.checkIntervalDays,
+    checkIntervalDays,
     totalizerUnit: row.totalizer_unit,
     photoPath: row.photo_path || '',
     notes: parsedNotes.notes,
@@ -397,6 +401,7 @@ function toEquipmentRow(item: Equipment): EquipmentRow {
     rpm_roll_diameter_mm: item.rpmRollDiameterMm,
     calibration_factor_current: item.calibrationFactorCurrent,
     adjustment_factor_current: item.adjustmentFactorCurrent,
+    check_interval_days: item.checkIntervalDays,
     totalizer_unit: item.totalizerUnit,
     photo_path: item.photoPath || '',
     notes: serializeEquipmentNotes(item.notes, item.checkIntervalDays),

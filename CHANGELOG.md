@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.0.10 - Endurecimiento de datos (preview separada)
+
+- Los eventos de calibracion ahora se guardan con `insert` en lugar de `upsert` para evitar sobrescrituras por collision de ID.
+- Si dos usuarios intentan crear un evento con el mismo ID, la base rechazara el segundo en lugar de sobrescribir el primero.
+- Se agrego la columna `check_interval_days` en la tabla `equipments` de Supabase con valor default de 30 dias.
+- Se actualizo el mapeo de lectura/escritura de equipos para usar la columna real de `check_interval_days` en lugar del marcador interno en `notes`.
+- Se agrego constraint `check (sync_status in ('pendiente', 'sincronizado', 'error'))` en `calibration_events.sync_status`.
+- La clave foranea de `calibration_events` a `equipments` ahora usa `on delete restrict` en lugar de `on delete cascade`, evitando que una baja de equipo elimine historial de calibraciones.
+- Esta version mantiene compatibilidad con equipos existentes: si `check_interval_days` no existe en un registro, se lee desde el marcador interno `notes`.
+
 ## v2.0.9 - Transicion de tema en preview
 
 - Se agrego una transicion diagonal tipo placa industrial al alternar claro/oscuro usando View Transition API cuando el navegador lo soporta.
