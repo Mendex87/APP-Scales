@@ -1075,7 +1075,14 @@ function App() {
       return
     }
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const isMobile = window.matchMedia('(max-width: 640px)').matches
     window.requestAnimationFrame(() => {
+      if (isMobile && screen !== 'nueva') {
+        const target = document.querySelector('#main-content .screen-banner') || document.querySelector('#main-content .screen-shell')
+        target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
+        return
+      }
+
       window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
     })
   }, [screen, currentUser])

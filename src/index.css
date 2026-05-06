@@ -1660,6 +1660,7 @@ body::before {
 
 .screen-banner {
   position: relative;
+  scroll-margin-top: 0.75rem;
   padding: clamp(1rem, 3vw, 1.3rem);
   border-radius: var(--radius);
   background: var(--color-paper-strong);
