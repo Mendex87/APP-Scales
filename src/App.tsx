@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -77,7 +77,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.2'
+const APP_VERSION = 'v2.0.3'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -701,6 +701,7 @@ function App() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
+  const didMountScrollRef = useRef(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
@@ -898,6 +899,26 @@ function App() {
       void loadManagedUsers()
     }
   }, [screen, canManageUsers])
+
+  useEffect(() => {
+    if (!currentUser) return
+    if (!didMountScrollRef.current) {
+      didMountScrollRef.current = true
+      return
+    }
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
+    })
+  }, [screen, currentUser])
+
+  useEffect(() => {
+    if (screen !== 'nueva') return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.requestAnimationFrame(() => {
+      document.querySelector('.wizard-panel')?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
+    })
+  }, [screen, calibrationStep])
 
   useEffect(() => {
     if (!selectedEquipment) return
@@ -2062,6 +2083,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-kicker">Control Metrologico Industrial</div>
@@ -2152,9 +2174,9 @@ function App() {
         </div>
       )}
 
-      {loadingData && <div className="notice">Cargando datos...</div>}
+      {loadingData && <div className="notice" role="status">Cargando datos...</div>}
 
-      <main className="content">
+      <main id="main-content" className="content">
         {screen === 'dashboard' && (
           <section className="stack screen-shell">
             <div className="screen-banner dashboard-banner">
@@ -2407,6 +2429,9 @@ function App() {
                   <button className="secondary small" type="button" onClick={saveEventDraft}><Save className="action-icon" aria-hidden="true" />Guardar borrador</button>
                 </div>
               </div>
+              <div className="wizard-progress" aria-hidden="true">
+                <span style={{ width: `${((calibrationStep + 1) / calibrationSteps.length) * 100}%` }} />
+              </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
                 {calibrationStepStates.map(({ step, complete, warning }, index) => (
                   <button
@@ -2414,6 +2439,7 @@ function App() {
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
+                    aria-current={index === calibrationStep ? 'step' : undefined}
                     title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
                   >
                     <span>{index + 1}</span>
@@ -3009,13 +3035,13 @@ function App() {
 
       </main>
 
-      <nav className={`bottom-nav ${canManageUsers ? 'six' : canOperate ? 'five' : canReview ? 'four' : 'three'}`}>
-        <button className={screen === 'dashboard' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('dashboard')}><Scale className="nav-icon" aria-hidden="true" />Inicio</button>
-        {canReview && <button className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
-        <button className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
-        {canOperate && <button className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
-        <button className={screen === 'historial' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('historial')}><History className="nav-icon" aria-hidden="true" />Historial</button>
-        {canManageUsers && <button className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} onClick={() => setScreen('usuarios')}><Users className="nav-icon" aria-hidden="true" />Usuarios</button>}
+      <nav className={`bottom-nav ${canManageUsers ? 'six' : canOperate ? 'five' : canReview ? 'four' : 'three'}`} aria-label="Navegacion principal">
+        <button type="button" className={screen === 'dashboard' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'dashboard' ? 'page' : undefined} onClick={() => setScreen('dashboard')}><Scale className="nav-icon" aria-hidden="true" />Inicio</button>
+        {canReview && <button type="button" className={screen === 'balanzas' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'balanzas' ? 'page' : undefined} onClick={() => setScreen('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
+        <button type="button" className={screen === 'herramientas' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'herramientas' ? 'page' : undefined} onClick={() => setScreen('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
+        {canOperate && <button type="button" className={screen === 'nueva' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'nueva' ? 'page' : undefined} onClick={() => setScreen('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
+        <button type="button" className={screen === 'historial' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'historial' ? 'page' : undefined} onClick={() => setScreen('historial')}><History className="nav-icon" aria-hidden="true" />Historial</button>
+        {canManageUsers && <button type="button" className={screen === 'usuarios' ? 'nav-item active' : 'nav-item'} aria-current={screen === 'usuarios' ? 'page' : undefined} onClick={() => setScreen('usuarios')}><Users className="nav-icon" aria-hidden="true" />Usuarios</button>}
       </nav>
     </div>
   )
@@ -3079,24 +3105,26 @@ function EquipmentPhoto({
 type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string }
 
 function Field({ label, value, onChange, type = 'text' }: FieldProps) {
+  const id = useId()
   const inputType = type === 'number' ? 'text' : type
   const inputMode = type === 'number' ? 'decimal' : type === 'email' ? 'email' : undefined
   const handleChange = (rawValue: string) => {
     onChange(type === 'number' ? normalizeDecimalInput(rawValue) : rawValue)
   }
   return (
-    <div>
-      <label className="label">{label}</label>
-      <input className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} />
+    <div className="field-shell">
+      <label className="label" htmlFor={id}>{label}</label>
+      <input id={id} className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} />
     </div>
   )
 }
 
 function TextArea({ label, value, onChange }: Omit<FieldProps, 'type'>) {
+  const id = useId()
   return (
-    <div>
-      <label className="label">{label}</label>
-      <textarea className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={4} />
+    <div className="field-shell">
+      <label className="label" htmlFor={id}>{label}</label>
+      <textarea id={id} className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={4} />
     </div>
   )
 }

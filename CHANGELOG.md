@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.3 - Pulido UX navegador y movil
+
+- Se mejoro la navegacion principal como barra flotante en escritorio y barra tactil segura en movil.
+- Se agrego desplazamiento automatico al cambiar de pantalla y de paso del wizard para evitar quedar a mitad de formulario.
+- Se incorporo progreso visual del wizard, foco visible, labels accesibles e inputs mas ergonomicos para uso en campo.
+- Se pulieron tarjetas, metricas, filas de resultados y estados para reducir ruido y mejorar lectura en pantallas chicas.
+
 ## v2.0.2 - Borrados sincronizados con Google Sheets
 
 - La app ahora notifica a Google Sheets cuando un admin elimina un evento o da de baja una balanza.

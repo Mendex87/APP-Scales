@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.3 - Pulido UX responsive
+
+- Contexto: la identidad visual estaba estable, pero la experiencia podia mejorar en navegacion, formularios largos y uso movil en campo.
+- Cambio: se ajusto la navegacion principal para escritorio y movil, se agrego progreso visual al wizard y scroll automatico al cambiar de pantalla/paso.
+- Cambio: se agregaron labels enlazados con `useId`, foco visible y mejoras de tactilidad/legibilidad en inputs, tarjetas, metricas y acciones.
+- Motivo: reducir friccion operativa sin cambiar la arquitectura ni el lenguaje visual industrial ya establecido.
+- Verificacion requerida: correr `npm run build` y probar dashboard, balanzas, wizard, herramientas e historial en escritorio y viewport movil.
+
 ## 2026-05-05 - Google Sheets - Reparacion automatica desde doPost
 
 - Contexto: la planilla podia quedar sin actualizar si no se ejecutaba manualmente `setupCalibraSheets()` despues de pegar el script, y algunas hojas existentes podian conservar UUIDs en la columna visible de equipo.
