@@ -120,8 +120,18 @@
   color: rgba(243, 238, 231, 0.72);
 }
 
+:root[data-theme='dark'] .check-field,
+:root[data-theme='dark'] .confirm-message {
+  color: var(--color-paper);
+}
+
 :root[data-theme='dark'] .input {
   background: #17171d;
+}
+
+:root[data-theme='dark'] .check-field {
+  background: #17171d;
+  border-color: rgba(255, 89, 73, 0.32);
 }
 
 :root[data-theme='dark'] .chip {
@@ -1946,6 +1956,42 @@ body::before {
 :root[data-theme='dark'] .equipment-photo:not(:disabled):hover {
   border-color: var(--color-orange);
   box-shadow: 0 0.85rem 1.6rem rgba(255, 89, 73, 0.16), inset 0 0 0 1px rgba(255, 89, 73, 0.22);
+}
+
+:root[data-theme='dark'] .wizard-step span {
+  background: var(--color-paper);
+  color: #08080b;
+  box-shadow: 0 0 0 1px rgba(255, 89, 73, 0.26);
+}
+
+:root[data-theme='dark'] .wizard-step.active {
+  background: var(--color-orange);
+  color: #08080b;
+  border-color: var(--color-orange);
+}
+
+:root[data-theme='dark'] .wizard-step.complete {
+  background: #08080b;
+  color: var(--color-paper);
+  border-color: var(--color-orange-dark);
+}
+
+:root[data-theme='dark'] .bottom-nav {
+  background: rgba(8, 8, 11, 0.92);
+  border-color: rgba(255, 89, 73, 0.58);
+  box-shadow: 0 -1rem 2.4rem rgba(0, 0, 0, 0.44), inset 0 0 0 1px rgba(255, 89, 73, 0.12);
+}
+
+:root[data-theme='dark'] .nav-item.active {
+  background-color: var(--color-paper);
+  background-image: linear-gradient(105deg, var(--color-paper) 0 50%, var(--color-orange) 50% 100%);
+  color: #08080b;
+  border-color: var(--color-orange);
+  box-shadow: inset 0 -3px 0 var(--color-orange), 0 0.7rem 1.4rem rgba(255, 89, 73, 0.14);
+}
+
+:root[data-theme='dark'] .nav-item.active .nav-icon {
+  color: #08080b;
 }
 
 .primary:active:enabled,
