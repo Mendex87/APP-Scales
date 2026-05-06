@@ -302,6 +302,7 @@ textarea {
 
 #root {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 body::before {
@@ -321,6 +322,7 @@ body::before {
   margin: 0 auto;
   padding: 1rem 1rem calc(var(--nav-height) + 2rem + env(safe-area-inset-bottom));
   position: relative;
+  overflow-x: clip;
 }
 
 .skip-link {
@@ -1665,6 +1667,8 @@ body::before {
 .screen-banner {
   position: relative;
   scroll-margin-top: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
   padding: clamp(1rem, 3vw, 1.3rem);
   border-radius: var(--radius);
   background: var(--color-paper-strong);
@@ -1700,11 +1704,15 @@ body::before {
 
 .content,
 .stack {
+  min-width: 0;
+  max-width: 100%;
   display: grid;
   gap: 1rem;
 }
 
 .card {
+  min-width: 0;
+  max-width: 100%;
   background: var(--color-paper-strong);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1893,6 +1901,7 @@ body::before {
 
 .field-shell {
   min-width: 0;
+  max-width: 100%;
 }
 
 .label {
@@ -2718,7 +2727,12 @@ body::before {
   }
 
   .screen-banner h2 {
-    font-size: clamp(2.2rem, 11vw, 3.2rem);
+    font-size: clamp(2rem, 9.4vw, 3rem);
+    max-width: 100%;
+  }
+
+  .screen-banner p {
+    max-width: 100%;
   }
 
   .card {
@@ -2747,9 +2761,11 @@ body::before {
 
   .wizard-panel {
     position: static;
+    overflow: hidden;
   }
 
   .wizard-steps {
+    max-width: 100%;
     display: flex;
     grid-template-columns: none;
     gap: 0.4rem;
@@ -2840,6 +2856,9 @@ body::before {
   }
 
   .wizard-actions {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
     position: sticky;
     bottom: calc(6rem + env(safe-area-inset-bottom));
     z-index: 35;
