@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
   ClipboardCheck,
@@ -77,7 +77,7 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.5'
+const APP_VERSION = 'v2.0.6'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 
 const defaultEquipmentForm = {
@@ -1060,6 +1060,40 @@ function App() {
     return { withoutHistory, conform, calibrated, monthEvents, nextAction }
   }, [equipmentWithLastEvent, events, outOfToleranceCount])
 
+  const fleetReadinessPercent = equipment.length
+    ? Math.max(0, Math.round(((equipment.length - dashboardStats.withoutHistory - outOfToleranceCount) / equipment.length) * 100))
+    : 0
+
+  const latestEvent = useMemo(() => {
+    return events
+      .slice()
+      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())[0] || null
+  }, [events])
+
+  const priorityEquipment = useMemo(() => {
+    return equipmentWithLastEvent
+      .map(({ item, lastEvent }) => {
+        const materialSummary = lastEvent ? getEventMaterialOutcome(lastEvent) : null
+        const statusText = materialSummary?.status || 'Sin calibraciones'
+        const statusKey = statusClass(statusText)
+        const rank = statusKey === 'danger' ? 0 : !lastEvent ? 1 : statusKey === 'warning' ? 2 : 3
+        const action = statusKey === 'danger'
+          ? 'Revisar desvio'
+          : !lastEvent
+            ? 'Primera calibracion'
+            : statusKey === 'warning'
+              ? 'Completar control'
+              : 'Seguimiento normal'
+        const detail = lastEvent && materialSummary
+          ? `Ultimo error ${materialSummary.errorPct} % · ${formatDateTime(lastEvent.eventDate)}`
+          : 'Sin historial registrado para esta balanza'
+
+        return { item, lastEvent, statusText, statusKey, rank, action, detail }
+      })
+      .sort((a, b) => a.rank - b.rank || `${a.item.plant}${a.item.line}${a.item.beltCode}`.localeCompare(`${b.item.plant}${b.item.line}${b.item.beltCode}`))
+      .slice(0, 5)
+  }, [equipmentWithLastEvent])
+
   const precheckPassed = useMemo(
     () =>
       eventForm.precheckBeltEmpty &&
@@ -1141,6 +1175,18 @@ function App() {
       return { step, complete, warning }
     })
   }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
+
+  const wizardReadinessPercent = Math.round((calibrationStepStates.filter(({ complete }) => complete).length / calibrationSteps.length) * 100)
+  const wizardStepCue = [
+    selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}.` : 'Selecciona una balanza para iniciar el circuito.',
+    precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
+    eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
+    eventForm.calibrationFactor || eventForm.zeroValue || eventForm.spanValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
+    !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga kg/m de cadena y promedio del controlador.',
+    !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal, tiempo y acumulado indicado.',
+    finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
+    eventBlockingIssues.length === 0 ? 'Evento listo para guardar con factor final confirmado.' : eventBlockingIssues[0],
+  ][calibrationStep]
 
   const rpmToolResult = useMemo(() => {
     const diameterMm = selectedEquipment?.rpmRollDiameterMm || 0
@@ -2201,6 +2247,64 @@ function App() {
               <Metric label="Controles conformes" value={String(dashboardStats.conform)} />
               <Metric label="Calibradas" value={String(dashboardStats.calibrated)} />
             </div>
+            <div className="ops-overview">
+              <div className="card ops-panel">
+                <div>
+                  <span className="section-kicker">Comando de turno</span>
+                  <h2>Pulso operativo</h2>
+                  <p className="hint">Resumen ejecutivo para decidir si corresponde intervenir, controlar o mantener seguimiento normal.</p>
+                </div>
+                <div className="readiness-dial" style={{ '--readiness': `${fleetReadinessPercent}%` } as CSSProperties}>
+                  <strong>{fleetReadinessPercent}%</strong>
+                  <span>parque sin desvio abierto</span>
+                </div>
+                <div className="grid three compact-top">
+                  <Metric label="Ultimo evento" value={latestEvent ? formatDateTime(latestEvent.eventDate) : '-'} />
+                  <Metric label="Fuente datos" value={dataSource === 'supabase' ? 'Supabase' : 'Local'} />
+                  <Metric label="Modo" value={canOperate ? 'Campo habilitado' : canReview ? 'Revision' : 'Consulta'} />
+                </div>
+              </div>
+              <div className="card priority-panel">
+                <div className="row wrap">
+                  <div>
+                    <span className="section-kicker">Prioridad</span>
+                    <h2>Cola de accion</h2>
+                    <p className="hint">Ordenada por desvio abierto, primera calibracion pendiente y controles a revisar.</p>
+                  </div>
+                </div>
+                <div className="priority-list compact-top">
+                  {priorityEquipment.map((row) => (
+                    <div className={`priority-row priority-${row.statusKey}`} key={row.item.id}>
+                      <div>
+                        <span>{row.action}</span>
+                        <strong>{row.item.plant} / {row.item.line} / {row.item.beltCode}</strong>
+                        <p>{row.item.scaleName} · {row.detail}</p>
+                      </div>
+                      <button
+                        className="secondary small"
+                        type="button"
+                        onClick={() => {
+                          setSelectedEquipmentId(row.item.id)
+                          if (!row.lastEvent && canOperate) {
+                            primeEventForm(row.item)
+                            return
+                          }
+                          if (!row.lastEvent) {
+                            setScreen('balanzas')
+                            return
+                          }
+                          setHistoryEquipmentId(row.item.id)
+                          setScreen('historial')
+                        }}
+                      >
+                        Abrir
+                      </button>
+                    </div>
+                  ))}
+                  {priorityEquipment.length === 0 && <div className="empty-state">Carga la primera balanza para activar la cola operativa.</div>}
+                </div>
+              </div>
+            </div>
             <div className="quick-actions card">
               <div>
                 <span className="section-kicker">Accesos rapidos</span>
@@ -2457,6 +2561,17 @@ function App() {
                 <Metric label="Cadena" value={selectedChain ? selectedChain.name : requiresFullCalibration ? 'Pendiente' : 'No requerida'} />
                 <Metric label="Tolerancia" value={`${eventForm.tolerancePercent || 1} %`} />
                 <Metric label="Estado previo" value={selectedEquipmentStatus} />
+              </div>
+              <div className="wizard-guidance compact-top">
+                <div>
+                  <span className="section-kicker">Control de avance</span>
+                  <strong>{wizardReadinessPercent}% listo</strong>
+                  <p>{wizardStepCue}</p>
+                </div>
+                <div className={`readiness-meter ${eventBlockingIssues.length === 0 ? 'ready' : ''}`} aria-hidden="true">
+                  <span style={{ width: `${wizardReadinessPercent}%` }} />
+                </div>
+                <small>{eventBlockingIssues.length === 0 ? 'Sin bloqueos de cierre.' : `${eventBlockingIssues.length} bloqueo(s) antes de cerrar.`}</small>
               </div>
             </div>
 

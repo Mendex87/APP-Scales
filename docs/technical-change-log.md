@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.6 - Pulido frontend operativo
+
+- Contexto: la app ya tenia el flujo estable, pero el dashboard y el wizard podian presentar mejor la prioridad operativa para uso profesional.
+- Cambio: se agrego un bloque de pulso operativo con salud del parque, ultimo evento, fuente de datos y modo de uso.
+- Cambio: se agrego una cola de prioridad que ordena balanzas por desvio abierto, primera calibracion pendiente y seguimiento normal.
+- Cambio: se agrego una guia de avance dentro del wizard con porcentaje listo, accion siguiente y cantidad de bloqueos antes de cerrar.
+- Motivo: convertir el frontend en una consola operativa mas ejecutiva sin modificar persistencia, Supabase ni Google Sheets.
+- Verificacion requerida: correr `npm run build` y revisar dashboard/wizard en escritorio y movil.
+
 ## 2026-05-05 - v2.0.5 - Manuales actualizados
 
 - Contexto: los manuales HTML habian quedado atrasados respecto de `v2.0.2` a `v2.0.4`.

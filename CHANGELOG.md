@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.6 - Pulido frontend operativo
+
+- Se agrego un bloque de pulso operativo en dashboard con salud del parque, ultimo evento, fuente de datos y modo de uso.
+- Se agrego una cola de prioridad para abrir rapidamente equipos con desvio, primera calibracion pendiente o seguimiento normal.
+- Se agrego una guia de avance en el wizard con porcentaje listo, siguiente accion y bloqueos pendientes antes del cierre.
+
 ## v2.0.5 - Manuales actualizados
 
 - Se actualizo el manual tecnico HTML publico y fuente con `Factor final` obligatorio.
