@@ -3083,6 +3083,18 @@ body::before {
     border-color: var(--color-orange-dark);
   }
 
+  .wizard-actions .primary {
+    background-image: linear-gradient(105deg, var(--color-ink) 0 50%, var(--color-orange) 50% 100%);
+    color: var(--color-paper);
+    border-color: var(--color-orange-dark);
+    box-shadow: inset 0 0 0 1px rgba(255, 89, 73, 0.18);
+  }
+
+  .wizard-actions .primary:hover:enabled {
+    color: var(--color-paper);
+    border-color: var(--color-orange-dark);
+  }
+
   .secondary:hover:enabled,
   .nav-item:hover {
     color: var(--color-paper);
@@ -3111,6 +3123,12 @@ body::before {
 
   :root[data-theme='dark'] .secondary:hover:enabled {
     color: var(--color-paper);
+  }
+
+  :root[data-theme='dark'] .wizard-actions .primary,
+  :root[data-theme='dark'] .wizard-actions .primary:hover:enabled {
+    color: var(--color-paper);
+    border-color: var(--color-orange-dark);
   }
 
   :root[data-theme='dark'] .nav-item.active:hover {
