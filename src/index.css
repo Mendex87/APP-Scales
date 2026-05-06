@@ -2454,15 +2454,15 @@ body::before {
 .nav-item.nav-pulse::after {
   content: '';
   position: absolute;
-  inset: -34% -52%;
+  inset: -35% -55%;
   border-radius: 0;
   background:
-    linear-gradient(105deg, transparent 0 27%, rgba(255, 89, 73, 0.64) 27% 36%, rgba(240, 239, 235, 0.52) 36% 40%, transparent 40% 100%),
-    repeating-linear-gradient(105deg, transparent 0 9px, rgba(255, 89, 73, 0.26) 9px 11px, transparent 11px 18px);
+    linear-gradient(105deg, transparent 0 24%, rgba(255, 89, 73, 0.84) 24% 34%, rgba(240, 239, 235, 0.82) 34% 39%, transparent 39% 100%),
+    repeating-linear-gradient(105deg, transparent 0 7px, rgba(255, 89, 73, 0.42) 7px 9px, transparent 9px 15px);
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-40%) skewX(-18deg);
-  animation: nav-toggle-shear 440ms var(--ease-industrial) both;
+  transform: translateX(-28%) skewX(-18deg);
+  animation: theme-toggle-shear 760ms var(--ease-industrial) both;
 }
 
 @media (min-width: 720px) {
@@ -3160,22 +3160,6 @@ body::before {
   100% {
     opacity: 0;
     transform: translateX(46%) skewX(-18deg);
-  }
-}
-
-@keyframes nav-toggle-shear {
-  0% {
-    opacity: 0;
-    transform: translateX(-44%) skewX(-18deg);
-  }
-
-  34% {
-    opacity: 0.72;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(42%) skewX(-18deg);
   }
 }
 
