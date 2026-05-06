@@ -1625,6 +1625,8 @@ function App() {
   }
 
   async function handleLogout() {
+    console.log('[DEBUG handleLogout] Iniciando logout')
+
     if (!supabase) {
       setCurrentUser(null)
       setScreen('dashboard')
@@ -1632,13 +1634,14 @@ function App() {
       return
     }
 
-    // Obtener userId desde la sesión de Supabase (no desde React state)
     const { data: sessionData } = await supabase.auth.getSession()
     const userId = sessionData?.session?.user?.id || currentUser?.id
+    console.log('[DEBUG handleLogout] userId obtenido:', userId)
 
     if (userId) {
       try {
-        const { data: openSession } = await supabase
+        console.log('[DEBUG handleLogout] Buscando sesion abierta para userId:', userId)
+        const { data: openSession, error: queryError } = await supabase
           .from('user_sessions')
           .select('id')
           .eq('user_id', userId)
@@ -1647,21 +1650,28 @@ function App() {
           .limit(1)
           .single()
 
+        console.log('[DEBUG handleLogout] Sesion abierta encontrada:', openSession, 'error:', queryError)
+
         if (openSession) {
-          await supabase
+          console.log('[DEBUG handleLogout] Actualizando logout_at para sesion:', openSession.id)
+          const { error: updateError } = await supabase
             .from('user_sessions')
             .update({ logout_at: new Date().toISOString() })
             .eq('id', openSession.id)
+
+          console.log('[DEBUG handleLogout] Resultado update logout_at, error:', updateError)
         }
       } catch (err) {
-        console.error('Error registrando logout:', err)
+        console.error('[DEBUG handleLogout] Error registrando logout:', err)
       }
     }
 
+    console.log('[DEBUG handleLogout] Ejecutando signOut')
     await supabase.auth.signOut()
     setCurrentUser(null)
     setScreen('dashboard')
     setSyncNotice('Sesion cerrada.')
+    console.log('[DEBUG handleLogout] Logout completo')
   }
 
   async function handleLogin(event: FormEvent) {
@@ -1671,25 +1681,29 @@ function App() {
       return
     }
 
-    // Limpiar cualquier sesión existente antes de intentar login
-    await supabase.auth.signOut({ scope: 'local' })
+    console.log('[DEBUG handleLogin] Intentando login con email:', loginEmail.trim())
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
       password: loginPassword,
     })
 
+    console.log('[DEBUG handleLogin] Resultado - error:', error?.message, 'data.session:', !!data?.session, 'user:', data?.user?.email)
+
     if (error) {
+      console.log('[DEBUG handleLogin] ERROR detectado, estableciendo mensaje de error')
       setSyncNotice('Usuario o contrasenia incorrectos.')
       setLoginPassword('')
       return
     }
 
     if (!data?.session) {
+      console.log('[DEBUG handleLogin] Sin sesion, estableciendo mensaje de error')
       setSyncNotice('Error al iniciar sesion. Intenta de nuevo.')
       return
     }
 
+    console.log('[DEBUG handleLogin] Login exitoso, cargando usuario')
     await loadAuthenticatedUser(data.session)
     setLoginEmail('')
     setLoginPassword('')
