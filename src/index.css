@@ -253,6 +253,10 @@
   color: #08080b;
 }
 
+:root[data-theme='dark'] .chip.version-chip {
+  color: var(--color-paper);
+}
+
 * {
   box-sizing: border-box;
 }
