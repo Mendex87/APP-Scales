@@ -2314,7 +2314,7 @@ function App() {
     navPulseTimeoutRef.current = window.setTimeout(() => {
       setNavPulseScreen(null)
       navPulseTimeoutRef.current = null
-    }, 460)
+    }, 780)
   }
 
   const navItemClass = (itemScreen: Screen) => [
