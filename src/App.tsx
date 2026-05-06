@@ -98,6 +98,14 @@ type SessionLog = {
 const APP_VERSION = 'v2.0.12'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
+const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
+
+function getToastTone(message: string): ToastTone {
+  if (/^error|fallo|incorrect|invalid|invalido|inválido|no se pudo/i.test(message)) return 'error'
+  if (/pendiente|incompleta/i.test(message)) return 'warning'
+  if (/ok|sincronizado|guardada|guardado|cargados|cerrada|iniciada|creado|eliminado/i.test(message)) return 'success'
+  return 'info'
+}
 
 function getInitialTheme(): AppTheme {
   const stored = localStorage.getItem(THEME_STORAGE_KEY)
@@ -833,7 +841,6 @@ function App() {
   const [historyEquipmentId, setHistoryEquipmentId] = useState('todos')
   const [historyStatusFilter, setHistoryStatusFilter] = useState('todos')
   const [historyMonthFilter, setHistoryMonthFilter] = useState('todos')
-  const [syncNotice, setSyncNotice] = useState('')
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [theme, setTheme] = useState<AppTheme>(getInitialTheme)
@@ -858,6 +865,20 @@ function App() {
   const [userManagementLoading, setUserManagementLoading] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([])
   const [sessionsTab, setSessionsTab] = useState(false)
+
+  function setSyncNotice(message: string) {
+    if (!message) return
+    const id = generateId()
+    const tone = getToastTone(message)
+
+    setToasts((current) => [...current, { id, message, tone }])
+    window.setTimeout(() => {
+      setToasts((current) => current.map((item) => (item.id === id ? { ...item, exiting: true } : item)))
+    }, 3800)
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((item) => item.id !== id))
+    }, 4200)
+  }
 
   useEffect(() => {
     saveEquipment(equipment)
@@ -924,32 +945,6 @@ function App() {
       cancelled = true
     }
   }, [currentUser?.id])
-
-  useEffect(() => {
-    if (!syncNotice) return
-    const tone: ToastTone = /^error|fallo|incorrectos/i.test(syncNotice)
-      ? 'error'
-      : /pendiente|incompleta/i.test(syncNotice)
-        ? 'warning'
-        : /ok|sincronizado|guardada|guardado|cargados|cerrada/i.test(syncNotice)
-          ? 'success'
-          : 'info'
-
-    const id = generateId()
-    setToasts((current) => [...current, { id, message: syncNotice, tone }])
-    const exitTimeoutId = window.setTimeout(() => {
-      setToasts((current) => current.map((item) => (item.id === id ? { ...item, exiting: true } : item)))
-    }, 3800)
-    const removeTimeoutId = window.setTimeout(() => {
-      setToasts((current) => current.filter((item) => item.id !== id))
-      setSyncNotice('')
-    }, 4200)
-
-    return () => {
-      window.clearTimeout(exitTimeoutId)
-      window.clearTimeout(removeTimeoutId)
-    }
-  }, [syncNotice])
 
   useEffect(() => {
     let cancelled = false
@@ -1045,9 +1040,13 @@ function App() {
 
   useEffect(() => {
     if (screen === 'usuarios' && canManageUsers) {
-      void loadManagedUsers()
+      if (sessionsTab) {
+        void loadSessionLogs()
+      } else {
+        void loadManagedUsers()
+      }
     }
-  }, [screen, canManageUsers])
+  }, [screen, canManageUsers, sessionsTab])
 
   useEffect(() => {
     if (!currentUser) return
@@ -1586,7 +1585,31 @@ function App() {
     manualWindow.focus()
   }
 
-  async function loadAuthenticatedUser(session: Session | null) {
+  async function recordLoginSession(session: Session, username: string) {
+    if (!supabase) return
+
+    const sessionLogId = generateId()
+    const userAgent = navigator.userAgent || ''
+    const ipAddress = (session as unknown as Record<string, unknown>)?.ip || null
+    const { error } = await supabase.from('user_sessions').insert({
+      id: sessionLogId,
+      user_id: session.user.id,
+      username,
+      login_at: new Date().toISOString(),
+      ip_address: ipAddress ? String(ipAddress) : null,
+      user_agent: userAgent || null,
+    })
+
+    if (error) {
+      console.error('Error registrando login:', error)
+      localStorage.removeItem(SESSION_LOG_ID_KEY)
+      return
+    }
+
+    localStorage.setItem(SESSION_LOG_ID_KEY, sessionLogId)
+  }
+
+  async function loadAuthenticatedUser(session: Session | null, options: { recordLogin?: boolean } = {}) {
     if (!session?.user || !supabase) {
       setCurrentUser(null)
       return
@@ -1613,20 +1636,12 @@ function App() {
       role: data.role as UserRole,
     })
 
-    const userAgent = navigator.userAgent || ''
-    const ipAddress = (session as unknown as Record<string, unknown>)?.ip || null
-    await supabase.from('user_sessions').insert({
-      user_id: session.user.id,
-      username,
-      login_at: new Date().toISOString(),
-      ip_address: ipAddress ? String(ipAddress) : null,
-      user_agent: userAgent || null,
-    })
+    if (options.recordLogin) {
+      await recordLoginSession(session, username)
+    }
   }
 
   async function handleLogout() {
-    console.log('[DEBUG handleLogout] Iniciando logout')
-
     if (!supabase) {
       setCurrentUser(null)
       setScreen('dashboard')
@@ -1636,42 +1651,38 @@ function App() {
 
     const { data: sessionData } = await supabase.auth.getSession()
     const userId = sessionData?.session?.user?.id || currentUser?.id
-    console.log('[DEBUG handleLogout] userId obtenido:', userId)
+    const sessionLogId = localStorage.getItem(SESSION_LOG_ID_KEY)
+    const logoutAt = new Date().toISOString()
 
     if (userId) {
       try {
-        console.log('[DEBUG handleLogout] Buscando sesion abierta para userId:', userId)
-        const { data: openSession, error: queryError } = await supabase
+        if (sessionLogId) {
+          const { error } = await supabase
+            .from('user_sessions')
+            .update({ logout_at: logoutAt })
+            .eq('id', sessionLogId)
+
+          if (error) throw error
+        }
+
+        // Cierra duplicados abiertos creados por versiones previas del flujo de auth.
+        const { error } = await supabase
           .from('user_sessions')
-          .select('id')
+          .update({ logout_at: logoutAt })
           .eq('user_id', userId)
           .is('logout_at', null)
-          .order('login_at', { ascending: false })
-          .limit(1)
-          .single()
 
-        console.log('[DEBUG handleLogout] Sesion abierta encontrada:', openSession, 'error:', queryError)
-
-        if (openSession) {
-          console.log('[DEBUG handleLogout] Actualizando logout_at para sesion:', openSession.id)
-          const { error: updateError } = await supabase
-            .from('user_sessions')
-            .update({ logout_at: new Date().toISOString() })
-            .eq('id', openSession.id)
-
-          console.log('[DEBUG handleLogout] Resultado update logout_at, error:', updateError)
-        }
+        if (error) throw error
       } catch (err) {
-        console.error('[DEBUG handleLogout] Error registrando logout:', err)
+        console.error('Error registrando logout:', err)
       }
     }
 
-    console.log('[DEBUG handleLogout] Ejecutando signOut')
+    localStorage.removeItem(SESSION_LOG_ID_KEY)
     await supabase.auth.signOut()
     setCurrentUser(null)
     setScreen('dashboard')
     setSyncNotice('Sesion cerrada.')
-    console.log('[DEBUG handleLogout] Logout completo')
   }
 
   async function handleLogin(event: FormEvent) {
@@ -1681,30 +1692,23 @@ function App() {
       return
     }
 
-    console.log('[DEBUG handleLogin] Intentando login con email:', loginEmail.trim())
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
       password: loginPassword,
     })
 
-    console.log('[DEBUG handleLogin] Resultado - error:', error?.message, 'data.session:', !!data?.session, 'user:', data?.user?.email)
-
     if (error) {
-      console.log('[DEBUG handleLogin] ERROR detectado, estableciendo mensaje de error')
       setSyncNotice('Usuario o contrasenia incorrectos.')
       setLoginPassword('')
       return
     }
 
     if (!data?.session) {
-      console.log('[DEBUG handleLogin] Sin sesion, estableciendo mensaje de error')
       setSyncNotice('Error al iniciar sesion. Intenta de nuevo.')
       return
     }
 
-    console.log('[DEBUG handleLogin] Login exitoso, cargando usuario')
-    await loadAuthenticatedUser(data.session)
+    await loadAuthenticatedUser(data.session, { recordLogin: true })
     setLoginEmail('')
     setLoginPassword('')
     setSyncNotice('Sesion iniciada.')
@@ -2312,6 +2316,20 @@ function App() {
     })
   }
 
+  function renderToastStack() {
+    return (
+      <section className="toast-stack" aria-live="polite" aria-atomic="true">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.tone} ${toast.exiting ? 'toast-exiting' : ''}`}>
+            <span className="toast-dot" />
+            <p>{toast.message}</p>
+            <span className="toast-progress" />
+          </div>
+        ))}
+      </section>
+    )
+  }
+
   if (authLoading) {
     return (
       <div className="app-shell auth-shell">
@@ -2320,6 +2338,7 @@ function App() {
           <h1>CalibraCinta</h1>
           <p>Cargando sesión...</p>
         </section>
+        {renderToastStack()}
       </div>
     )
   }
@@ -2375,6 +2394,7 @@ function App() {
           <div className="card"><span className="section-kicker">Trazabilidad</span><h2>Eventos auditables</h2><p className="hint">Factores, errores, tecnico responsable y diagnostico quedan listos para reporte.</p></div>
           <div className="card"><span className="section-kicker">Operacion</span><h2>Estado del parque</h2><p className="hint">KPIs, semaforos y filtros para priorizar equipos con accion recomendada.</p></div>
         </section>
+        {renderToastStack()}
       </div>
     )
   }
@@ -2516,15 +2536,7 @@ function App() {
         </div>
       </section>
 
-      <section className="toast-stack" aria-live="polite" aria-atomic="true">
-        {toasts.map((toast) => (
-          <div key={toast.id} className={`toast toast-${toast.tone} ${toast.exiting ? 'toast-exiting' : ''}`}>
-            <span className="toast-dot" />
-            <p>{toast.message}</p>
-            <span className="toast-progress" />
-          </div>
-        ))}
-      </section>
+      {renderToastStack()}
 
       {photoViewer && (
         <div className="photo-modal" role="dialog" aria-modal="true" aria-label="Foto de balanza">
