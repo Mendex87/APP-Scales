@@ -1658,30 +1658,28 @@ function App() {
     setSyncNotice('Sesion cerrada.')
   }
 
-  async function handleLogin(event: FormEvent) {
+async function handleLogin(event: FormEvent) {
     event.preventDefault()
     if (!supabase) {
       setSyncNotice('Supabase Auth no esta configurado.')
       return
     }
 
-    setSyncNotice('Verificando...')
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail.trim(),
       password: loginPassword,
     })
 
-    if (error || !data.session) {
+    if (error || !data?.session) {
       setSyncNotice('Usuario o contrasenia incorrectos.')
       return
     }
 
+    setSyncNotice('Sesion iniciada.')
     await loadAuthenticatedUser(data.session)
     setLoginEmail('')
     setLoginPassword('')
-    setScreen('dashboard')
-    setSyncNotice('Sesion iniciada.')
+setScreen('dashboard')
   }
 
   function primeEventForm(item: Equipment) {
