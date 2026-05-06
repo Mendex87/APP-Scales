@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-05 - v2.0.8 - Tema oscuro en preview
+
+- Contexto: se solicito un modo oscuro elegible desde el encabezado, manteniendo el tema claro como default.
+- Cambio: se agrego estado persistido en `localStorage` y `data-theme` en el documento para alternar claro/oscuro.
+- Cambio: la paleta oscura usa fondo carbon, superficies grafito y texto calido claro, conservando naranja como acento.
+- Cambio: se ajusto la grilla del dashboard para que la tarjeta principal no estire los KPIs.
+- Verificacion requerida: correr `npm run build`, alternar tema desde el encabezado y revisar dashboard/listado/wizard en ambos temas.
+
 ## 2026-05-05 - v2.0.7 - Vencimientos por frecuencia de control
 
 - Contexto: la preview del frontend necesitaba priorizar mantenimiento/chequeo de calibraciones por dias, no solo por estado de tolerancia.

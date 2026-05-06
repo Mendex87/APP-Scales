@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   Download,
   History,
+  Moon,
   Pencil,
   PlusCircle,
   Printer,
@@ -12,6 +13,7 @@ import {
   Save,
   Scale,
   Settings2,
+  Sun,
   Trash2,
   Users,
   Wrench,
@@ -49,6 +51,7 @@ import {
 
 type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
+type AppTheme = 'light' | 'dark'
 
 type Toast = {
   id: string
@@ -78,8 +81,14 @@ type ManagedUser = AuthUser & {
   createdAt: string
 }
 
-const APP_VERSION = 'v2.0.7'
+const APP_VERSION = 'v2.0.8'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
+const THEME_STORAGE_KEY = 'calibracinta:theme'
+
+function getInitialTheme(): AppTheme {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY)
+  return stored === 'dark' ? 'dark' : 'light'
+}
 
 const defaultEquipmentForm = {
   plant: '',
@@ -844,10 +853,16 @@ function App() {
   const [syncNotice, setSyncNotice] = useState('')
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
+  const [theme, setTheme] = useState<AppTheme>(getInitialTheme)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const didMountScrollRef = useRef(false)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem(THEME_STORAGE_KEY, theme)
+  }, [theme])
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
@@ -2295,6 +2310,15 @@ function App() {
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
             {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
           </div>
+          <button
+            className="secondary small theme-toggle"
+            type="button"
+            onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
+            aria-label={theme === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'}
+          >
+            {theme === 'dark' ? <Sun className="action-icon" aria-hidden="true" /> : <Moon className="action-icon" aria-hidden="true" />}
+            {theme === 'dark' ? 'Claro' : 'Oscuro'}
+          </button>
           {currentUser.role === 'admin' ? (
             <button className="secondary small manual-link" type="button" onClick={openAdminManual}>
               <Download className="action-icon" aria-hidden="true" />Manual

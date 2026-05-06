@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.0.8 - Tema oscuro en preview
+
+- Se agrego selector de tema claro/oscuro en el encabezado de la app autenticada.
+- El tema claro conserva la identidad visual existente; el tema oscuro usa superficies industriales oscuras manteniendo acentos naranjas.
+- La preferencia de tema queda guardada en el navegador.
+- Se ajusto la grilla de KPIs del dashboard para evitar tarjetas desproporcionadas.
+
 ## v2.0.7 - Vencimientos por frecuencia de control
 
 - Se agrego frecuencia de control en dias por balanza, con valor default de 30 dias.
