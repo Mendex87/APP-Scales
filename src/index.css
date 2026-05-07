@@ -724,16 +724,10 @@ body::before {
   color: var(--color-paper);
 }
 
-.wizard-step.warning {
+.wizard-step.pending {
   border-color: rgba(201, 133, 0, 0.45);
   background: var(--state-warning-bg);
   color: var(--state-warning-text);
-}
-
-.wizard-step.optional {
-  border-color: var(--border);
-  background: var(--surface-muted);
-  color: var(--color-grey-500);
 }
 
 .wizard-step small {

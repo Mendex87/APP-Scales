@@ -1452,9 +1452,8 @@ function App() {
         Boolean(finalMaterialPass),
         eventBlockingIssues.length === 0,
       ][index]
-      const warning = index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false
-      const optional = index === 4 || index === 5 ? !requiresFullCalibration : false
-      return { step, complete, warning, optional }
+      const pending = !complete && !(index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false)
+      return { step, complete, pending }
     })
   }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
@@ -3090,18 +3089,18 @@ function App() {
                 <span style={{ width: `${((calibrationStep + 1) / calibrationSteps.length) * 100}%` }} />
               </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
-                {calibrationStepStates.map(({ step, complete, warning, optional }, index) => (
+                {calibrationStepStates.map(({ step, complete, pending }, index) => (
                   <button
-                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : optional ? 'optional' : ''}`}
+                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : pending ? 'pending' : ''}`}
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
                     aria-current={index === calibrationStep ? 'step' : undefined}
-                    title={complete ? 'Completo' : warning ? 'Con advertencia' : optional ? 'Opcional' : 'Pendiente'}
+                    title={complete ? 'Completo' : pending ? 'Pendiente' : 'Opcional'}
                   >
                     <span>{index + 1}</span>
                     {step}
-                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : optional ? 'Opcional' : 'Pendiente'}</small>
+                    <small>{complete ? 'Completo' : pending ? 'Pendiente' : 'Opcional'}</small>
                   </button>
                 ))}
               </div>
