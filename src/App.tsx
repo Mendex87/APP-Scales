@@ -897,6 +897,21 @@ function App() {
   const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister())
+      }).catch(() => undefined)
+    }
+
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.filter((key) => key.includes('workbox') || key.includes('supabase-api') || key.includes('google-fonts'))
+          .forEach((key) => caches.delete(key))
+      }).catch(() => undefined)
+    }
+  }, [])
+
+  useEffect(() => {
     document.documentElement.dataset.theme = theme
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
