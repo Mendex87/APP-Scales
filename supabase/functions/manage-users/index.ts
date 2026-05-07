@@ -105,6 +105,17 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
+    if (action === 'clear_sessions') {
+      const { data, error } = await adminClient
+        .from('user_sessions')
+        .delete()
+        .not('id', 'is', null)
+        .select('id')
+
+      if (error) throw error
+      return json({ ok: true, deleted: data?.length || 0 })
+    }
+
     throw new Error('Invalid action.')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error.'

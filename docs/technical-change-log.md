@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-07 - v3.0.2 - Borrado real de sesiones desde service role
+
+- Contexto: el boton `Borrar registros` podia limpiar la UI local aunque Supabase no borrara filas reales si la policy RLS de delete no estaba aplicada o no afectaba registros.
+- Decision: mover la limpieza masiva de `user_sessions` a la Edge Function `manage-users`, reutilizando su validacion de admin y el cliente service role.
+- Cambio app: `handleClearSessionLogs` invoca `{ action: 'clear_sessions' }`, valida `data.ok`, muestra cantidad eliminada y remueve `calibracinta:session-log-id` del navegador.
+- Cambio Edge Function: se agrega accion `clear_sessions` que ejecuta `delete` sobre `user_sessions` con service role y retorna `deleted`.
+- Verificacion requerida: desplegar la Edge Function `manage-users`, correr `npm run build`, borrar registros desde Usuarios > Sesiones y confirmar en Supabase que la tabla queda vacia.
+
 ## 2026-05-07 - v3.0.1 - Pulido UX offline y documentacion
 
 - Contexto: se valido una preview nueva desde `main` para incorporar mejoras UX sin arrastrar cambios visuales no deseados de una preview anterior descartada.

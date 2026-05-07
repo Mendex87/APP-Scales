@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.2 - Borrado real de sesiones
+
+- El boton `Borrar registros` de sesiones ahora ejecuta la accion `clear_sessions` en la Edge Function `manage-users`.
+- La limpieza usa service role luego de validar rol admin, evitando falsos positivos cuando RLS no borra filas desde el cliente.
+- La app muestra la cantidad de registros eliminados y limpia el ID local de sesion.
+
 ## v3.0.1 - Pulido UX offline y documentacion
 
 - Se simplifica el Paso 4 del wizard para registrar solo factor de calibracion, cero, unidades y parametros extra, removiendo campos redundantes de span, filtro, puente y velocidad nominal.

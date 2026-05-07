@@ -96,7 +96,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.1'
+const APP_VERSION = 'v3.0.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -2407,16 +2407,16 @@ function App() {
       onConfirm: async () => {
         setUserManagementLoading(true)
         try {
-          const { error } = await client
-            .from('user_sessions')
-            .delete()
-            .not('id', 'is', null)
+          const { data, error } = await client.functions.invoke('manage-users', {
+            body: { action: 'clear_sessions' },
+          })
 
           if (error) throw error
+          if (!data?.ok) throw new Error(String(data?.message || 'No se pudieron borrar las sesiones.'))
 
           localStorage.removeItem(SESSION_LOG_ID_KEY)
           setSessionLogs([])
-          setSyncNotice('Registros de sesiones eliminados.')
+          setSyncNotice(`Registros de sesiones eliminados (${data.deleted || 0}).`)
         } catch (error) {
           const message = error instanceof Error ? error.message : 'No se pudieron borrar las sesiones.'
           setSyncNotice(`Error de sesiones: ${message}`)
