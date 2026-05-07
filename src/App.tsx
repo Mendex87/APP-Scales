@@ -1176,6 +1176,28 @@ function App() {
   }, [screen, eventForm, selectedEquipmentId, selectedChainId, materialPassCount])
 
   useEffect(() => {
+    if (screen !== 'nueva' || !hasEventDraft) return
+    const rawDraft = localStorage.getItem(CALIBRATION_DRAFT_KEY)
+    if (!rawDraft) return
+
+    let draftDate = ''
+    try {
+      const parsed = JSON.parse(rawDraft) as EventDraft
+      draftDate = parsed.savedAt ? formatDateTime(parsed.savedAt) : ''
+    } catch {
+      return
+    }
+
+    setConfirmDialog({
+      title: 'Borrador encontrado',
+      message: draftDate ? `Hay un borrador guardado del ${draftDate}.` : 'Hay un borrador guardado.',
+      detail: 'Podeis recuperarlo o descartarlo para empezar uno nuevo.',
+      confirmLabel: 'Recuperar borrador',
+      onConfirm: () => { loadEventDraft() },
+    })
+  }, [screen])
+
+  useEffect(() => {
     if (!selectedEquipment) return
 
     setChainToolForm((current) => ({
@@ -1428,7 +1450,8 @@ function App() {
         eventBlockingIssues.length === 0,
       ][index]
       const warning = index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false
-      return { step, complete, warning }
+      const optional = index === 4 || index === 5 ? !requiresFullCalibration : false
+      return { step, complete, warning, optional }
     })
   }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
@@ -3031,18 +3054,18 @@ function App() {
                 <span style={{ width: `${((calibrationStep + 1) / calibrationSteps.length) * 100}%` }} />
               </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
-                {calibrationStepStates.map(({ step, complete, warning }, index) => (
+                {calibrationStepStates.map(({ step, complete, warning, optional }, index) => (
                   <button
-                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : ''}`}
+                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : optional ? 'optional' : ''}`}
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
                     aria-current={index === calibrationStep ? 'step' : undefined}
-                    title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
+                    title={complete ? 'Completo' : warning ? 'Con advertencia' : optional ? 'Opcional' : 'Pendiente'}
                   >
                     <span>{index + 1}</span>
                     {step}
-                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : 'Pendiente'}</small>
+                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : optional ? 'Opcional' : 'Pendiente'}</small>
                   </button>
                 ))}
               </div>
@@ -3610,7 +3633,7 @@ function App() {
                       )}
                     </div>
                   </div>
-                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
+                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}{item.syncStatus === 'pendiente' && <span className="sync-chip">Offline</span>}</p>
                   <details className="inline-details">
                     <summary>Ver detalle</summary>
                     <div className="grid four compact-top">
