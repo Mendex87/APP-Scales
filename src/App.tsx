@@ -604,7 +604,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <thead><tr><th>Rol</th><th>Puede hacer</th><th>No debe hacer</th></tr></thead>
         <tbody>
           <tr><td>Admin</td><td>Gestiona usuarios, equipos, cadenas, eventos, eliminaciones y revisiones.</td><td>Compartir material admin o usar usuarios personales para tecnicos.</td></tr>
-          <tr><td>Tecnico</td><td>Crea equipos nuevos, cadenas, calibraciones, controles y usa herramientas.</td><td>Eliminar datos, gestionar usuarios o modificar administrativamente equipos existentes.</td></tr>
+          <tr><td>Tecnico</td><td>Realiza trabajo de campo: da de alta equipos nuevos cuando no existen, carga cadenas, registra calibraciones/controles, usa herramientas y consulta historial.</td><td>No puede eliminar datos, gestionar usuarios, editar equipos existentes ni dar de baja balanzas.</td></tr>
           <tr><td>Supervisor</td><td>Consulta balanzas, historial, reportes, herramientas y fotos.</td><td>Crear, editar o borrar registros operativos.</td></tr>
           <tr><td>Consulta</td><td>Acceso basico de lectura segun configuracion.</td><td>Operar calibraciones o administrar datos.</td></tr>
         </tbody>

@@ -5,6 +5,7 @@
 - Se reemplazan menciones visibles de `Supabase` por textos operativos orientados a usuario final: `Servidor online`, `Modo local`, `servidor de usuarios` y `permisos por rol`.
 - El manual tecnico explica que el servidor online es una base de datos en la nube, protegida por permisos de usuario y con respaldo remoto para preservar trazabilidad.
 - El manual administrador y la guia interna quedan alineados para ocultar detalles del proveedor sin modificar imports, variables ni integraciones tecnicas.
+- Se aclara el alcance real del rol `Tecnico`: puede dar de alta equipos nuevos y registrar trabajo de campo, pero no editar equipos existentes, darlos de baja, eliminar datos ni gestionar usuarios.
 
 ## v3.0.1 - Borrado real de sesiones
 
