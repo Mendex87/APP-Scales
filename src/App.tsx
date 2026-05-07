@@ -873,6 +873,7 @@ function App() {
   const [equipmentSubmitAttempted, setEquipmentSubmitAttempted] = useState(false)
   const [chainSubmitAttempted, setChainSubmitAttempted] = useState(false)
   const [eventSubmitAttempted, setEventSubmitAttempted] = useState(false)
+  const [wizardTouched, setWizardTouched] = useState<Record<string, boolean>>({})
   const [editingEquipmentId, setEditingEquipmentId] = useState('')
   const [equipmentPhotoFile, setEquipmentPhotoFile] = useState<File | null>(null)
   const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState('')
@@ -1176,6 +1177,30 @@ function App() {
   }, [screen, eventForm, selectedEquipmentId, selectedChainId, materialPassCount])
 
   useEffect(() => {
+    if (screen !== 'nueva' || !hasEventDraft) return
+    const rawDraft = localStorage.getItem(CALIBRATION_DRAFT_KEY)
+    if (!rawDraft) return
+
+    let draftDate = ''
+    try {
+      const parsed = JSON.parse(rawDraft) as EventDraft
+      draftDate = parsed.savedAt ? formatDateTime(parsed.savedAt) : ''
+    } catch {
+      return
+    }
+
+    setConfirmDialog({
+      title: 'Borrador encontrado',
+      message: draftDate ? `Hay un borrador guardado del ${draftDate}.` : 'Hay un borrador guardado.',
+      detail: 'Podeis recuperarlo o descartarlo para empezar uno nuevo.',
+      confirmLabel: 'Recuperar borrador',
+      onConfirm: () => {
+        loadEventDraft()
+      },
+    })
+  }, [screen])
+
+  useEffect(() => {
     if (!selectedEquipment) return
 
     setChainToolForm((current) => ({
@@ -1428,7 +1453,8 @@ function App() {
         eventBlockingIssues.length === 0,
       ][index]
       const warning = index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false
-      return { step, complete, warning }
+      const optional = index === 4 || index === 5 ? !requiresFullCalibration : false
+      return { step, complete, warning, optional }
     })
   }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
@@ -1606,6 +1632,38 @@ function App() {
     setCalibrationStep(0)
     setMaterialPassCount(1)
     setEventSubmitAttempted(false)
+    setWizardTouched({})
+  }
+
+  function touchWizardField(name: string) {
+    setWizardTouched((prev) => ({ ...prev, [name]: true }))
+  }
+
+  function getWizardFieldError(name: string): string {
+    const touched = wizardTouched[name] || eventSubmitAttempted
+    if (!touched) return ''
+    switch (name) {
+      case 'tolerancePercent':
+        return toNumber(eventForm.tolerancePercent) <= 0 ? 'Debe ser mayor a 0' : ''
+      case 'zeroBeforeValue':
+        return eventForm.zeroCompleted && !eventForm.zeroBeforeValue.trim() ? 'Registra el valor de cero antes' : ''
+      case 'calibrationFactor':
+        return eventForm.calibrationFactor && toNumber(eventForm.calibrationFactor) <= 0 ? 'Debe ser mayor a 0' : ''
+      case 'chainLinearKgM':
+        return requiresFullCalibration && toNumber(eventForm.chainLinearKgM) <= 0 ? 'Falta el kg/m de cadena' : ''
+      case 'avgControllerReadingKgM':
+        return requiresFullCalibration && toNumber(eventForm.avgControllerReadingKgM) <= 0 ? 'Falta el promedio del controlador' : ''
+      case 'expectedFlowTph':
+        return requiresFullCalibration && toNumber(eventForm.expectedFlowTph) <= 0 ? 'Falta el caudal esperado' : ''
+      case 'accumulatedTestMinutes':
+        return requiresFullCalibration && toNumber(eventForm.accumulatedTestMinutes) <= 0 ? 'Falta el tiempo de prueba' : ''
+      case 'accumulatedIndicatedTotal':
+        return requiresFullCalibration && toNumber(eventForm.accumulatedIndicatedTotal) <= 0 ? 'Falta el acumulado indicado' : ''
+      case 'finalFactor':
+        return toNumber(eventForm.finalFactor) <= 0 ? 'El factor final es obligatorio' : ''
+      default:
+        return ''
+    }
   }
 
   function saveEventDraft() {
@@ -1636,6 +1694,7 @@ function App() {
       setMaterialPassCount(draft.materialPassCount || 1)
       setCalibrationStep(0)
       setScreen('nueva')
+      setWizardTouched({})
       setSyncNotice(`Borrador recuperado (${formatDateTime(draft.savedAt)}).`)
     } catch {
       localStorage.removeItem(CALIBRATION_DRAFT_KEY)
@@ -3031,18 +3090,18 @@ function App() {
                 <span style={{ width: `${((calibrationStep + 1) / calibrationSteps.length) * 100}%` }} />
               </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
-                {calibrationStepStates.map(({ step, complete, warning }, index) => (
+                {calibrationStepStates.map(({ step, complete, warning, optional }, index) => (
                   <button
-                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : ''}`}
+                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : optional ? 'optional' : ''}`}
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
                     aria-current={index === calibrationStep ? 'step' : undefined}
-                    title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
+                    title={complete ? 'Completo' : warning ? 'Con advertencia' : optional ? 'Opcional' : 'Pendiente'}
                   >
                     <span>{index + 1}</span>
                     {step}
-                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : 'Pendiente'}</small>
+                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : optional ? 'Opcional' : 'Pendiente'}</small>
                   </button>
                 ))}
               </div>
@@ -3135,7 +3194,7 @@ function App() {
                 <h2>Eleccion de balanza/cinta</h2>
                 <div className="grid two">
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role !== 'admin' ? 'Fecha automatica al guardar' : undefined} />
-                  <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
+                  <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} onBlur={() => touchWizardField('tolerancePercent')} error={getWizardFieldError('tolerancePercent')} />
                 </div>
               </div>}
 
@@ -3172,7 +3231,7 @@ function App() {
                       <option value="otro">Otro</option>
                     </select>
                   </div>
-                  <Field label="Valor antes del cero" value={eventForm.zeroBeforeValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroBeforeValue: value }))} />
+                  <Field label="Valor antes del cero" value={eventForm.zeroBeforeValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroBeforeValue: value }))} onBlur={() => touchWizardField('zeroBeforeValue')} error={getWizardFieldError('zeroBeforeValue')} />
                   <Field label="Valor despues del cero" value={eventForm.zeroAfterValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroAfterValue: value }))} />
                 </div>
                 <div className="grid three compact-top">
@@ -3187,7 +3246,7 @@ function App() {
                 <div className="card-tag">Paso 4</div>
                 <h2>Foto de parametros</h2>
                 <div className="grid two">
-                  <Field label="Factor calibracion" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
+                  <Field label="Factor calibracion" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} onBlur={() => touchWizardField('calibrationFactor')} error={getWizardFieldError('calibrationFactor')} />
                   <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
                   <Field label="Span" type="number" value={eventForm.spanValue} onChange={(value) => setEventForm((current) => ({ ...current, spanValue: value }))} />
                   <Field label="Filtro" value={eventForm.filterValue} onChange={(value) => setEventForm((current) => ({ ...current, filterValue: value }))} />
@@ -3206,9 +3265,9 @@ function App() {
                 <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
-                  <Field label="Kg/m de cadena (editable)" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} />
+                  <Field label="Kg/m de cadena (editable)" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} onBlur={() => touchWizardField('chainLinearKgM')} error={getWizardFieldError('chainLinearKgM')} />
                   <Field label="Tiempo de test" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
-                  <Field label="Promedio lectura controlador (kg/m)" type="number" value={eventForm.avgControllerReadingKgM} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: value }))} />
+                  <Field label="Promedio lectura controlador (kg/m)" type="number" value={eventForm.avgControllerReadingKgM} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: value }))} onBlur={() => touchWizardField('avgControllerReadingKgM')} error={getWizardFieldError('avgControllerReadingKgM')} />
                   <Field label="Factor provisorio" type="number" value={eventForm.provisionalFactor} onChange={(value) => setEventForm((current) => ({ ...current, provisionalFactor: value }))} />
                 </div>
                 <div className="grid three compact-top">
@@ -3222,9 +3281,9 @@ function App() {
                 <div className="card-tag">Paso 6</div>
                 <h2>Acumulado y factor de ajuste</h2>
                 <div className="grid two">
-                  <Field label="Caudal esperado (tn/h)" type="number" value={eventForm.expectedFlowTph} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: value }))} />
-                  <Field label="Tiempo de prueba (min)" type="number" value={eventForm.accumulatedTestMinutes} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedTestMinutes: value }))} />
-                  <Field label={`Acumulado indicado (${selectedEquipment?.totalizerUnit || 'tn'})`} type="number" value={eventForm.accumulatedIndicatedTotal} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedIndicatedTotal: value }))} />
+                  <Field label="Caudal esperado (tn/h)" type="number" value={eventForm.expectedFlowTph} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: value }))} onBlur={() => touchWizardField('expectedFlowTph')} error={getWizardFieldError('expectedFlowTph')} />
+                  <Field label="Tiempo de prueba (min)" type="number" value={eventForm.accumulatedTestMinutes} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedTestMinutes: value }))} onBlur={() => touchWizardField('accumulatedTestMinutes')} error={getWizardFieldError('accumulatedTestMinutes')} />
+                  <Field label={`Acumulado indicado (${selectedEquipment?.totalizerUnit || 'tn'})`} type="number" value={eventForm.accumulatedIndicatedTotal} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedIndicatedTotal: value }))} onBlur={() => touchWizardField('accumulatedIndicatedTotal')} error={getWizardFieldError('accumulatedIndicatedTotal')} />
                   <Field label="Factor ajuste antes" type="number" value={eventForm.adjustmentFactorBefore} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentFactorBefore: value }))} />
                 </div>
                 <div className="grid four compact-top">
@@ -3301,7 +3360,7 @@ function App() {
                   <Metric label="Ajuste aplicado" value={materialAdjustmentApplied ? 'Si' : 'No'} />
                 </div>
                 <div className="grid two">
-                  <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
+                  <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} onBlur={() => touchWizardField('finalFactor')} error={getWizardFieldError('finalFactor')} />
                   <div className="system-field">
                     <span>Responsable tecnico</span>
                     <strong>{currentUser.username}</strong>
@@ -3610,7 +3669,7 @@ function App() {
                       )}
                     </div>
                   </div>
-                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
+                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}{item.syncStatus === 'pendiente' && <span className="sync-chip sync-pending">Offline</span>}</p>
                   <details className="inline-details">
                     <summary>Ver detalle</summary>
                     <div className="grid four compact-top">
@@ -3793,9 +3852,9 @@ function EquipmentPhoto({
   )
 }
 
-type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean; hint?: string }
+type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean; hint?: string; error?: string; onBlur?: () => void }
 
-function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldProps) {
+function Field({ label, value, onChange, type = 'text', disabled, hint, error, onBlur }: FieldProps) {
   const id = useId()
   const inputType = type === 'number' ? 'text' : type
   const inputMode = type === 'number' ? 'decimal' : type === 'email' ? 'email' : undefined
@@ -3805,8 +3864,20 @@ function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldP
   return (
     <div className="field-shell">
       <label className="label" htmlFor={id}>{label}</label>
-      <input id={id} className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} disabled={disabled} />
-      {hint && <p className="hint compact-top">{hint}</p>}
+      <input
+        id={id}
+        className={`input ${error ? 'input-error' : ''}`}
+        type={inputType}
+        inputMode={inputMode}
+        value={value}
+        onChange={(event) => handleChange(event.target.value)}
+        onBlur={onBlur}
+        disabled={disabled}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+      />
+      {hint && !error && <p className="hint compact-top">{hint}</p>}
+      {error && <p className="field-error" id={`${id}-error`} role="alert">{error}</p>}
     </div>
   )
 }
