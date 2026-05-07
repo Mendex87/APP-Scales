@@ -1531,16 +1531,19 @@ function App() {
     const adjustmentFactorCurrent = toNumber(accumulatedToolForm.adjustmentFactorCurrent) || 0
     if (!expectedFlowTph || !testMinutes || !indicatedTotal || !adjustmentFactorCurrent) return null
 
+    const unit = selectedEquipment?.totalizerUnit || 'tn'
     const expectedTotal = (expectedFlowTph * testMinutes) / 60
-    const errorPct = ((indicatedTotal - expectedTotal) / expectedTotal) * 100
-    const suggestedAdjustmentFactor = adjustmentFactorCurrent * (expectedTotal / indicatedTotal)
+    const expectedForCalc = unit === 'kg' ? expectedTotal * 1000 : expectedTotal
+    const errorPct = ((indicatedTotal - expectedForCalc) / expectedForCalc) * 100
+    const suggestedAdjustmentFactor = adjustmentFactorCurrent * (expectedForCalc / indicatedTotal)
 
     return {
       expectedTotal,
+      expectedForCalc,
       errorPct,
       suggestedAdjustmentFactor,
     }
-  }, [accumulatedToolForm])
+  }, [accumulatedToolForm, selectedEquipment])
 
   const automaticDiagnosis = useMemo(() => {
     const messages: string[] = []
@@ -3225,9 +3228,26 @@ function App() {
                   <Field label="Factor ajuste antes" type="number" value={eventForm.adjustmentFactorBefore} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentFactorBefore: value }))} />
                 </div>
                 <div className="grid four compact-top">
-                  <Metric label="Acumulado esperado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? String(round((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60, 6)) : '-'} />
-                  <Metric label="Error acumulado" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal ? `${round((((toNumber(eventForm.accumulatedIndicatedTotal) - ((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60)) / ((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60)) * 100), 3)} %` : '-'} />
-                  <Metric label="Factor ajuste sugerido" value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes && eventForm.accumulatedIndicatedTotal && eventForm.adjustmentFactorBefore ? String(round(toNumber(eventForm.adjustmentFactorBefore) * ((((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60) / toNumber(eventForm.accumulatedIndicatedTotal))), 6)) : '-'} />
+                  <Metric label={`Acumulado esperado (${selectedEquipment?.totalizerUnit || 'tn'})`} value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? String(round((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60, 6)) : '-'} />
+                  <Metric label="Error acumulado" value={(() => {
+                    if (!eventForm.expectedFlowTph || !eventForm.accumulatedTestMinutes || !eventForm.accumulatedIndicatedTotal) return '-'
+                    const unit = selectedEquipment?.totalizerUnit || 'tn'
+                    const expectedTotal = (toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60
+                    const indicated = toNumber(eventForm.accumulatedIndicatedTotal)
+                    const expectedForCalc = unit === 'kg' ? expectedTotal * 1000 : expectedTotal
+                    if (expectedForCalc === 0) return '-'
+                    const errorPct = ((indicated - expectedForCalc) / expectedForCalc) * 100
+                    return `${round(errorPct, 3)} %`
+                  })()} />
+                  <Metric label="Factor ajuste sugerido" value={(() => {
+                    if (!eventForm.expectedFlowTph || !eventForm.accumulatedTestMinutes || !eventForm.accumulatedIndicatedTotal || !eventForm.adjustmentFactorBefore) return '-'
+                    const unit = selectedEquipment?.totalizerUnit || 'tn'
+                    const expectedTotal = (toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60
+                    const indicated = toNumber(eventForm.accumulatedIndicatedTotal)
+                    const expectedForCalc = unit === 'kg' ? expectedTotal * 1000 : expectedTotal
+                    if (indicated === 0) return '-'
+                    return String(round(toNumber(eventForm.adjustmentFactorBefore) * (expectedForCalc / indicated), 6))
+                  })()} />
                   <Metric label="Regla" value="Si el instantaneo esta bien, corregir con factor de ajuste" />
                 </div>
               </CollapsibleCard>}
@@ -3481,7 +3501,7 @@ function App() {
                 <Field label="Factor ajuste actual" type="number" value={accumulatedToolForm.adjustmentFactorCurrent} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, adjustmentFactorCurrent: value }))} />
               </div>
               <div className="grid four compact-top">
-                <Metric label="Acumulado esperado" value={accumulatedToolResult ? String(round(accumulatedToolResult.expectedTotal, 6)) : '-'} />
+                <Metric label={`Acumulado esperado (${selectedEquipment?.totalizerUnit || 'tn'})`} value={accumulatedToolResult ? String(round(selectedEquipment?.totalizerUnit === 'kg' ? accumulatedToolResult.expectedTotal * 1000 : accumulatedToolResult.expectedTotal, 6)) : '-'} />
                 <Metric label="Error %" value={accumulatedToolResult ? `${round(accumulatedToolResult.errorPct, 3)} %` : '-'} />
                 <Metric label="Factor ajuste sugerido" value={accumulatedToolResult ? String(round(accumulatedToolResult.suggestedAdjustmentFactor, 6)) : '-'} />
                 <Metric label="Diagnostico" value={accumulatedToolResult ? (Math.abs(accumulatedToolResult.errorPct) > 2 ? 'Revisar/ajustar acumulado' : 'Acumulado coherente') : '-'} />
