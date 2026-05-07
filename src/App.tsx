@@ -96,7 +96,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.1'
+const APP_VERSION = 'v3.0.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -581,7 +581,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>Gestion de cadenas patron</li>
         <li>Calibraciones y controles preventivos</li>
         <li>Historial, reportes y criterios de lectura</li>
-        <li>Supabase, RLS y datos</li>
+        <li>Servidor online, permisos y datos</li>
         <li>Seguridad y despliegue Vercel</li>
         <li>Acciones destructivas</li>
         <li>Checklist de administracion</li>
@@ -615,8 +615,8 @@ function buildAdminManualHtml(user: AuthUser) {
       <h2>3. Ingreso y controles iniciales</h2>
       <ol>
         <li>Confirmar que la cabecera muestre la version esperada luego de cada deploy.</li>
-        <li>Confirmar que el estado de base indique <code>DB: Supabase</code> para trabajo multi-dispositivo.</li>
-        <li>Si se ve <code>DB: Local</code>, no asumir sincronizacion remota hasta resolver conectividad/configuracion.</li>
+        <li>Confirmar que el estado de base indique <code>Servidor online</code> para trabajo multi-dispositivo.</li>
+        <li>Si se ve <code>Modo local</code>, no asumir sincronizacion remota hasta resolver conectividad/configuracion.</li>
         <li>Revisar el dashboard: equipos fuera de tolerancia, equipos sin historial y eventos del mes.</li>
       </ol>
     </section>
@@ -646,7 +646,7 @@ function buildAdminManualHtml(user: AuthUser) {
           <tr><td>Foto</td><td>Ayuda visual para evitar seleccionar equipo equivocado.</td></tr>
         </tbody>
       </table>
-      <div class="callout ok">Los tecnicos pueden crear equipos, pero la edicion administrativa de equipos existentes queda reservada a admin por RLS.</div>
+      <div class="callout ok">Los tecnicos pueden crear equipos, pero la edicion administrativa de equipos existentes queda reservada a admin por permisos internos.</div>
     </section>
 
     <section>
@@ -685,14 +685,14 @@ function buildAdminManualHtml(user: AuthUser) {
     </section>
 
     <section>
-      <h2>9. Supabase, RLS y datos</h2>
-      <p>La app usa Supabase para equipos, cadenas, eventos, perfiles y fotos. RLS es la capa que impide acciones fuera del rol.</p>
+      <h2>9. Servidor online, permisos y datos</h2>
+      <p>La app usa un servidor online como base de datos en la nube para equipos, cadenas, eventos, perfiles y fotos. Los permisos internos impiden acciones fuera del rol asignado.</p>
       <ul>
-        <li>No usar service role en el navegador.</li>
-        <li>Si aparece un error RLS, revisar tabla, accion y rol antes de cambiar policies.</li>
-        <li>La Edge Function de usuarios usa <code>SERVICE_ROLE_KEY</code>.</li>
+        <li>No usar credenciales administrativas en el navegador.</li>
+        <li>Si aparece un error de permisos, revisar tabla, accion y rol antes de cambiar configuraciones.</li>
+        <li>La funcion interna de usuarios usa credenciales administrativas del servidor.</li>
         <li>Google Sheets es salida operativa: <code>Eventos</code>, <code>Equipos</code>, <code>Dashboard</code>, <code>Alertas</code> y <code>Configuracion</code> se actualizan via Apps Script.</li>
-        <li>Los borrados de eventos/equipos se notifican a Sheets mediante <code>sync-sheets-event</code>; si Sheets falla, Supabase queda como fuente de verdad y la app informa el error.</li>
+        <li>Los borrados de eventos/equipos se notifican a Sheets mediante <code>sync-sheets-event</code>; si Sheets falla, el servidor online conserva la fuente principal y la app informa el error.</li>
         <li>El guardado de eventos no debe actualizar <code>equipments</code>, porque eso rompio previamente al rol tecnico.</li>
       </ul>
     </section>
@@ -712,7 +712,7 @@ function buildAdminManualHtml(user: AuthUser) {
       <h2>11. Acciones destructivas</h2>
       <p>Eliminar balanzas, cadenas o eventos es una accion administrativa. Confirmar siempre impacto operativo antes de avanzar.</p>
       <ul>
-        <li>Eliminar una balanza puede eliminar eventos asociados por cascada en Supabase.</li>
+        <li>Eliminar una balanza puede afectar eventos asociados en el servidor online.</li>
         <li>Eliminar una balanza o evento tambien intenta limpiar Google Sheets y reconstruir su dashboard externo.</li>
         <li>Eliminar una cadena no modifica los datos historicos ya guardados en eventos.</li>
         <li>Eliminar eventos reduce la trazabilidad y debe quedar justificado por procedimiento interno.</li>
@@ -1017,13 +1017,13 @@ function App() {
         setEvents(result.events)
         setDataSource(result.source)
         if (!isSupabaseConfigured) {
-          setSyncNotice('Supabase no está configurado. La app quedó en modo local.')
+          setSyncNotice('Servidor online no configurado. La app quedo en modo local.')
         }
       } catch (error) {
         if (cancelled) return
         const message = error instanceof Error ? error.message : 'No se pudo cargar la base remota.'
         setDataSource('local')
-        setSyncNotice(`No se pudo conectar a Supabase: ${message}`)
+        setSyncNotice(`No se pudo conectar al servidor online: ${message}`)
       } finally {
         if (!cancelled) {
           setLoadingData(false)
@@ -1804,7 +1804,7 @@ function App() {
   async function handleLogin(event: FormEvent) {
     event.preventDefault()
     if (!supabase) {
-      setSyncNotice('Supabase Auth no esta configurado.')
+      setSyncNotice('Autenticacion online no configurada.')
       return
     }
 
@@ -2030,7 +2030,7 @@ function App() {
       setDataSource(result.source)
       setSyncNotice(
         result.source === 'supabase'
-          ? `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} en Supabase.`
+          ? `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} en servidor online.`
           : `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} solo localmente.`,
       )
     } catch (error) {
@@ -2063,7 +2063,7 @@ function App() {
       setChainForm(defaultChainForm)
       setChainSubmitAttempted(false)
       setDataSource(result.source)
-      setSyncNotice(result.source === 'supabase' ? 'Cadena guardada en Supabase.' : 'Cadena guardada solo localmente.')
+      setSyncNotice(result.source === 'supabase' ? 'Cadena guardada en servidor online.' : 'Cadena guardada solo localmente.')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar la cadena.'
       setSyncNotice(`Error al guardar cadena: ${message}`)
@@ -2211,7 +2211,7 @@ function App() {
       setDataSource(result.source)
       setSyncNotice(
         result.source === 'supabase'
-          ? `Evento ${record.id} guardado en Supabase.`
+          ? `Evento ${record.id} guardado en servidor online.`
           : `Evento ${record.id} guardado solo localmente.`,
       )
 
@@ -2534,7 +2534,7 @@ function App() {
           </div>
 
           <div id="acceso" className="auth-card public-login">
-            <div className="login-status"><span></span> Supabase online</div>
+            <div className="login-status"><span></span> Servidor online</div>
             <div className="brand-kicker">Acceso protegido</div>
             <h2>Ingresar</h2>
             <p>Operadores habilitados pueden cargar controles, revisar historial y emitir reportes de campo.</p>
@@ -2647,7 +2647,7 @@ function App() {
           <div className="chip version-chip">{APP_VERSION}</div>
           <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'tecnico' ? 'Tecnico' : currentUser.role === 'supervisor' ? 'Supervisor' : 'Consulta'}</div>
           <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
-            {dataSource === 'supabase' ? 'DB: Supabase' : 'DB: Local'}
+            {dataSource === 'supabase' ? 'Servidor online' : 'Modo local'}
           </div>
           <button
             className="secondary small theme-toggle"
@@ -2674,7 +2674,7 @@ function App() {
       <section className="hero-strip">
         <div className="hero-panel hero-panel-primary">
           <span>Base activa</span>
-          <strong>{dataSource === 'supabase' ? 'Supabase Online' : 'Modo Local'}</strong>
+          <strong>{dataSource === 'supabase' ? 'Servidor online' : 'Modo local'}</strong>
           <p>{dataSource === 'supabase' ? 'Registro multi-dispositivo habilitado.' : 'Modo contingencia con almacenamiento local.'}</p>
         </div>
         <div className="hero-panel">
@@ -2763,7 +2763,7 @@ function App() {
                 </div>
                 <div className="ops-facts compact-top">
                   <div><span>Ultimo evento</span><strong>{latestEvent ? formatDateTime(latestEvent.eventDate) : '-'}</strong></div>
-                  <div><span>Fuente</span><strong>{dataSource === 'supabase' ? 'Supabase' : 'Local'}</strong></div>
+                  <div><span>Fuente</span><strong>{dataSource === 'supabase' ? 'Servidor online' : 'Local'}</strong></div>
                   <div><span>Modo</span><strong>{canOperate ? 'Campo habilitado' : canReview ? 'Revision' : 'Consulta'}</strong></div>
                 </div>
               </div>
@@ -3662,7 +3662,7 @@ function App() {
             <div className="screen-banner">
               <span className="section-kicker">Administracion</span>
               <h2>Gestion de usuarios</h2>
-              <p>Alta y baja de usuarios usando Supabase Auth y perfiles con rol operativo.</p>
+              <p>Alta y baja de usuarios usando autenticacion online y perfiles con rol operativo.</p>
             </div>
             <div className="card stack">
               <h2>Crear usuario</h2>
@@ -3688,7 +3688,7 @@ function App() {
               <div className="row wrap">
                 <div>
                   <h2>Usuarios activos</h2>
-                  <p className="hint">Los cambios se aplican sobre Supabase Auth.</p>
+                  <p className="hint">Los cambios se aplican sobre el servidor de usuarios.</p>
                 </div>
                 <button className="secondary small" onClick={loadManagedUsers} disabled={userManagementLoading}><Settings2 className="action-icon" aria-hidden="true" />Actualizar</button>
               </div>

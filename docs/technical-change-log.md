@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-07 - v3.0.2 - Ocultar proveedor en UI y manuales de usuario
+
+- Contexto: `Supabase` es un detalle tecnico que el usuario final no necesita conocer y podia generar confusion en pantallas, avisos y manuales.
+- Decision: conservar nombres tecnicos internos (`supabase`, imports, Edge Functions y dependencias), pero reemplazar textos visibles por `Servidor online`, `Modo local`, `servidor de usuarios` y `permisos por rol`.
+- Cambio app: se actualizan login, chips de estado, notificaciones de guardado/conexion, panel de fuente y pantalla de usuarios.
+- Cambio manual tecnico: se documenta que `Servidor online` significa base de datos en la nube, protegida por permisos de usuario y con respaldo remoto; `Modo local` queda como contingencia temporal.
+- Cambio manual admin: se reemplazan referencias al proveedor por servidor online/permisos, manteniendo explicaciones operativas.
+- Verificacion requerida: correr `npm run build`, revisar pantalla publica, cabecera autenticada, dashboard, usuarios y manual tecnico publico.
+
 ## 2026-05-07 - v3.0.1 - Borrado real de sesiones desde service role
 
 - Contexto: el boton `Borrar registros` podia limpiar la UI local aunque Supabase no borrara filas reales si la policy RLS de delete no afectaba registros.

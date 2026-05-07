@@ -371,7 +371,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v2.0.5</strong></div>
+        <div><span>Version documentada</span><strong>v3.0.2</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -439,14 +439,14 @@
           <tr><td><span class="tag success">Viewer</span></td><td>Consulta basica.</td><td>Acceso de lectura a herramientas e historial segun configuracion.</td><td>No opera calibraciones ni administra datos.</td></tr>
         </tbody>
       </table>
-      <div class="callout warning"><strong>Importante:</strong> si un usuario tecnico no puede guardar eventos, revisar que tenga rol <code>tecnico</code> en Supabase y que el despliegue incluya la version que evita actualizar la tabla de equipos al cerrar un evento.</div>
+      <div class="callout warning"><strong>Importante:</strong> si un usuario tecnico no puede guardar eventos, revisar que tenga rol <code>tecnico</code> y que el despliegue incluya la version que evita actualizar datos maestros al cerrar un evento.</div>
     </section>
 
     <section id="inicio">
       <h2>4. Ingreso y pantalla inicial</h2>
-      <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra Supabase Auth y consulta el perfil para conocer el rol.</p></div></div>
+      <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra el servidor de usuarios y consulta el perfil para conocer el rol.</p></div></div>
       <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior muestra las secciones disponibles para el rol actual: balanzas, nueva calibracion, herramientas, historial y usuarios.</p></div></div>
-      <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con Supabase o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
+      <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con servidor online o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
       <div class="callout"><strong>Version visible:</strong> la version de la app se muestra en la cabecera. Usarla para confirmar que Vercel ya desplego el ultimo cambio.</div>
     </section>
 
@@ -476,7 +476,7 @@
         <li>Guardar balanza.</li>
       </ol>
       <h3>Edicion y baja</h3>
-      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en Supabase por cascada. Cuando Google Sheets esta configurado, la baja tambien elimina la fila del equipo y sus eventos asociados en la planilla externa. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
+      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en el servidor online. Cuando Google Sheets esta configurado, la baja tambien elimina la fila del equipo y sus eventos asociados en la planilla externa. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
     </section>
 
     <section id="cadenas">
@@ -626,7 +626,7 @@
 
     <section id="usuarios">
       <h2>12. Usuarios y permisos</h2>
-      <p>Solo administradores ven la seccion usuarios. La gestion usa Supabase Auth para credenciales y perfiles para rol visible dentro de la app.</p>
+      <p>Solo administradores ven la seccion usuarios. La gestion usa el servidor de usuarios para credenciales y perfiles para rol visible dentro de la app.</p>
       <h3>Crear usuario</h3>
       <ol>
         <li>Ingresar como admin.</li>
@@ -640,8 +640,9 @@
 
     <section id="datos" class="page-break">
       <h2>13. Persistencia y sincronizacion</h2>
-      <p>La app usa Supabase como almacenamiento remoto para equipos, cadenas, eventos y perfiles. Si Supabase no esta configurado o no responde, conserva modo local para contingencia.</p>
-      <h3>Que se guarda en Supabase</h3>
+      <p>La app usa un servidor online como base de datos en la nube para equipos, cadenas, eventos y perfiles. Si el servidor online no esta configurado o no responde, conserva modo local para contingencia.</p>
+      <div class="callout"><strong>Servidor online:</strong> significa que los datos se guardan en una base de datos en la nube, protegida con permisos por usuario y respaldo remoto. Esto permite conservar la trazabilidad aunque se cambie de dispositivo. El modo local sirve solo como contingencia temporal.</div>
+      <h3>Que se guarda en el servidor online</h3>
       <ul>
         <li>Equipos en <code>equipments</code>.</li>
         <li>Cadenas en <code>chains</code>.</li>
@@ -649,22 +650,22 @@
         <li>Perfiles de usuario en <code>profiles</code>.</li>
         <li>Fotos de balanzas en Storage, bucket <code>equipment-photos</code>.</li>
       </ul>
-      <h3>Seguridad por RLS</h3>
-      <p>Las policies de Supabase limitan acciones segun rol. Por ejemplo, el tecnico puede insertar eventos, pero la actualizacion administrativa de equipos queda reservada a administradores.</p>
+      <h3>Seguridad por permisos</h3>
+      <p>Los permisos del servidor online limitan acciones segun rol. Por ejemplo, el tecnico puede insertar eventos, pero la actualizacion administrativa de equipos queda reservada a administradores.</p>
       <h3>Google Sheets operativo</h3>
-      <p>Google Sheets funciona como salida operativa, no como fuente principal. La app envia resumenes mediante la Edge Function <code>sync-sheets-event</code> hacia Apps Script. Supabase sigue siendo la fuente de verdad.</p>
+      <p>Google Sheets funciona como salida operativa, no como fuente principal. La app envia resumenes mediante la Edge Function <code>sync-sheets-event</code> hacia Apps Script. El servidor online sigue siendo la fuente principal de datos.</p>
       <table>
         <thead><tr><th>Hoja</th><th>Uso</th></tr></thead>
         <tbody>
           <tr><td><code>Eventos</code></td><td>Registro resumido por calibracion/control, con <code>Codigo equipo</code> corto.</td></tr>
-          <tr><td><code>Equipos</code></td><td>Estado actual por equipo; el ID interno de Supabase queda oculto.</td></tr>
+          <tr><td><code>Equipos</code></td><td>Estado actual por equipo; el ID interno del servidor online queda oculto.</td></tr>
           <tr><td><code>Dashboard</code></td><td>KPIs operativos y alertas principales configurables desde Sheets.</td></tr>
           <tr><td><code>Alertas</code></td><td>Alertas por fuera de tolerancia, error absoluto y equipos sin control reciente.</td></tr>
           <tr><td><code>Configuracion</code></td><td>Reglas editables: tolerancia, dias sin control, colores y textos.</td></tr>
         </tbody>
       </table>
-      <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, la app notifica a Sheets para remover filas y reconstruir <code>Dashboard</code> y <code>Alertas</code>. Si Sheets falla, Supabase queda actualizado y la app muestra aviso.</div>
-      <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de RLS, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
+      <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, la app notifica a Sheets para remover filas y reconstruir <code>Dashboard</code> y <code>Alertas</code>. Si Sheets falla, el servidor online queda actualizado y la app muestra aviso.</div>
+      <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de permisos, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
     </section>
 
     <section id="buenas-practicas">
@@ -702,7 +703,7 @@
 
     <section id="problemas">
       <h2>15. Problemas frecuentes</h2>
-      <h3>No puedo guardar como tecnico por policy RLS</h3>
+      <h3>No puedo guardar como tecnico por permisos</h3>
       <p>Confirmar que la app este en version <code>v1.1.4</code> o superior. Esa version evita actualizar equipos al cerrar eventos, respetando que la actualizacion de <code>equipments</code> queda para administradores.</p>
       <h3>No aparece una cadena para una balanza externa</h3>
       <p>Desde <code>v1.1.3</code>, si no hay cadenas para la planta de la balanza, se muestran todas las disponibles. Si aun no aparecen, verificar que existan cadenas cargadas y que el navegador tenga la version desplegada.</p>
@@ -732,7 +733,7 @@
           <tr><td>Factor calibracion</td><td>Parametro del controlador usado para ajustar la medicion de peso/caudal.</td></tr>
           <tr><td>Factor ajuste</td><td>Parametro asociado a correccion de totalizador/acumulado.</td></tr>
           <tr><td>Pasada</td><td>Comparacion puntual entre peso certificado y peso indicado por la balanza dinamica.</td></tr>
-          <tr><td>RLS</td><td>Row Level Security de Supabase, mecanismo que limita permisos por usuario/rol.</td></tr>
+          <tr><td>Permisos por rol</td><td>Mecanismo del servidor online que limita acciones segun usuario y rol operativo.</td></tr>
           <tr><td>Tolerancia</td><td>Porcentaje maximo de error aceptado para considerar conforme un evento.</td></tr>
         </tbody>
       </table>
