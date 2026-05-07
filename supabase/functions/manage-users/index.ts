@@ -105,6 +105,34 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
+    if (action === 'clear_sessions') {
+      const { count: beforeCount, error: countError } = await adminClient
+        .from('user_sessions')
+        .select('id', { count: 'exact', head: true })
+
+      if (countError) throw countError
+
+      const { error: deleteError } = await adminClient
+        .from('user_sessions')
+        .delete()
+        .not('id', 'is', null)
+
+      if (deleteError) throw deleteError
+
+      const { count: afterCount, error: verifyError } = await adminClient
+        .from('user_sessions')
+        .select('id', { count: 'exact', head: true })
+
+      if (verifyError) throw verifyError
+
+      return json({
+        ok: true,
+        before: beforeCount || 0,
+        remaining: afterCount || 0,
+        deleted: Math.max((beforeCount || 0) - (afterCount || 0), 0),
+      })
+    }
+
     throw new Error('Invalid action.')
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error.'
