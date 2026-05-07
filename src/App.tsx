@@ -96,7 +96,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.2'
+const APP_VERSION = 'v3.0.0'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -667,7 +667,6 @@ function buildAdminManualHtml(user: AuthUser) {
         <tbody>
           <tr><td>Primera carga sin historial</td><td>Completar cadena, acumulado y material.</td><td>Calibrada o fuera de tolerancia.</td></tr>
           <tr><td>Control preventivo</td><td>Una pasada dentro de tolerancia sin ajuste puede cerrar.</td><td>Control conforme.</td></tr>
-          <tr><td>Registro offline</td><td>Si no hay conexion, queda pendiente y se reintenta al volver online.</td><td>Historial muestra chip Offline hasta sincronizar.</td></tr>
           <tr><td>Ajuste de factor</td><td>Debe existir pasada posterior completa.</td><td>Calibrada si queda dentro.</td></tr>
           <tr><td>Factor final vacio o cero</td><td>No se permite guardar.</td><td>Completar valor confirmado en controlador.</td></tr>
           <tr><td>Ultima pasada fuera</td><td>No forzar cierre conforme.</td><td>Fuera de tolerancia.</td></tr>
@@ -713,7 +712,7 @@ function buildAdminManualHtml(user: AuthUser) {
       <h2>11. Acciones destructivas</h2>
       <p>Eliminar balanzas, cadenas o eventos es una accion administrativa. Confirmar siempre impacto operativo antes de avanzar.</p>
       <ul>
-        <li>Eliminar una balanza puede quedar bloqueado si tiene eventos asociados, preservando trazabilidad historica en Supabase.</li>
+        <li>Eliminar una balanza puede eliminar eventos asociados por cascada en Supabase.</li>
         <li>Eliminar una balanza o evento tambien intenta limpiar Google Sheets y reconstruir su dashboard externo.</li>
         <li>Eliminar una cadena no modifica los datos historicos ya guardados en eventos.</li>
         <li>Eliminar eventos reduce la trazabilidad y debe quedar justificado por procedimiento interno.</li>
@@ -820,6 +819,10 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
   <div class="grid">
     ${reportRow('Factor calibracion', item.parameterSnapshot.calibrationFactor)}
     ${reportRow('Cero', item.parameterSnapshot.zeroValue)}
+    ${reportRow('Span', item.parameterSnapshot.spanValue)}
+    ${reportRow('Filtro', item.parameterSnapshot.filterValue)}
+    ${reportRow('Puente', `${item.parameterSnapshot.bridgeLengthM} m`)}
+    ${reportRow('Velocidad', `${item.parameterSnapshot.nominalSpeedMs} m/s`)}
     ${reportRow('Cadena', item.chainSpan.chainName)}
     ${reportRow('Kg/m cadena', item.chainSpan.chainLinearKgM)}
     ${reportRow('Lectura prom.', item.chainSpan.avgControllerReadingKgM)}
@@ -1173,28 +1176,6 @@ function App() {
   }, [screen, eventForm, selectedEquipmentId, selectedChainId, materialPassCount])
 
   useEffect(() => {
-    if (screen !== 'nueva' || !hasEventDraft) return
-    const rawDraft = localStorage.getItem(CALIBRATION_DRAFT_KEY)
-    if (!rawDraft) return
-
-    let draftDate = ''
-    try {
-      const parsed = JSON.parse(rawDraft) as EventDraft
-      draftDate = parsed.savedAt ? formatDateTime(parsed.savedAt) : ''
-    } catch {
-      return
-    }
-
-    setConfirmDialog({
-      title: 'Borrador encontrado',
-      message: draftDate ? `Hay un borrador guardado del ${draftDate}.` : 'Hay un borrador guardado.',
-      detail: 'Podes recuperarlo o descartarlo para empezar uno nuevo.',
-      confirmLabel: 'Recuperar borrador',
-      onConfirm: () => { loadEventDraft() },
-    })
-  }, [screen])
-
-  useEffect(() => {
     if (!selectedEquipment) return
 
     setChainToolForm((current) => ({
@@ -1440,15 +1421,14 @@ function App() {
         Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0),
         precheckPassed,
         eventForm.zeroCompleted,
-        Boolean(toNumber(eventForm.calibrationFactor) || toNumber(eventForm.zeroValue) || eventForm.extraParameters.trim()),
+        Boolean(toNumber(eventForm.calibrationFactor) || toNumber(eventForm.zeroValue) || toNumber(eventForm.spanValue) || eventForm.extraParameters.trim()),
         !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0),
         !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
         Boolean(finalMaterialPass),
         eventBlockingIssues.length === 0,
       ][index]
       const warning = index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false
-      const optional = index === 4 || index === 5 ? !requiresFullCalibration : false
-      return { step, complete, warning, optional }
+      return { step, complete, warning }
     })
   }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
@@ -1457,7 +1437,7 @@ function App() {
     selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}. ${selectedEquipmentMaintenance?.detail || ''}` : 'Selecciona una balanza para iniciar el circuito.',
     precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
     eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
-    eventForm.calibrationFactor || eventForm.zeroValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
+    eventForm.calibrationFactor || eventForm.zeroValue || eventForm.spanValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
     !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga kg/m de cadena y promedio del controlador.',
     !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal, tiempo y acumulado indicado.',
     finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
@@ -2407,16 +2387,16 @@ function App() {
       onConfirm: async () => {
         setUserManagementLoading(true)
         try {
-          const { data, error } = await client.functions.invoke('manage-users', {
-            body: { action: 'clear_sessions' },
-          })
+          const { error } = await client
+            .from('user_sessions')
+            .delete()
+            .not('id', 'is', null)
 
           if (error) throw error
-          if (!data?.ok) throw new Error(String(data?.message || 'No se pudieron borrar las sesiones.'))
 
           localStorage.removeItem(SESSION_LOG_ID_KEY)
           setSessionLogs([])
-          setSyncNotice(`Registros de sesiones eliminados (${data.deleted || 0}).`)
+          setSyncNotice('Registros de sesiones eliminados.')
         } catch (error) {
           const message = error instanceof Error ? error.message : 'No se pudieron borrar las sesiones.'
           setSyncNotice(`Error de sesiones: ${message}`)
@@ -2646,7 +2626,7 @@ function App() {
       <header className="topbar">
         <div className="brand-block">
           <h1>Balanzas Dinamicas</h1>
-          <p>Trazabilidad de seteo simplificado, span con peso patron, material real y ajuste final.</p>
+          <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
         </div>
         <div className="topbar-actions">
           <div className="chip version-chip">{APP_VERSION}</div>
@@ -3051,18 +3031,18 @@ function App() {
                 <span style={{ width: `${((calibrationStep + 1) / calibrationSteps.length) * 100}%` }} />
               </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
-                {calibrationStepStates.map(({ step, complete, warning, optional }, index) => (
+                {calibrationStepStates.map(({ step, complete, warning }, index) => (
                   <button
-                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : optional ? 'optional' : ''}`}
+                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : ''}`}
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
                     aria-current={index === calibrationStep ? 'step' : undefined}
-                    title={complete ? 'Completo' : warning ? 'Con advertencia' : optional ? 'Opcional' : 'Pendiente'}
+                    title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
                   >
                     <span>{index + 1}</span>
                     {step}
-                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : optional ? 'Opcional' : 'Pendiente'}</small>
+                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : 'Pendiente'}</small>
                   </button>
                 ))}
               </div>
@@ -3209,6 +3189,10 @@ function App() {
                 <div className="grid two">
                   <Field label="Factor calibracion" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
                   <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
+                  <Field label="Span" type="number" value={eventForm.spanValue} onChange={(value) => setEventForm((current) => ({ ...current, spanValue: value }))} />
+                  <Field label="Filtro" value={eventForm.filterValue} onChange={(value) => setEventForm((current) => ({ ...current, filterValue: value }))} />
+                  <Field label="Puente pesaje (m)" type="number" value={eventForm.snapshotBridgeLengthM} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: value }))} />
+                  <Field label="Velocidad nominal (m/s)" type="number" value={eventForm.snapshotNominalSpeedMs} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: value }))} />
                   <Field label="Unidades" value={eventForm.units} onChange={(value) => setEventForm((current) => ({ ...current, units: value }))} />
                   <div className="system-field">
                     <span>Cambio registrado por</span>
@@ -3626,7 +3610,7 @@ function App() {
                       )}
                     </div>
                   </div>
-                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}{item.syncStatus === 'pendiente' && <span className="sync-chip">Offline</span>}</p>
+                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
                   <details className="inline-details">
                     <summary>Ver detalle</summary>
                     <div className="grid four compact-top">

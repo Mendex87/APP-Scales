@@ -294,40 +294,24 @@ export async function updateCalibrationEventSync(
   }
 }
 
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms))
-}
-
-export async function syncCalibrationEventToSheets(payload: SheetsEventPayload, retries = 3) {
+export async function syncCalibrationEventToSheets(payload: SheetsEventPayload) {
   if (!isSupabaseConfigured || !supabase) {
     return { ok: false, message: 'Supabase no esta configurado.' }
   }
 
-  let lastError: Error | null = null
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-sheets-event', {
-        body: payload,
-      })
+  const { data, error } = await supabase.functions.invoke('sync-sheets-event', {
+    body: payload,
+  })
 
-      if (error) {
-        throw toError(error)
-      }
-
-      if (!data?.ok) {
-        throw new Error(String(data?.message || 'No se pudo sincronizar Google Sheets.'))
-      }
-
-      return { ok: true, message: String(data.message || 'Resumen exportado a Google Sheets.') }
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err))
-      if (attempt < retries - 1) {
-        await sleep(Math.pow(2, attempt) * 1000)
-      }
-    }
+  if (error) {
+    throw toError(error)
   }
 
-  throw lastError || new Error('Error desconocido en sincronizacion Sheets.')
+  if (!data?.ok) {
+    throw new Error(String(data?.message || 'No se pudo sincronizar Google Sheets.'))
+  }
+
+  return { ok: true, message: String(data.message || 'Resumen exportado a Google Sheets.') }
 }
 
 export function buildDeleteEventSheetsPayload(eventId: string, equipmentId: string): SheetsDeleteEventPayload {
