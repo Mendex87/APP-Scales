@@ -2,6 +2,17 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-07 - v3.0.1 - Pulido UX offline y documentacion
+
+- Contexto: se valido una preview nueva desde `main` para incorporar mejoras UX sin arrastrar cambios visuales no deseados de una preview anterior descartada.
+- Cambio wizard: el Paso 4 queda simplificado a factor de calibracion, cero, unidades y parametros extra; se eliminan de la UI los campos `Span`, `Filtro`, `Puente pesaje` y `Velocidad nominal`.
+- Cambio pasos: cadena y acumulado muestran estado opcional cuando no se requiere calibracion completa, manteniendo advertencia si la primera calibracion necesita datos completos.
+- Cambio borradores: al entrar a `Nueva calibracion`, si existe borrador local se ofrece recuperarlo automaticamente mediante dialogo.
+- Cambio offline: el historial muestra chip `Offline` para eventos con `sync_status = pendiente`; la app incorpora service worker/PWA para app shell offline.
+- Cambio Sheets: `syncCalibrationEventToSheets` reintenta hasta 3 veces con backoff exponencial antes de informar error.
+- Cambio documentacion: changelog, manual administrador, manual tecnico fuente/publico y reporte imprimible quedan alineados a v3.0.1.
+- Verificacion requerida: correr `npm run build`, revisar Paso 4, guardar/recuperar borrador, crear evento pendiente offline y confirmar redeploy de Vercel desde `main`.
+
 ## 2026-05-06 - v3.0.0 - Corte estable de seguridad, sesiones y limpieza de auditoria
 
 - Contexto: la preview de sesiones confirmo que Supabase Auth devolvia correctamente errores de credenciales y que `logout_at` se actualizaba, pero los avisos no se veian porque el contenedor de toasts solo existia en la app autenticada. Tambien aparecieron registros duplicados por insertar sesiones desde `getSession`, `onAuthStateChange` y `handleLogin`.

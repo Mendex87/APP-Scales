@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.0.1 - Pulido UX offline y documentacion
+
+- Se simplifica el Paso 4 del wizard para registrar solo factor de calibracion, cero, unidades y parametros extra, removiendo campos redundantes de span, filtro, puente y velocidad nominal.
+- Los pasos de cadena y acumulado muestran estado opcional cuando el control preventivo no requiere calibracion completa.
+- El wizard ofrece recuperacion automatica de borradores locales al abrir una nueva calibracion.
+- El historial identifica eventos pendientes de sincronizacion con un chip `Offline`.
+- Se agrega app shell offline mediante service worker/PWA y reintentos con backoff exponencial para la exportacion a Google Sheets.
+- Manuales, reporte imprimible y registros tecnicos quedan alineados con el comportamiento actual de v3.0.1.
+
 ## v3.0.0 - Corte estable de seguridad y sesiones
 
 - Se consolida en `main` el endurecimiento de datos, Sheets seguro, fecha automatica para no-admin y auditoria de sesiones.

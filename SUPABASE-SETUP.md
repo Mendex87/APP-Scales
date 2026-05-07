@@ -97,7 +97,7 @@ create table if not exists public.calibration_events (
   constraint calibration_events_equipment_id_fkey
     foreign key (equipment_id)
     references public.equipments (id)
-    on delete cascade
+    on delete restrict
 );
 
 create index if not exists calibration_events_equipment_id_idx

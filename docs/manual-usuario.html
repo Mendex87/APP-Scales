@@ -371,7 +371,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v2.0.5</strong></div>
+        <div><span>Version documentada</span><strong>v3.0.1</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -476,7 +476,7 @@
         <li>Guardar balanza.</li>
       </ol>
       <h3>Edicion y baja</h3>
-      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en Supabase por cascada. Cuando Google Sheets esta configurado, la baja tambien elimina la fila del equipo y sus eventos asociados en la planilla externa. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
+      <p>Los administradores pueden editar y dar de baja balanzas. La baja es destructiva y debe usarse con cuidado; Supabase conserva la trazabilidad historica y puede impedir eliminaciones con eventos asociados segun la integridad referencial vigente. Cuando Google Sheets esta configurado, la baja tambien intenta limpiar la fila del equipo y sus eventos asociados en la planilla externa. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
     </section>
 
     <section id="cadenas">
@@ -526,7 +526,7 @@
       <p>Registrar si el cero fue realizado, si fue ajustado, la unidad visible y valores antes/despues. La app calcula deriva cuando ambos valores son numericos.</p>
 
       <h3>Paso 4: Foto de parametros</h3>
-      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, span, filtro, puente, velocidad nominal, unidades y parametros extra si corresponde.</p>
+      <p>Cargar solo los parametros necesarios del controlador al momento de intervenir: factor de calibracion, cero, unidades y parametros extra si corresponde. Los datos tecnicos de puente, velocidad y span con patron se gestionan en el maestro de balanza o en el paso especifico de cadena.</p>
 
       <h3>Paso 5: Span con cadena</h3>
       <p>Registrar kg/m de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
@@ -575,11 +575,11 @@
       <h3>Guardar borrador</h3>
       <ol>
         <li>Dentro de <strong>Nueva calibracion</strong>, tocar <strong>Guardar borrador</strong>.</li>
-        <li>La app conserva formulario, balanza, cadena, paso y cantidad de pasadas.</li>
+        <li>La app conserva formulario, balanza, cadena y cantidad de pasadas.</li>
         <li>El borrador queda solo en ese dispositivo/navegador.</li>
       </ol>
       <h3>Recuperar o descartar</h3>
-      <p>Si existe un borrador, aparece <strong>Recuperar borrador</strong>. Tambien se puede descartar manualmente. Al guardar un evento exitosamente, el borrador se limpia automaticamente.</p>
+      <p>Si existe un borrador, al abrir <strong>Nueva calibracion</strong> la app ofrece recuperarlo automaticamente. Tambien se puede guardar manualmente y, al guardar un evento exitosamente, el borrador se limpia automaticamente.</p>
       <div class="callout warning"><strong>Limitacion:</strong> el borrador local no es una sincronizacion multiusuario. Si se cambia de equipo o navegador, no estara disponible.</div>
     </section>
 
@@ -663,6 +663,7 @@
           <tr><td><code>Configuracion</code></td><td>Reglas editables: tolerancia, dias sin control, colores y textos.</td></tr>
         </tbody>
       </table>
+      <div class="callout"><strong>Offline:</strong> si un evento no puede sincronizarse por conectividad, queda marcado como pendiente y el historial muestra el chip <code>Offline</code> hasta que se sincronice.</div>
       <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, la app notifica a Sheets para remover filas y reconstruir <code>Dashboard</code> y <code>Alertas</code>. Si Sheets falla, Supabase queda actualizado y la app muestra aviso.</div>
       <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de RLS, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
     </section>
