@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-08 - v3.0.7 - Popups como placas operativas
+
+- Contexto: los toasts funcionaban pero se veian genericos frente al lenguaje visual diagonal/naranja de la app.
+- Decision: convertirlos en placas industriales oscuras con textura diagonal, etiqueta de estado, riel lateral y barra de progreso por tono.
+- Cambio UI: `renderToastStack` agrega una etiqueta visual derivada del tono (`OK`, `INFO`, `ALERTA`, `ERROR`) y el CSS redefine entrada/salida, acentos y responsive mobile.
+- Accesibilidad: se conserva `aria-live="polite"`, el texto visible y la estructura no bloqueante de los popups.
+- Verificacion requerida: correr `npm run build`, probar login correcto/incorrecto, guardados, errores y revisar que los toasts no tapen la navegacion inferior en mobile.
+
 ## 2026-05-08 - v3.0.6 - Reveal cubierto al iniciar sesion
 
 - Contexto: la transicion de login se disparaba despues de que el dashboard ya quedaba visible, generando el efecto inverso al deseado.

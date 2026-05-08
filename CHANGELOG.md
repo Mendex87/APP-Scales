@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.7 - Popups industriales
+
+- Los mensajes popup ahora usan placas oscuras con cortes diagonales, textura tecnica y acento por estado.
+- Se agrega una etiqueta visual (`OK`, `INFO`, `ALERTA`, `ERROR`) para identificar rapidamente el tipo de aviso.
+- La barra de progreso adopta un riel diagonal con el color del estado, manteniendo contraste y legibilidad en desktop/mobile.
+
 ## v3.0.6 - Reveal de login cubierto
 
 - La transicion de ingreso ahora arranca antes de renderizar visualmente la app autenticada, evitando que el dashboard aparezca antes del efecto.

@@ -48,6 +48,18 @@ Rules:
 - Skip it when `prefers-reduced-motion: reduce` is active.
 - Do not run it on initial session restore; returning users should not get an entry animation just because an existing session was detected.
 
+## Popup messages
+
+Toast notifications are operational status plates, not generic app popups. They should look connected to the diagonal industrial language of the public page, action pulses and login transition.
+
+Rules:
+
+- Keep the current `aria-live="polite"` stack behavior.
+- Use a short status label for quick scanning: `OK`, `INFO`, `ALERTA` or `ERROR`.
+- Preserve clear text contrast over the dark plate.
+- Use the state color for the label, side rail and progress bar, with orange hatch details as brand texture.
+- Keep the stack near the top on mobile so it does not fight the bottom navigation.
+
 ## Current autoscroll behavior (documented, not changed in v3.0.4)
 
 The app currently has three autoscroll responsibilities:

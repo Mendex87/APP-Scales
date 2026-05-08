@@ -99,7 +99,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.6'
+const APP_VERSION = 'v3.0.7'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -111,6 +111,13 @@ function getToastTone(message: string): ToastTone {
   if (/pendiente|incompleta/i.test(message)) return 'warning'
   if (/ok|sincronizado|guardada|guardado|cargados|cerrada|iniciada|creado|eliminado/i.test(message)) return 'success'
   return 'info'
+}
+
+function getToastLabel(tone: ToastTone) {
+  if (tone === 'success') return 'OK'
+  if (tone === 'warning') return 'ALERTA'
+  if (tone === 'error') return 'ERROR'
+  return 'INFO'
 }
 
 function getSessionDevice(userAgent: string | null) {
@@ -2544,6 +2551,7 @@ function App() {
       <section className="toast-stack" aria-live="polite" aria-atomic="true">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast toast-${toast.tone} ${toast.exiting ? 'toast-exiting' : ''}`}>
+            <span className="toast-label" aria-hidden="true">{getToastLabel(toast.tone)}</span>
             <span className="toast-dot" />
             <p>{toast.message}</p>
             <span className="toast-progress" />

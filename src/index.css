@@ -2394,57 +2394,127 @@ body::before {
   left: 1rem;
   z-index: 60;
   display: grid;
-  gap: 0.7rem;
-  width: min(380px, calc(100vw - 2rem));
+  gap: 0.75rem;
+  width: min(430px, calc(100vw - 2rem));
 }
 
 .toast {
+  --toast-accent: var(--color-orange);
+  --toast-accent-soft: rgba(255, 89, 73, 0.28);
+  --toast-label-text: #08080b;
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-  padding: 0.9rem 1rem;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto 0.55rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem 0.72rem;
+  min-height: 4rem;
+  padding: 0.85rem 1rem 1rem 0.8rem;
   border-radius: var(--radius);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(12, 11, 17, 0.94);
+  border: 1px solid color-mix(in srgb, var(--toast-accent) 46%, rgba(240, 239, 235, 0.18));
+  background:
+    linear-gradient(112deg, rgba(255, 89, 73, 0.16) 0 9%, transparent 9% 100%),
+    linear-gradient(135deg, rgba(12, 11, 17, 0.96) 0 66%, rgba(46, 41, 48, 0.94) 66% 100%);
   color: var(--color-paper);
-  box-shadow: 0 1.5rem 3rem rgba(12, 11, 17, 0.24);
-  backdrop-filter: blur(10px);
-  animation: toast-in var(--motion-base) var(--ease-industrial) both;
+  box-shadow: 0 1.25rem 2.8rem rgba(12, 11, 17, 0.3), inset 0 0 0 1px rgba(240, 239, 235, 0.06);
+  backdrop-filter: blur(16px) saturate(1.08);
+  clip-path: polygon(0.55rem 0, 100% 0, 100% calc(100% - 0.55rem), calc(100% - 0.55rem) 100%, 0 100%, 0 0.55rem);
+  animation: toast-in 420ms var(--ease-industrial) both;
+}
+
+.toast::before,
+.toast::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.toast::before {
+  inset: -58% -34%;
+  z-index: -1;
+  background:
+    linear-gradient(105deg, transparent 0 24%, var(--toast-accent-soft) 24% 36%, rgba(255, 89, 73, 0.22) 36% 40%, transparent 40% 100%),
+    repeating-linear-gradient(105deg, transparent 0 12px, rgba(255, 89, 73, 0.16) 12px 14px, transparent 14px 25px);
+  transform: translateX(-18%) skewX(-18deg);
+  animation: toast-plate-scan 760ms var(--ease-industrial) both;
+}
+
+.toast::after {
+  top: 0.45rem;
+  right: 0.65rem;
+  width: 3.2rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--toast-accent));
+  opacity: 0.72;
 }
 
 .toast-exiting {
-  animation: toast-out var(--motion-base) var(--ease-industrial) both;
+  animation: toast-out 260ms var(--ease-industrial) both;
 }
 
 .toast p {
+  position: relative;
+  z-index: 1;
+  grid-column: 3;
   margin: 0;
   color: var(--color-paper);
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.toast-label {
+  position: relative;
+  z-index: 1;
+  grid-column: 1;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  padding: 0.28rem 0.45rem;
+  background: var(--toast-accent);
+  color: var(--toast-label-text);
+  clip-path: polygon(0.38rem 0, 100% 0, calc(100% - 0.38rem) 100%, 0 100%, 0 0.38rem);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1;
+  text-transform: uppercase;
+  box-shadow: 0 0 1.1rem color-mix(in srgb, var(--toast-accent) 24%, transparent);
 }
 
 .toast-dot {
-  width: 10px;
-  height: 10px;
+  position: relative;
+  z-index: 1;
+  grid-column: 2;
+  width: 0.42rem;
+  height: 100%;
+  min-height: 2.25rem;
   border-radius: 999px;
-  margin-top: 0.32rem;
-  flex: 0 0 auto;
+  background: var(--toast-accent);
+  box-shadow: 0 0 1rem var(--toast-accent-soft);
 }
 
-.toast-info .toast-dot {
-  background: #60a5fa;
+.toast-info {
+  --toast-accent: var(--color-orange);
+  --toast-accent-soft: rgba(255, 89, 73, 0.28);
 }
 
-.toast-success .toast-dot {
-  background: var(--color-success);
+.toast-success {
+  --toast-accent: var(--color-success);
+  --toast-accent-soft: rgba(31, 143, 95, 0.34);
 }
 
-.toast-warning .toast-dot {
-  background: var(--color-warning);
+.toast-warning {
+  --toast-accent: var(--color-warning);
+  --toast-accent-soft: rgba(201, 133, 0, 0.34);
 }
 
-.toast-error .toast-dot {
-  background: var(--color-error);
+.toast-error {
+  --toast-accent: var(--color-error);
+  --toast-accent-soft: rgba(196, 59, 48, 0.36);
 }
 
 .toast-progress {
@@ -2452,22 +2522,13 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 3px;
-  background: var(--color-orange);
+  z-index: 2;
+  height: 4px;
+  background:
+    repeating-linear-gradient(105deg, var(--toast-accent) 0 9px, color-mix(in srgb, var(--toast-accent) 42%, #08080b) 9px 13px),
+    var(--toast-accent);
   transform-origin: left;
   animation: toast-progress 4.2s linear both;
-}
-
-.toast-success .toast-progress {
-  background: var(--color-success);
-}
-
-.toast-warning .toast-progress {
-  background: var(--color-warning);
-}
-
-.toast-error .toast-progress {
-  background: var(--color-error);
 }
 
 .login-transition {
@@ -2791,6 +2852,24 @@ body::before {
 }
 
 @media (max-width: 640px) {
+  .toast-stack {
+    top: 0.75rem;
+    left: 0.75rem;
+    width: calc(100vw - 1.5rem);
+  }
+
+  .toast {
+    grid-template-columns: auto 0.45rem minmax(0, 1fr);
+    min-height: 3.65rem;
+    padding: 0.72rem 0.78rem 0.88rem 0.68rem;
+  }
+
+  .toast-label {
+    min-width: 2.85rem;
+    padding-inline: 0.36rem;
+    font-size: 0.72rem;
+  }
+
   .app-shell {
     width: 100%;
     padding-inline: 0.75rem;
@@ -3575,24 +3654,45 @@ body::before {
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateX(-14px) scale(0.98);
+    filter: blur(3px);
+    transform: translateX(-1.1rem) skewX(-2deg) scale(0.98);
   }
 
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    filter: blur(0);
+    transform: translateX(0) skewX(0) scale(1);
   }
 }
 
 @keyframes toast-out {
   from {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    filter: blur(0);
+    transform: translateX(0) skewX(0) scale(1);
   }
 
   to {
     opacity: 0;
-    transform: translateX(-10px) scale(0.98);
+    filter: blur(2px);
+    transform: translateX(-0.75rem) skewX(-2deg) scale(0.985);
+  }
+}
+
+@keyframes toast-plate-scan {
+  0% {
+    opacity: 0;
+    transform: translateX(-36%) skewX(-18deg);
+  }
+
+  36%,
+  68% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.78;
+    transform: translateX(14%) skewX(-18deg);
   }
 }
 
