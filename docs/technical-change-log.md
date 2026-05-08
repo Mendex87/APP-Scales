@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-08 - v3.0.6 - Reveal cubierto al iniciar sesion
+
+- Contexto: la transicion de login se disparaba despues de que el dashboard ya quedaba visible, generando el efecto inverso al deseado.
+- Decision: iniciar la capa de presentacion apenas el login es valido, antes de cargar/renderizar visualmente la app autenticada.
+- Cambio UI: la capa queda opaca con blur y diagonales naranja/negro durante la preparacion, y luego revela la app con un fade controlado.
+- Alcance: no se modifica la validacion de credenciales, carga de perfil, registro de sesiones ni autoscrolls.
+- Verificacion requerida: correr `npm run build`, hacer login exitoso y confirmar que el dashboard no se ve antes ni durante el inicio de la presentacion.
+
 ## 2026-05-08 - v3.0.5 - Legibilidad del pulso y transicion de login
 
 - Contexto: el barrido diagonal podia pasar por encima del texto de algunos botones y en primarios naranjas se percibia demasiado blanco en lugar de oscurecer la accion.

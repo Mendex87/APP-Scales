@@ -2477,9 +2477,15 @@ body::before {
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 22%, rgba(255, 89, 73, 0.26), transparent 28%),
-    rgba(12, 11, 17, 0.92);
-  animation: login-transition-fade 980ms var(--ease-industrial) both;
+    radial-gradient(circle at 18% 22%, rgba(255, 89, 73, 0.28), transparent 30%),
+    repeating-linear-gradient(135deg, rgba(255, 89, 73, 0.1) 0 1px, transparent 1px 18px),
+    rgba(12, 11, 17, 0.98);
+  opacity: 1;
+  backdrop-filter: blur(10px) saturate(1.16);
+}
+
+.login-transition-reveal {
+  animation: login-transition-reveal 820ms var(--ease-industrial) both;
 }
 
 .login-transition::before,
@@ -3473,18 +3479,19 @@ body::before {
   }
 }
 
-@keyframes login-transition-fade {
+@keyframes login-transition-reveal {
   0% {
-    opacity: 0;
+    opacity: 1;
+    backdrop-filter: blur(10px) saturate(1.16);
   }
 
-  16%,
-  72% {
+  42% {
     opacity: 1;
   }
 
   100% {
     opacity: 0;
+    backdrop-filter: blur(0) saturate(1);
   }
 }
 

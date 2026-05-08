@@ -44,6 +44,7 @@ Rules:
 
 - Trigger it only after successful login.
 - Keep it decorative (`aria-hidden`) and non-blocking (`pointer-events: none`).
+- Start with a covered/blurred layer before the authenticated app is visually revealed.
 - Skip it when `prefers-reduced-motion: reduce` is active.
 - Do not run it on initial session restore; returning users should not get an entry animation just because an existing session was detected.
 

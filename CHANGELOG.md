@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.6 - Reveal de login cubierto
+
+- La transicion de ingreso ahora arranca antes de renderizar visualmente la app autenticada, evitando que el dashboard aparezca antes del efecto.
+- La capa de presentacion queda opaca y con blur mientras se carga el usuario, y recien revela la app al final de la animacion.
+- Se mantiene el respeto a `prefers-reduced-motion` y no se modifica la logica de autenticacion.
+
 ## v3.0.5 - Pulso legible y transicion de ingreso
 
 - El barrido `action-pulse` de botones ahora se renderiza detras del contenido para que iconos y texto no queden tapados.

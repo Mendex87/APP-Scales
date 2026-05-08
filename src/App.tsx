@@ -56,6 +56,7 @@ import {
 type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 type AppTheme = 'light' | 'dark'
+type LoginTransitionPhase = 'idle' | 'cover' | 'reveal'
 type ViewTransitionDocument = Document & {
   startViewTransition?: (updateCallback: () => void) => { finished: Promise<void> }
 }
@@ -98,7 +99,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.5'
+const APP_VERSION = 'v3.0.6'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -896,11 +897,12 @@ function App() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [navPulseScreen, setNavPulseScreen] = useState<Screen | null>(null)
-  const [loginTransitionActive, setLoginTransitionActive] = useState(false)
+  const [loginTransitionPhase, setLoginTransitionPhase] = useState<LoginTransitionPhase>('idle')
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
   const loginTransitionTimeoutRef = useRef<number | null>(null)
+  const loginTransitionStartedAtRef = useRef(0)
   const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
   const dataLoadStartRef = useRef(typeof performance !== 'undefined' ? performance.now() : Date.now())
   const dataLoadLoggedRef = useRef(false)
@@ -1885,12 +1887,13 @@ function App() {
       return
     }
 
+    const shouldRevealLoginTransition = beginLoginTransition()
     await loadAuthenticatedUser(data.session, { recordLogin: true })
-    triggerLoginTransition()
     setLoginEmail('')
     setLoginPassword('')
     setSyncNotice('Sesion iniciada.')
     setScreen('dashboard')
+    if (shouldRevealLoginTransition) revealLoginTransition()
   }
 
   function primeEventForm(item: Equipment) {
@@ -2551,28 +2554,45 @@ function App() {
   }
 
   function renderLoginTransition() {
-    if (!loginTransitionActive) return null
+    if (loginTransitionPhase === 'idle') return null
+    const className = `login-transition ${loginTransitionPhase === 'reveal' ? 'login-transition-reveal' : ''}`
 
     return (
-      <div className="login-transition" aria-hidden="true">
+      <div className={className} aria-hidden="true">
         <span className="login-transition-rail" />
         <span className="login-transition-core" />
       </div>
     )
   }
 
-  function triggerLoginTransition() {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  function clearLoginTransitionTimeout() {
+    if (loginTransitionTimeoutRef.current === null) return
 
-    if (loginTransitionTimeoutRef.current !== null) {
-      window.clearTimeout(loginTransitionTimeoutRef.current)
-    }
+    window.clearTimeout(loginTransitionTimeoutRef.current)
+    loginTransitionTimeoutRef.current = null
+  }
 
-    setLoginTransitionActive(true)
+  function beginLoginTransition() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
+
+    clearLoginTransitionTimeout()
+    loginTransitionStartedAtRef.current = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    flushSync(() => setLoginTransitionPhase('cover'))
+    return true
+  }
+
+  function revealLoginTransition() {
+    clearLoginTransitionTimeout()
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    const elapsed = now - loginTransitionStartedAtRef.current
+    const revealDelay = Math.max(0, 520 - elapsed)
     loginTransitionTimeoutRef.current = window.setTimeout(() => {
-      setLoginTransitionActive(false)
-      loginTransitionTimeoutRef.current = null
-    }, 980)
+      setLoginTransitionPhase('reveal')
+      loginTransitionTimeoutRef.current = window.setTimeout(() => {
+        setLoginTransitionPhase('idle')
+        loginTransitionTimeoutRef.current = null
+      }, 820)
+    }, revealDelay)
   }
 
   const handleActionPulse = (event: MouseEvent<HTMLDivElement>) => {
