@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-07 - v3.0.3 - Preview de performance y paginado
+
+- Contexto: el crecimiento de eventos puede volver pesado el historial si se renderiza completo en cada filtro.
+- Decision: paginar el historial en cliente con 25 eventos por pagina como primer paso seguro antes de cambiar consultas remotas.
+- Cambio UI: se agrega `HistoryPager` y metricas de `Mostrando n/total`, manteniendo filtros actuales por balanza, estado y mes.
+- Cambio estructura: se extraen `HistoryEventCard`, `HistoryPager`, `EquipmentPhoto` y `Metric` para reducir complejidad del componente principal.
+- Cambio medicion: se documenta baseline de build y se agrega log de carga inicial con conteos de equipos, cadenas y eventos.
+- Cambio fotos: las imagenes de equipos usan `loading="lazy"` y `decoding="async"` para reducir trabajo inicial en listados largos.
+- Verificacion requerida: correr `npm run build`, revisar historial con mas de 25 eventos, cambiar filtros, avanzar/retroceder paginas y revisar consola `[Calibra Cinta performance]` en desktop/mobile.
+
 ## 2026-05-07 - v3.0.2 - Ocultar proveedor en UI y manuales de usuario
 
 - Contexto: `Supabase` es un detalle tecnico que el usuario final no necesita conocer y podia generar confusion en pantallas, avisos y manuales.

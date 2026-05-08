@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.0.3 - Preview de performance
+
+- Se agrega paginado del historial para renderizar 25 eventos por pagina en lugar de pintar todo el historial filtrado.
+- Se separan componentes de historial, paginacion, fotos de equipo y metricas para reducir complejidad de `App.tsx`.
+- Se agrega logging de performance en consola con fuente de datos, cantidad de equipos/cadenas/eventos y tiempo de carga inicial.
+- Las fotos de equipos ahora usan carga diferida (`loading="lazy"`) y decodificacion asincronica.
+- Se documenta baseline de build y estrategia de medicion en `docs/performance-baseline.md`.
+
 ## v3.0.2 - Etiquetas de servidor online
 
 - Se reemplazan menciones visibles de `Supabase` por textos operativos orientados a usuario final: `Servidor online`, `Modo local`, `servidor de usuarios` y `permisos por rol`.

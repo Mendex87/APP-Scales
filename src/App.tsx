@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
@@ -9,7 +9,6 @@ import {
   Moon,
   Pencil,
   PlusCircle,
-  Printer,
   RotateCcw,
   Save,
   Scale,
@@ -20,6 +19,9 @@ import {
   Wrench,
   XCircle,
 } from 'lucide-react'
+import { EquipmentPhoto } from './components/EquipmentPhoto'
+import { HistoryPager } from './components/HistoryPager'
+import { Metric } from './components/Metric'
 import {
   buildDeleteEquipmentSheetsPayload,
   buildDeleteEventSheetsPayload,
@@ -96,10 +98,12 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.2'
+const APP_VERSION = 'v3.0.3'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
+const HISTORY_PAGE_SIZE = 25
+const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 
 function getToastTone(message: string): ToastTone {
   if (/^error|fallo|incorrect|invalid|invalido|inválido|no se pudo/i.test(message)) return 'error'
@@ -885,6 +889,7 @@ function App() {
   const [historyEquipmentId, setHistoryEquipmentId] = useState('todos')
   const [historyStatusFilter, setHistoryStatusFilter] = useState('todos')
   const [historyMonthFilter, setHistoryMonthFilter] = useState('todos')
+  const [historyPage, setHistoryPage] = useState(1)
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [theme, setTheme] = useState<AppTheme>(getInitialTheme)
@@ -895,6 +900,8 @@ function App() {
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
   const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
+  const dataLoadStartRef = useRef(typeof performance !== 'undefined' ? performance.now() : Date.now())
+  const dataLoadLoggedRef = useRef(false)
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -950,6 +957,20 @@ function App() {
   useEffect(() => {
     saveEvents(events)
   }, [events])
+
+  useEffect(() => {
+    if (loadingData || dataLoadLoggedRef.current) return
+    dataLoadLoggedRef.current = true
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    console.info('[Calibra Cinta performance]', {
+      version: APP_VERSION,
+      dataSource,
+      equipment: equipment.length,
+      chains: chains.length,
+      events: events.length,
+      loadMs: Math.round(now - dataLoadStartRef.current),
+    })
+  }, [chains.length, dataSource, equipment.length, events.length, loadingData])
 
   useEffect(() => {
     let cancelled = false
@@ -1615,6 +1636,37 @@ function App() {
       })
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
   }, [events, historyEquipmentId, historyMonthFilter, historyStatusFilter])
+
+  const historySummary = useMemo(() => {
+    return filteredEvents.reduce(
+      (summary, item) => {
+        const state = statusClass(getEventMaterialOutcome(item).status)
+        if (state === 'danger') summary.outOfTolerance += 1
+        if (state === 'success') summary.compliant += 1
+        return summary
+      },
+      { outOfTolerance: 0, compliant: 0 },
+    )
+  }, [filteredEvents])
+
+  const historyTotalPages = Math.max(1, Math.ceil(filteredEvents.length / HISTORY_PAGE_SIZE))
+  const paginatedEvents = useMemo(() => {
+    const safePage = Math.min(Math.max(historyPage, 1), historyTotalPages)
+    const start = (safePage - 1) * HISTORY_PAGE_SIZE
+    return filteredEvents.slice(start, start + HISTORY_PAGE_SIZE)
+  }, [filteredEvents, historyPage, historyTotalPages])
+
+  const equipmentById = useMemo(() => {
+    return new Map(equipment.map((item) => [item.id, item]))
+  }, [equipment])
+
+  useEffect(() => {
+    setHistoryPage(1)
+  }, [historyEquipmentId, historyMonthFilter, historyStatusFilter])
+
+  useEffect(() => {
+    setHistoryPage((current) => Math.min(Math.max(current, 1), historyTotalPages))
+  }, [historyTotalPages])
 
   function resetEventForm() {
     setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
@@ -3559,8 +3611,9 @@ function App() {
               <h2>Historial de eventos</h2>
               <div className="history-summary compact-top">
                 <Metric label="Eventos filtrados" value={String(filteredEvents.length)} />
-                <Metric label="Fuera tolerancia" value={String(filteredEvents.filter((item) => statusClass(getEventMaterialOutcome(item).status) === 'danger').length)} />
-                <Metric label="Conformes" value={String(filteredEvents.filter((item) => statusClass(getEventMaterialOutcome(item).status) === 'success').length)} />
+                <Metric label="Mostrando" value={`${paginatedEvents.length}/${filteredEvents.length}`} />
+                <Metric label="Fuera tolerancia" value={String(historySummary.outOfTolerance)} />
+                <Metric label="Conformes" value={String(historySummary.compliant)} />
               </div>
               <div className="grid three compact-top">
                 <div>
@@ -3591,67 +3644,33 @@ function App() {
               </div>
             </div>
 
-            {filteredEvents.map((item) => {
-              const equipmentItem = equipment.find((row) => row.id === item.equipmentId)
-              const materialSummary = getEventMaterialOutcome(item)
-              const statusText = materialSummary.status
-              return (
-                <div className={`card stack history-card status-${statusClass(statusText)}`} key={item.id}>
-                  <div className="row wrap">
-                    <div className="equipment-card-head">
-                      {equipmentItem && (
-                        <EquipmentPhoto
-                          photoUrl={getEquipmentPhotoUrl(equipmentItem.photoPath)}
-                          label={equipmentItem.scaleName}
-                          status={statusText}
-                          compact
-                          onOpen={() => openEquipmentPhoto(equipmentItem)}
-                        />
-                      )}
-                      <div>
-                        <span className="section-kicker">{statusText}</span>
-                        <h3>{item.id}</h3>
-                        <p className="hint">{equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : 'Equipo no encontrado'}</p>
-                      </div>
-                    </div>
-                    <div className="row compact-actions">
-                      <button className="secondary small" type="button" onClick={() => printCalibrationReport(item, equipmentItem)}>
-                        <Printer className="action-icon" aria-hidden="true" />Imprimir reporte
-                      </button>
-                      {canDelete && (
-                        <button className="secondary small danger" type="button" onClick={() => handleDeleteEvent(item.id)}>
-                          Eliminar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
-                  <details className="inline-details">
-                    <summary>Ver detalle</summary>
-                    <div className="grid four compact-top">
-                      <Metric label="Error cadena" value={`${item.chainSpan.avgErrorPct} %`} />
-                      <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
-                      <Metric label="Error material final" value={`${materialSummary.errorPct} %`} />
-                      <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
-                      <Metric label="Pasadas" value={String(materialSummary.passes.length)} />
-                      <Metric label="Ajuste" value={materialSummary.adjustmentApplied ? 'Si' : 'No'} />
-                      <Metric label="Accion recomendada" value={statusClass(statusText) === 'danger' ? 'Revisar desvio' : statusClass(statusText) === 'warning' ? 'Cargar control' : 'Seguimiento normal'} />
-                    </div>
-                    <div className="material-pass-list compact-top">
-                      {materialSummary.passes.map((pass) => (
-                        <div className="result-row" key={`${item.id}-${pass.index}`}>
-                          <span>Pasada {pass.index} {materialSummary.finalPass?.index === pass.index ? '· final' : ''}</span>
-                          <strong>{pass.externalWeightKg} kg cert. / {pass.beltWeightKg} kg ctrl. / {pass.errorPct} %</strong>
-                        </div>
-                      ))}
-                    </div>
-                    {item.diagnosis && <p className="hint compact-top">Diagnostico: {item.diagnosis}</p>}
-                    {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
-                    {item.notes && <p>{item.notes}</p>}
-                  </details>
-                </div>
-              )
-            })}
+            <HistoryPager page={historyPage} pageSize={HISTORY_PAGE_SIZE} totalItems={filteredEvents.length} onPageChange={setHistoryPage} />
+
+            <Suspense fallback={<div className="card">Cargando historial...</div>}>
+              {paginatedEvents.map((item) => {
+                const equipmentItem = equipmentById.get(item.equipmentId)
+                const materialSummary = getEventMaterialOutcome(item)
+                return (
+                  <HistoryEventCard
+                    key={item.id}
+                    item={item}
+                    equipmentItem={equipmentItem}
+                    materialSummary={materialSummary}
+                    statusClass={statusClass}
+                    photoUrl={equipmentItem ? getEquipmentPhotoUrl(equipmentItem.photoPath) : ''}
+                    canDelete={canDelete}
+                    onOpenPhoto={() => equipmentItem && openEquipmentPhoto(equipmentItem)}
+                    onPrint={() => printCalibrationReport(item, equipmentItem)}
+                    onDelete={() => handleDeleteEvent(item.id)}
+                    formatDateTime={formatDateTime}
+                  />
+                )
+              })}
+            </Suspense>
+
+            {filteredEvents.length > HISTORY_PAGE_SIZE && (
+              <HistoryPager page={historyPage} pageSize={HISTORY_PAGE_SIZE} totalItems={filteredEvents.length} onPageChange={setHistoryPage} />
+            )}
 
             {filteredEvents.length === 0 && <div className="card">No hay eventos con esos filtros.</div>}
           </section>
@@ -3780,34 +3799,6 @@ function CollapsibleCard({
   )
 }
 
-function EquipmentPhoto({
-  photoUrl,
-  label,
-  status,
-  compact = false,
-  onOpen,
-}: {
-  photoUrl: string
-  label: string
-  status: string
-  compact?: boolean
-  onOpen: () => void
-}) {
-  const initials = label.trim().slice(0, 2).toUpperCase() || 'BD'
-  return (
-    <button
-      className={`equipment-photo ${compact ? 'equipment-photo-compact' : ''}`}
-      type="button"
-      onClick={photoUrl ? onOpen : undefined}
-      disabled={!photoUrl}
-      title={photoUrl ? 'Ampliar foto' : 'Sin foto cargada'}
-    >
-      {photoUrl ? <img src={photoUrl} alt={label} /> : <span>{initials}</span>}
-      <strong>{status}</strong>
-    </button>
-  )
-}
-
 type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean; hint?: string }
 
 function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldProps) {
@@ -3842,15 +3833,6 @@ function CheckField({ label, checked, onChange }: { label: string; checked: bool
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
       <span>{label}</span>
     </label>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   )
 }
 

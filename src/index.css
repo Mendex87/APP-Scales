@@ -1182,7 +1182,19 @@ body::before {
 }
 
 .history-summary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.history-pager {
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.history-pager .hint {
+  margin: 0;
 }
 
 .dashboard-card {
