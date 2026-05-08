@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.5 - Pulso legible y transicion de ingreso
+
+- El barrido `action-pulse` de botones ahora se renderiza detras del contenido para que iconos y texto no queden tapados.
+- Los botones primarios naranjas oscurecen la base durante el pulso, manteniendo el texto claro visible mientras pasa el barrido.
+- El login exitoso dispara una transicion de ingreso con placas diagonales naranjas/negro, alineada con la identidad visual del cambio claro/oscuro.
+- La transicion de ingreso respeta `prefers-reduced-motion` y no cambia la logica de autenticacion.
+
 ## v3.0.4 - Barrido diagonal en botones de accion
 
 - Se extiende el efecto `action-pulse` a botones de accion `.primary` y `.secondary` tambien en pantalla publica/login.

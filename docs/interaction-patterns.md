@@ -31,6 +31,22 @@ Accessibility:
 
 - The pulse is skipped when `prefers-reduced-motion: reduce` is active.
 
+Legibility:
+
+- Button pulse layers must stay behind the button label and icons.
+- Primary orange buttons may darken during the pulse, but the label must remain visible for the full animation.
+
+## Login entry transition
+
+Successful login triggers a short diagonal entry transition before revealing the authenticated app state. It uses orange/ink plates and fine diagonal lines to stay related to the public page and the existing light/dark transition, without reusing the theme toggle effect directly.
+
+Rules:
+
+- Trigger it only after successful login.
+- Keep it decorative (`aria-hidden`) and non-blocking (`pointer-events: none`).
+- Skip it when `prefers-reduced-motion: reduce` is active.
+- Do not run it on initial session restore; returning users should not get an entry animation just because an existing session was detected.
+
 ## Current autoscroll behavior (documented, not changed in v3.0.4)
 
 The app currently has three autoscroll responsibilities:

@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-08 - v3.0.5 - Legibilidad del pulso y transicion de login
+
+- Contexto: el barrido diagonal podia pasar por encima del texto de algunos botones y en primarios naranjas se percibia demasiado blanco en lugar de oscurecer la accion.
+- Decision pulso: mover el barrido de botones a una capa detras del contenido, mantener el texto visible y oscurecer temporalmente los botones primarios durante `action-pulse`.
+- Decision login: agregar una transicion de ingreso con placas diagonales naranja/negro al login exitoso, relacionada con el lenguaje visual de diagonales y con el cambio claro/oscuro sin duplicarlo.
+- Accesibilidad: `action-pulse` y la transicion de ingreso respetan `prefers-reduced-motion`.
+- Alcance: no se modifica logica de autenticacion, autoscrolls, `theme-toggle` ni `nav-pulse`.
+- Verificacion requerida: correr `npm run build`, probar login exitoso, revisar `Ingresar a la app`/`Ingresar` y confirmar que el texto de botones permanece legible en desktop/mobile.
+
 ## 2026-05-07 - v3.0.4 - Barrido diagonal en botones de accion
 
 - Contexto: el barrido diagonal ya existia como feedback de click/tap, pero no llegaba a pantalla publica/login ni a botones `submit`.

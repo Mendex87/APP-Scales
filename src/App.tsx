@@ -98,7 +98,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.4'
+const APP_VERSION = 'v3.0.5'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -896,9 +896,11 @@ function App() {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [navPulseScreen, setNavPulseScreen] = useState<Screen | null>(null)
+  const [loginTransitionActive, setLoginTransitionActive] = useState(false)
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
+  const loginTransitionTimeoutRef = useRef<number | null>(null)
   const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
   const dataLoadStartRef = useRef(typeof performance !== 'undefined' ? performance.now() : Date.now())
   const dataLoadLoggedRef = useRef(false)
@@ -922,6 +924,13 @@ function App() {
     document.documentElement.dataset.theme = theme
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => () => {
+    if (loginTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(loginTransitionTimeoutRef.current)
+    }
+  }, [])
+
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
@@ -1877,6 +1886,7 @@ function App() {
     }
 
     await loadAuthenticatedUser(data.session, { recordLogin: true })
+    triggerLoginTransition()
     setLoginEmail('')
     setLoginPassword('')
     setSyncNotice('Sesion iniciada.')
@@ -2540,6 +2550,31 @@ function App() {
     )
   }
 
+  function renderLoginTransition() {
+    if (!loginTransitionActive) return null
+
+    return (
+      <div className="login-transition" aria-hidden="true">
+        <span className="login-transition-rail" />
+        <span className="login-transition-core" />
+      </div>
+    )
+  }
+
+  function triggerLoginTransition() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    if (loginTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(loginTransitionTimeoutRef.current)
+    }
+
+    setLoginTransitionActive(true)
+    loginTransitionTimeoutRef.current = window.setTimeout(() => {
+      setLoginTransitionActive(false)
+      loginTransitionTimeoutRef.current = null
+    }, 980)
+  }
+
   const handleActionPulse = (event: MouseEvent<HTMLDivElement>) => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
@@ -2564,6 +2599,7 @@ function App() {
           <p>Cargando sesión...</p>
         </section>
         {renderToastStack()}
+        {renderLoginTransition()}
       </div>
     )
   }
@@ -2620,6 +2656,7 @@ function App() {
           <div className="card"><span className="section-kicker">Operacion</span><h2>Estado del parque</h2><p className="hint">KPIs, semaforos y filtros para priorizar equipos con accion recomendada.</p></div>
         </section>
         {renderToastStack()}
+        {renderLoginTransition()}
       </div>
     )
   }
@@ -2747,6 +2784,7 @@ function App() {
       </section>
 
       {renderToastStack()}
+      {renderLoginTransition()}
 
       {photoViewer && (
         <div className="photo-modal" role="dialog" aria-modal="true" aria-label="Foto de balanza">
