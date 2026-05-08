@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.0.9 - Encabezado de sesiones
+
+- La tabla de sesiones ahora usa fondos y bordes reales en lugar de variables inexistentes, evitando el encabezado plano sobre la card.
+- El encabezado de columnas se rediseña como banda industrial oscura con diagonales y mejor separación visual.
+
 ## v3.0.8 - Limpieza de ancla post-login
 
 - Al ingresar desde el boton publico `Ingresar a la app`, la URL ya no conserva `#acceso` despues del login exitoso.

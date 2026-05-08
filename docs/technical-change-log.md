@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-08 - v3.0.9 - Encabezado tecnico en tabla de sesiones
+
+- Contexto: el encabezado de columnas de `Usuarios > Sesiones` se veia plano y desalineado visualmente con el resto de la interfaz.
+- Decision: reemplazar las variables CSS inexistentes de filas de sesion por tokens reales y rediseñar el encabezado como banda oscura industrial con acento diagonal.
+- Alcance: cambio visual solamente; no modifica carga, deduplicacion, borrado ni auditoria de sesiones.
+- Verificacion requerida: correr `npm run build` y revisar `Usuarios > Sesiones` en desktop/mobile y temas claro/oscuro.
+
 ## 2026-05-08 - v3.0.8 - Limpieza del hash de acceso tras login
 
 - Contexto: el enlace publico `Ingresar a la app` usa `#acceso` para llevar al formulario, pero ese hash quedaba visible despues de autenticar.
