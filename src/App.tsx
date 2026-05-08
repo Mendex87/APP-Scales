@@ -99,7 +99,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.7'
+const APP_VERSION = 'v3.0.8'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -118,6 +118,12 @@ function getToastLabel(tone: ToastTone) {
   if (tone === 'warning') return 'ALERTA'
   if (tone === 'error') return 'ERROR'
   return 'INFO'
+}
+
+function clearAccessHash() {
+  if (window.location.hash !== '#acceso') return
+
+  window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
 }
 
 function getSessionDevice(userAgent: string | null) {
@@ -1900,6 +1906,7 @@ function App() {
     setLoginPassword('')
     setSyncNotice('Sesion iniciada.')
     setScreen('dashboard')
+    clearAccessHash()
     if (shouldRevealLoginTransition) revealLoginTransition()
   }
 

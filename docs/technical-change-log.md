@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-08 - v3.0.8 - Limpieza del hash de acceso tras login
+
+- Contexto: el enlace publico `Ingresar a la app` usa `#acceso` para llevar al formulario, pero ese hash quedaba visible despues de autenticar.
+- Decision: conservar el hash mientras el usuario esta en la pantalla publica y limpiarlo con `history.replaceState` solo despues de un login exitoso.
+- Alcance: no se modifica el flujo de autenticacion, la transicion de ingreso ni el scroll inicial hacia el formulario.
+- Verificacion requerida: correr `npm run build`, entrar desde `/#acceso`, iniciar sesion y confirmar que la URL queda en `/`.
+
 ## 2026-05-08 - v3.0.7 - Popups como placas operativas
 
 - Contexto: los toasts funcionaban pero se veian genericos frente al lenguaje visual diagonal/naranja de la app.

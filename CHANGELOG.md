@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.0.8 - Limpieza de ancla post-login
+
+- Al ingresar desde el boton publico `Ingresar a la app`, la URL ya no conserva `#acceso` despues del login exitoso.
+- Se mantiene el ancla antes de autenticarse para seguir bajando directamente al formulario de acceso.
+
 ## v3.0.7 - Popups industriales
 
 - Los mensajes popup ahora usan placas oscuras con cortes diagonales, textura tecnica y acento por estado.
