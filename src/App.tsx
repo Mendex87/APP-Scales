@@ -98,7 +98,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.3'
+const APP_VERSION = 'v3.0.4'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -2540,6 +2540,21 @@ function App() {
     )
   }
 
+  const handleActionPulse = (event: MouseEvent<HTMLDivElement>) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const target = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement | HTMLAnchorElement>('.primary, .secondary')
+      : null
+    if (!target || target.classList.contains('nav-item') || target.classList.contains('theme-toggle')) return
+    if (target instanceof HTMLButtonElement && target.disabled) return
+
+    target.classList.remove('action-pulse')
+    void target.offsetWidth
+    target.classList.add('action-pulse')
+    window.setTimeout(() => target.classList.remove('action-pulse'), 780)
+  }
+
   if (authLoading) {
     return (
       <div className="app-shell auth-shell">
@@ -2555,7 +2570,7 @@ function App() {
 
   if (!currentUser) {
     return (
-      <div className="public-shell">
+      <div className="public-shell" onClickCapture={handleActionPulse}>
         <section className="public-hero">
           <div className="public-copy" aria-label="Video de presentacion de Calibra Cinta">
             <video
@@ -2610,21 +2625,6 @@ function App() {
   }
 
   const manualHref = '/manual/tecnico/'
-
-  const handleActionPulse = (event: MouseEvent<HTMLDivElement>) => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
-    const target = event.target instanceof Element
-      ? event.target.closest<HTMLButtonElement | HTMLAnchorElement>('.primary, .secondary')
-      : null
-    if (!target || target.classList.contains('nav-item') || target.classList.contains('theme-toggle')) return
-    if (target instanceof HTMLButtonElement && (target.disabled || target.type === 'submit')) return
-
-    target.classList.remove('action-pulse')
-    void target.offsetWidth
-    target.classList.add('action-pulse')
-    window.setTimeout(() => target.classList.remove('action-pulse'), 780)
-  }
 
   const handleNavSelect = (nextScreen: Screen) => {
     setScreen(nextScreen)

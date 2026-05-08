@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-07 - v3.0.4 - Barrido diagonal en botones de accion
+
+- Contexto: el barrido diagonal ya existia como feedback de click/tap, pero no llegaba a pantalla publica/login ni a botones `submit`.
+- Decision: aplicar `action-pulse` a botones y enlaces `.primary`/`.secondary`, incluyendo submits, para unificar feedback tactil en acciones operativas.
+- Exclusion: `theme-toggle` conserva su transicion global/local de cambio de tema y `nav-item` conserva `nav-pulse` como feedback de navegacion/estado activo.
+- Accesibilidad: se mantiene el respeto a `prefers-reduced-motion`.
+- Documentacion: se agrega `docs/interaction-patterns.md` con criterio del efecto y mapa de autoscrolls actuales; no se modifican autoscrolls en esta version.
+- Verificacion requerida: correr `npm run build`, probar clicks/taps en login, guardar, actualizar, imprimir, eliminar y confirmar que claro/oscuro/nav no duplican animaciones.
+
 ## 2026-05-07 - v3.0.3 - Preview de performance y paginado
 
 - Contexto: el crecimiento de eventos puede volver pesado el historial si se renderiza completo en cada filtro.

@@ -1,0 +1,50 @@
+# Interaction Patterns
+
+## Click/tap action pulse
+
+The diagonal sweep (`action-pulse`) is a confirmation that an operational action was triggered. It is intended for controls that execute work, such as saving, updating, printing, creating, deleting, recovering drafts or applying calculated values.
+
+Use it for:
+
+- `.primary` action buttons and links.
+- `.secondary` action buttons and links.
+- Submit buttons, including login and save/create forms.
+- Destructive buttons, using the existing danger variant.
+
+Do not use it for:
+
+- Theme toggle: it already triggers the global light/dark transition and has its own local sweep during the theme transition.
+- Bottom navigation (`nav-item`): it represents screen navigation and active state, and already has `nav-pulse`.
+- Wizard steps: they are progress/status selectors, not primary actions.
+- Equipment photos: they are media openers and should keep the photo affordance.
+- Collapsible summaries, inputs, selects or checkboxes.
+- Disabled controls.
+
+Why this separation exists:
+
+- Action pulse confirms an operation was requested.
+- Theme transition communicates a global visual mode change.
+- Navigation pulse communicates screen movement and active state.
+- Keeping those effects separate avoids double animations and makes mobile tap feedback clearer.
+
+Accessibility:
+
+- The pulse is skipped when `prefers-reduced-motion: reduce` is active.
+
+## Current autoscroll behavior (documented, not changed in v3.0.4)
+
+The app currently has three autoscroll responsibilities:
+
+- Screen change scroll: after the first authenticated render, changing screens scrolls to the top. On mobile, it targets the screen banner/shell instead of forcing an absolute top jump.
+- Wizard step scroll: when entering `Nueva calibracion` or changing wizard step, it scrolls to the wizard panel on desktop and to the calibration step anchor on mobile.
+- Equipment edit scroll: when editing an existing scale, the app switches to `Balanzas` and scrolls to the equipment form so the admin lands where the edit happens.
+
+Purpose:
+
+- Avoid leaving the user halfway down a previous screen.
+- Keep the active wizard step visible on field/mobile screens.
+- Make edit actions land directly on the form being edited.
+
+Known review point:
+
+- These autoscrolls are functional but can feel aggressive in some flows. They should be reviewed in a separate preview before changing behavior.

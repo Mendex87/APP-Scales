@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.4 - Barrido diagonal en botones de accion
+
+- Se extiende el efecto `action-pulse` a botones de accion `.primary` y `.secondary` tambien en pantalla publica/login.
+- Los botones `submit` ahora reciben el barrido diagonal al pulsar, respetando controles deshabilitados y `prefers-reduced-motion`.
+- Se mantienen separados los efectos propios de claro/oscuro y navegacion inferior para evitar animaciones duplicadas.
+- Se documenta el criterio de uso del efecto y el comportamiento actual de autoscrolls en `docs/interaction-patterns.md`.
+
 ## v3.0.3 - Preview de performance
 
 - Se agrega paginado del historial para renderizar 25 eventos por pagina en lugar de pintar todo el historial filtrado.
