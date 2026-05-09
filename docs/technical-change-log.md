@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-09 - v3.0.11 - Reloj discreto de hora Argentina
+
+- Contexto: luego de normalizar zona horaria, se pidio tener la fecha/hora visible en vivo sin ocupar espacio principal.
+- Decision: agregar una capsula discreta en el encabezado autenticado, debajo del subtitulo, con `Hora AR` y fecha/hora Argentina.
+- Cambio UI: el reloj se actualiza cada 30 segundos con `formatArgentinaClock` y evita sumarse a los botones de accion del encabezado.
+- Verificacion requerida: correr `npm run build`, iniciar sesion y confirmar que el reloj se ve discreto en desktop/mobile y avanza en hora Argentina.
+
 ## 2026-05-09 - v3.0.10 - Zona horaria Argentina
 
 - Contexto: la app usaba la zona horaria del navegador/runtime para `datetime-local`, formateos visibles y formateo de Sheets, lo que podia desplazar horas fuera de Argentina.

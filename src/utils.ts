@@ -143,6 +143,11 @@ export const formatDateOnly = (value: string | Date) => {
   return date ? formatArgentinaDateKeyForDisplay(formatArgentinaDateKey(date)) : '-'
 }
 
+export const formatArgentinaClock = (value: string | Date = new Date()) => {
+  const parts = getArgentinaDateParts(value)
+  return `${pad(parts.day)}/${pad(parts.month)}/${String(parts.year).slice(-2)} · ${pad(parts.hour)}:${pad(parts.minute)}`
+}
+
 export const formatSheetsDateTime = (value: string | Date) => {
   const date = toValidDate(value)
   if (!date) return ''

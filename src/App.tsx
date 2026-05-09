@@ -47,6 +47,7 @@ import {
   computePercentError,
   computeSuggestedFactor,
   differenceInArgentinaDays,
+  formatArgentinaClock,
   formatArgentinaDateKey,
   formatArgentinaDateKeyForDisplay,
   formatArgentinaYearMonth,
@@ -106,7 +107,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.10'
+const APP_VERSION = 'v3.0.11'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -888,6 +889,7 @@ function App() {
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [theme, setTheme] = useState<AppTheme>(getInitialTheme)
+  const [clockNow, setClockNow] = useState(() => new Date())
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [navPulseScreen, setNavPulseScreen] = useState<Screen | null>(null)
@@ -936,6 +938,14 @@ function App() {
   const [userManagementLoading, setUserManagementLoading] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([])
   const [sessionsTab, setSessionsTab] = useState(false)
+
+  useEffect(() => {
+    if (!currentUser) return undefined
+
+    setClockNow(new Date())
+    const clockInterval = window.setInterval(() => setClockNow(new Date()), 30_000)
+    return () => window.clearInterval(clockInterval)
+  }, [currentUser?.id])
 
   function setSyncNotice(message: string) {
     if (!message) return
@@ -2746,6 +2756,10 @@ function App() {
         <div className="brand-block">
           <h1>Balanzas Dinamicas</h1>
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
+          <div className="live-clock" aria-label="Hora actual de Argentina">
+            <span>Hora AR</span>
+            <time dateTime={clockNow.toISOString()}>{formatArgentinaClock(clockNow)}</time>
+          </div>
         </div>
         <div className="topbar-actions">
           <div className="chip version-chip">{APP_VERSION}</div>

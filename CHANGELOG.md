@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.0.11 - Reloj Argentina discreto
+
+- Se agrega una capsula discreta en el encabezado autenticado con fecha y hora Argentina en vivo.
+- El reloj se actualiza cada 30 segundos y usa el mismo helper de zona `America/Argentina/Buenos_Aires`.
+
 ## v3.0.10 - Hora Argentina
 
 - La app centraliza la visualizacion y seleccion de fecha/hora en `America/Argentina/Buenos_Aires`.

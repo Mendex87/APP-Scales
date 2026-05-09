@@ -1543,6 +1543,35 @@ body::before {
   max-width: 42rem;
 }
 
+.live-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 26px;
+  margin-top: 0.65rem;
+  padding: 0 0.62rem;
+  border: 1px solid rgba(255, 89, 73, 0.34);
+  border-radius: 999px;
+  background: rgba(240, 239, 235, 0.055);
+  color: rgba(240, 239, 235, 0.72);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.085em;
+  line-height: 1;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.live-clock span {
+  color: var(--color-orange);
+}
+
+.live-clock time {
+  color: rgba(240, 239, 235, 0.86);
+  font-variant-numeric: tabular-nums;
+}
+
 .topbar-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(8.4rem, max-content));
@@ -2941,6 +2970,11 @@ body::before {
 
   .topbar p {
     display: none;
+  }
+
+  .live-clock {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
   }
 
   .topbar-actions {
