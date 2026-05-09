@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.10 - Hora Argentina
+
+- La app centraliza la visualizacion y seleccion de fecha/hora en `America/Argentina/Buenos_Aires`.
+- El campo `Fecha y hora`, historial, reportes, dashboard, sesiones y filtros mensuales ya no dependen de la zona horaria del dispositivo o runtime.
+- La Edge Function `sync-sheets-event` formatea fechas para Google Sheets en hora Argentina antes de reenviar a Apps Script.
+- Los timestamps internos se conservan como ISO para trazabilidad, pero se muestran y agrupan segun hora Argentina.
+
 ## v3.0.9 - Encabezado de sesiones
 
 - La tabla de sesiones ahora usa fondos y bordes reales en lugar de variables inexistentes, evitando el encabezado plano sobre la card.

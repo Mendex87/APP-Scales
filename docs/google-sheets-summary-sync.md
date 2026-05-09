@@ -11,7 +11,7 @@ La integracion con Google Sheets es solo de salida. Supabase sigue siendo la fue
 5. La Edge Function valida el usuario y reenvia el resumen al Web App de Google Apps Script.
 6. Apps Script actualiza `Eventos`, `Equipos`, `Alertas`, `Dashboard` y `Configuracion`.
 
-Las fechas se reciben ya formateadas como `dd/mm/aaaa hh:mm` para evitar valores ISO UTC en la planilla. La app intenta enviarlas asi y la Edge Function vuelve a normalizarlas antes de reenviar a Apps Script.
+Las fechas se reciben ya formateadas como `dd/mm/aaaa hh:mm` para evitar valores ISO UTC en la planilla. La app intenta enviarlas asi y la Edge Function vuelve a normalizarlas en zona `America/Argentina/Buenos_Aires` antes de reenviar a Apps Script.
 
 ## Secrets requeridos en Supabase
 

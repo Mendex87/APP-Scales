@@ -5,6 +5,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires'
+
+const argentinaDateTimeFormatter = new Intl.DateTimeFormat('es-AR', {
+  timeZone: ARGENTINA_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -227,19 +239,20 @@ function formatSheetDateTime(value: string) {
   if (!trimmed) return ''
   if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}$/.test(trimmed)) return trimmed
 
-  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
-  if (isoMatch) {
-    const [, year, month, day, hours, minutes] = isoMatch
-    return `${day}/${month}/${year} ${hours}:${minutes}`
-  }
-
   const date = new Date(trimmed)
   if (Number.isNaN(date.getTime())) return trimmed
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
+
+  const parts = Object.fromEntries(
+    argentinaDateTimeFormatter
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
+  )
+  const day = parts.day || ''
+  const month = parts.month || ''
+  const year = parts.year || ''
+  const hours = parts.hour === '24' ? '00' : parts.hour || ''
+  const minutes = parts.minute || ''
   return `${day}/${month}/${year} ${hours}:${minutes}`
 }
 

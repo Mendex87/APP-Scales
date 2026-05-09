@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-09 - v3.0.10 - Zona horaria Argentina
+
+- Contexto: la app usaba la zona horaria del navegador/runtime para `datetime-local`, formateos visibles y formateo de Sheets, lo que podia desplazar horas fuera de Argentina.
+- Decision: centralizar helpers de fecha/hora en `America/Argentina/Buenos_Aires` y usarlos para inputs, visualizacion, codigos de evento, filtros mensuales y vencimientos.
+- Cambio app: `nowLocalValue`, `formatDateTime`, `formatDateOnly`, mes de historial/dashboard y conversion de `datetime-local` admin se calculan en hora Argentina.
+- Cambio Edge Function: `sync-sheets-event` formatea `eventDate` y `syncedAt` con `Intl.DateTimeFormat` usando `America/Argentina/Buenos_Aires` antes de enviar a Google Sheets.
+- Compatibilidad: los timestamps internos siguen guardandose como ISO/timestamptz para conservar orden y trazabilidad historica; el cambio afecta interpretacion/visualizacion local Argentina.
+- Verificacion requerida: correr `npm run build`, revisar login/sesiones, crear evento como tecnico/admin, revisar historial/filtros del mes, reporte impreso y fecha enviada a Sheets. Redeploy requerido para la Edge Function `sync-sheets-event`.
+
 ## 2026-05-08 - v3.0.9 - Encabezado tecnico en tabla de sesiones
 
 - Contexto: el encabezado de columnas de `Usuarios > Sesiones` se veia plano y desalineado visualmente con el resto de la interfaz.

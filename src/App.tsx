@@ -42,8 +42,15 @@ import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
 import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, SpeedSource } from './types'
 import {
+  addArgentinaDays,
+  argentinaDateTimeLocalToIso,
   computePercentError,
   computeSuggestedFactor,
+  differenceInArgentinaDays,
+  formatArgentinaDateKey,
+  formatArgentinaDateKeyForDisplay,
+  formatArgentinaYearMonth,
+  formatDateOnly,
   formatDateTime,
   generateEventCode,
   generateId,
@@ -99,7 +106,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.9'
+const APP_VERSION = 'v3.0.10'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -357,7 +364,6 @@ function getEventMaterialOutcome(item: CalibrationEvent) {
   }
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const DUE_SOON_DAYS = 7
 
 type MaintenanceStatus = 'out_of_tolerance' | 'overdue' | 'due_soon' | 'ok' | 'no_history'
@@ -373,20 +379,6 @@ type EquipmentMaintenance = {
   nextDueDateText: string
   daysRemaining: number | null
   daysText: string
-}
-
-function dateOnly(value: Date) {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate())
-}
-
-function addDays(value: string, days: number) {
-  const date = new Date(value)
-  date.setDate(date.getDate() + days)
-  return date
-}
-
-function formatDateOnly(value: Date) {
-  return value.toLocaleDateString('es-AR')
 }
 
 function getEquipmentMaintenance(item: Equipment, equipmentEvents: CalibrationEvent[], today = new Date()): EquipmentMaintenance {
@@ -445,10 +437,10 @@ function getEquipmentMaintenance(item: Equipment, equipmentEvents: CalibrationEv
     }
   }
 
-  const dueDate = addDays(lastValidEvent.eventDate, intervalDays)
-  const daysRemaining = Math.ceil((dateOnly(dueDate).getTime() - dateOnly(today).getTime()) / DAY_MS)
-  const lastValidDateText = formatDateOnly(new Date(lastValidEvent.eventDate))
-  const nextDueDateText = formatDateOnly(dueDate)
+  const dueDateKey = addArgentinaDays(lastValidEvent.eventDate, intervalDays)
+  const daysRemaining = differenceInArgentinaDays(formatArgentinaDateKey(today), dueDateKey)
+  const lastValidDateText = formatDateOnly(lastValidEvent.eventDate)
+  const nextDueDateText = formatArgentinaDateKeyForDisplay(dueDateKey)
 
   if (daysRemaining < 0) {
     const overdueDays = Math.abs(daysRemaining)
@@ -506,17 +498,6 @@ function reportValue(value: unknown) {
 
 function reportRow(label: string, value: unknown) {
   return `<div><span>${reportValue(label)}</span><strong>${reportValue(value ?? '-')}</strong></div>`
-}
-
-function formatSheetsDateTime(value: string | Date) {
-  const date = value instanceof Date ? value : new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${day}/${month}/${year} ${hours}:${minutes}`
 }
 
 function buildAdminManualHtml(user: AuthUser) {
@@ -1355,15 +1336,14 @@ function App() {
   )
 
   const dashboardStats = useMemo(() => {
-    const now = new Date()
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const currentMonth = formatArgentinaYearMonth()
     const withoutHistory = equipmentWithLastEvent.filter(({ lastEvent }) => !lastEvent).length
     const overdue = equipmentWithLastEvent.filter(({ maintenance }) => maintenance.status === 'overdue').length
     const dueSoon = equipmentWithLastEvent.filter(({ maintenance }) => maintenance.status === 'due_soon').length
     const upToDate = equipmentWithLastEvent.filter(({ maintenance }) => maintenance.status === 'ok').length
     const conform = events.filter((item) => getEventMaterialOutcome(item).outcome === 'control_conforme').length
     const calibrated = events.filter((item) => getEventMaterialOutcome(item).outcome === 'calibrada_ajustada').length
-    const monthEvents = events.filter((item) => item.eventDate.slice(0, 7) === currentMonth).length
+    const monthEvents = events.filter((item) => formatArgentinaYearMonth(item.eventDate) === currentMonth).length
     const nextAction = outOfToleranceCount > 0
       ? 'Revisar equipos fuera de tolerancia'
       : overdue > 0
@@ -1645,7 +1625,7 @@ function App() {
   }, [rpmToolResult, selectedEquipment, chainToolResult, eventForm.avgControllerReadingKgM, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted, finalMaterialPass, materialOutcome])
 
   const historyMonths = useMemo(() => {
-    return Array.from(new Set(events.map((item) => item.eventDate.slice(0, 7)).filter(Boolean))).sort().reverse()
+    return Array.from(new Set(events.map((item) => formatArgentinaYearMonth(item.eventDate)).filter(Boolean))).sort().reverse()
   }, [events])
 
   const filteredEvents = useMemo(() => {
@@ -1655,7 +1635,7 @@ function App() {
         const materialSummary = getEventMaterialOutcome(item)
         const statusKey = statusClass(materialSummary.status)
         const matchesStatus = historyStatusFilter === 'todos' || statusKey === historyStatusFilter
-        const matchesMonth = historyMonthFilter === 'todos' || item.eventDate.slice(0, 7) === historyMonthFilter
+        const matchesMonth = historyMonthFilter === 'todos' || formatArgentinaYearMonth(item.eventDate) === historyMonthFilter
         return matchesEquipment && matchesStatus && matchesMonth
       })
       .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())
@@ -2159,7 +2139,7 @@ function App() {
     const factorAfterAdjustment = toNumber(eventForm.finalFactor)
 
     const isAdmin = currentUser?.role === 'admin'
-    const eventDateValue = isAdmin ? new Date(eventForm.eventDate).toISOString() : new Date().toISOString()
+    const eventDateValue = isAdmin ? argentinaDateTimeLocalToIso(eventForm.eventDate) : new Date().toISOString()
 
     const record: CalibrationEvent = {
       id: generateEventCode(eventDateValue, events),
