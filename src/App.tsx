@@ -107,7 +107,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.11'
+const APP_VERSION = 'v3.0.12'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
@@ -2757,7 +2757,6 @@ function App() {
           <h1>Balanzas Dinamicas</h1>
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
           <div className="live-clock" aria-label="Hora actual de Argentina">
-            <span>Hora AR</span>
             <time dateTime={clockNow.toISOString()}>{formatArgentinaClock(clockNow)}</time>
           </div>
         </div>

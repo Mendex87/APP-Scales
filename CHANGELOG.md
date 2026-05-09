@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.0.12 - Reloj sin etiqueta visible
+
+- La capsula de hora Argentina queda solo con fecha y hora, sin el texto visible `Hora AR`.
+- Se conserva la etiqueta accesible para lectores de pantalla.
+
 ## v3.0.11 - Reloj Argentina discreto
 
 - Se agrega una capsula discreta en el encabezado autenticado con fecha y hora Argentina en vivo.

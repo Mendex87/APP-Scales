@@ -2,6 +2,12 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-09 - v3.0.12 - Reloj sin etiqueta visible
+
+- Contexto: la capsula del reloj no necesitaba mostrar `Hora AR`; alcanzaba con fecha y hora visibles.
+- Decision: quitar la etiqueta visible y conservar `aria-label="Hora actual de Argentina"` para accesibilidad.
+- Verificacion requerida: correr `npm run build` y confirmar que el encabezado muestre solo fecha/hora.
+
 ## 2026-05-09 - v3.0.11 - Reloj discreto de hora Argentina
 
 - Contexto: luego de normalizar zona horaria, se pidio tener la fecha/hora visible en vivo sin ocupar espacio principal.
