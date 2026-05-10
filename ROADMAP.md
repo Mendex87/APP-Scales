@@ -1,127 +1,352 @@
-# Roadmap
+# Roadmap de producto
 
-Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilidad operativa, velocidad de uso en campo y calidad visual sin complicar la app innecesariamente.
+Este roadmap parte del estado `v3.0.12` y prioriza mejoras que aumentan confiabilidad operativa, trazabilidad de calibracion y velocidad de uso en campo sin transformar la app en un CMMS generico pesado.
 
-## Prioridad 1 - Robustez operativa
+## Estado actual
 
-### Estados de balanza mas claros
+La app ya cubre el nucleo operativo:
 
-- Separar estado metrologico de estado administrativo: `Activa`, `Fuera de servicio`, `Pendiente de calibracion`, `Calibrada`, `Fuera de tolerancia`.
-- Mostrar vencimiento de calibracion por frecuencia configurable.
-- Agregar semaforo por equipo en listado y selector.
+- Alta y gestion de balanzas dinamicas sobre cinta.
+- Alta y uso de cadenas/patrones de calibracion.
+- Registro de calibraciones con precheck, cero, velocidad, span con cadena, material real, ajuste final y diagnostico.
+- Historial tecnico con filtros, paginado y reportes imprimibles basicos.
+- Roles de usuario y sesiones.
+- Guardado en servidor online con fallback local.
+- Sincronizacion resumida hacia Google Sheets.
+- Hora visible y calculos funcionales en zona Argentina.
 
-### Cierre de evento mas seguro
+## Senales tomadas de investigacion web
 
-- Agregar pantalla final de revision antes de guardar, con resumen de datos criticos y advertencias.
-- Bloquear guardado si hay valores numericos absurdos o signos incompatibles.
-- Registrar version de app en cada evento para trazabilidad.
-- Registrar `created_by`, `updated_by` y timestamps reales de creacion/edicion.
+Las referencias de CMMS, EAM, inspecciones y software de calibracion repiten estos patrones:
 
-### Edicion controlada
+- Los CMMS modernos priorizan ordenes de trabajo, mantenimiento preventivo, historial de activos, inventario, dashboards, mobile/offline y auditoria.
+- Las apps lideres de campo reducen errores con QR, fotos, checklists, instrucciones claras, notificaciones y captura inmediata desde el movil.
+- El software especializado de calibracion agrega planificacion, certificados, aprobaciones, integridad de datos, trazabilidad metrologica y analisis de tendencias.
+- ISO/IEC 17025 refuerza competencia, resultados validos, reportes/certificados confiables y enfoque basado en riesgos.
+- Para esta app, la ventaja competitiva no es copiar un CMMS completo, sino resolver muy bien la calibracion real de balanzas dinamicas en planta.
 
-- Permitir correcciones de evento solo a `admin`, dejando auditoria de cambios.
-- Agregar motivo obligatorio al editar datos historicos.
-- Evitar sobrescritura accidental con avisos si otro usuario modifico datos recientemente.
+## Principios de decision
 
-### Operacion offline mejor definida
+- Priorizar seguridad de datos en campo antes que graficos o automatizaciones avanzadas.
+- Mantener la carga rapida para tecnicos con guantes, movil y conectividad irregular.
+- Separar trazabilidad interna de textos visibles para usuario final.
+- No agregar modulos administrativos grandes si no resuelven un problema directo de calibracion.
+- Cada mejora importante debe pasar por preview antes de `main`.
 
-- Marcar claramente si un evento se guardo local o remoto.
-- Agregar cola de sincronizacion para enviar a Supabase cuando vuelve la conexion.
-- Mostrar conflictos y permitir resolverlos antes de pisar datos.
+## P0 - Pendiente operativo inmediato
 
-## Prioridad 2 - Trazabilidad y reportes
+### Redeploy de sincronizacion Sheets
 
-### Reporte tecnico por evento
+- Motivo: `v3.0.10` normalizo fechas de Google Sheets en hora Argentina tambien dentro de la funcion del servidor.
+- Pendiente: desplegar `sync-sheets-event` cuando haya token/login disponible para la CLI.
+- Comando: `npx supabase functions deploy sync-sheets-event --project-ref qatnjksbzegltidoujms`.
+- Criterio de cierre: guardar una calibracion real y verificar `Fecha evento` y `Fecha sincronizacion` en Google Sheets como `dd/mm/aaaa hh:mm` Argentina.
 
-- Generar PDF o vista imprimible con datos del equipo, inspeccion previa, cero, span, acumulado, material real, diagnostico y responsable.
-- Incluir foto de balanza y firma/nombre del tecnico.
-- Agregar codigo QR o link interno al evento.
+## P1 - Cero perdida de datos en campo
 
-### Exportacion util
+### Borrador robusto de calibracion
 
-- Redisenar Google Sheets para enviar solo campos relevantes: equipo, fecha, tecnico, errores, factores, estado, observaciones y link al detalle.
-- Agregar exportacion CSV para historial filtrado.
-- Agregar filtros por planta, linea, estado, tecnico, rango de fechas y fuera de tolerancia.
+- Guardar automaticamente el formulario completo por equipo y usuario.
+- Permitir retomar borrador despues de cerrar, recargar o perder conexion.
+- Mostrar estado claro: `Borrador guardado`, `Pendiente de sincronizar`, `Listo para enviar`.
 
-### Auditoria
+### Cola offline real
 
-- Crear tabla `audit_logs` para altas, bajas, ediciones, eliminaciones y cambios de usuario.
-- Mostrar auditoria solo para administradores.
-- Guardar actor, accion, entidad, fecha y resumen del cambio.
+- Guardar eventos localmente cuando no hay conexion.
+- Sincronizar automaticamente al volver el servidor online.
+- Mostrar conflictos si el equipo o evento fue modificado por otro usuario.
+- Evitar que un evento local se pierda por cerrar navegador o cambiar de pantalla.
 
-## Prioridad 3 - Mejoras para uso en campo
+### Revision final antes de guardar
 
-### Captura mas rapida
+- Mostrar resumen de datos criticos antes del guardado definitivo.
+- Marcar advertencias por valores absurdos, signos incompatibles o campos incompletos.
+- Confirmar factor anterior, factor final, error final, estado y tecnico.
 
-- Agregar botones de accion rapida desde una balanza: `Calibrar`, `Ver historial`, `Herramientas para esta balanza`.
-- Mantener el contexto seleccionado al cambiar entre pantallas.
-- Agregar autocompletado desde ultimo evento: factores, cadena usada, velocidad y datos de puente.
+### Validaciones numericas duras
 
-### Asistente de calibracion
+- Bloquear peso real o indicado en cero cuando no corresponda.
+- Alertar errores mayores a umbrales configurables.
+- Detectar cambios de factor demasiado grandes respecto del historico.
+- Registrar la version de app en cada evento guardado.
 
-- Reordenar `Nueva calibracion` para que el contexto sea el primer bloque: balanza, cadena, fecha, tolerancia y estado rapido del equipo.
-- Precargar datos de cadena al seleccionarla, manteniendo `Kg/m de cadena` editable para correcciones justificadas en campo.
-- Convertir el formulario largo en un flujo paso a paso con progreso visible.
-- Permitir guardar borrador de evento y retomarlo.
-- Marcar cada paso como `Completo`, `Pendiente` o `Con advertencia`.
-- Dejar el cierre del evento como ultimo paso con resumen final, diagnostico automatico y boton unico de guardado.
+## P2 - Asistente de calibracion guiado
 
-### Gestion de patrones
+### Flujo paso a paso
 
-- Mantener alta de cadenas para `admin` y `tecnico`.
-- Mantener eliminacion de cadenas solo para `admin`.
-- Conservar trazabilidad historica copiando nombre y kg/m de la cadena dentro de cada evento.
+- Reemplazar el formulario largo por pasos: contexto, inspeccion previa, cero, velocidad, span, material real, ajuste final, revision.
+- Mostrar progreso fijo y estado por paso: `Pendiente`, `Completo`, `Con advertencia`.
+- Mantener autoguardado entre pasos.
 
-### Fotos y evidencia
+### Precheck con bloqueo operativo
 
-- Permitir adjuntar fotos por evento: parametros del controlador, instalacion, cadena, material real o ticket de balanza externa.
-- Comprimir imagenes y asociarlas a secciones del evento.
-- Mostrar galeria de evidencia dentro del historial.
+- Si falla la inspeccion previa, permitir marcar evento como `Condicionado` o `Bloqueado`.
+- Registrar motivo mecanico: acumulacion, rolos, vibracion, banda, sensor, controlador u otro.
+- Sugerir no calibrar si la condicion mecanica invalida el resultado.
 
-## Prioridad 4 - Visual y experiencia
+### Repeticiones y promedios
 
-### Jerarquia visual
+- Permitir varias pasadas de cadena y varias corridas con material real.
+- Calcular promedio, dispersion y mejor/peor corrida.
+- Guardar cada corrida para auditoria, no solo el resultado final.
 
-- Reducir ruido en tarjetas largas mostrando primero los datos accionables y ocultando lo secundario.
-- Mejorar contraste de estados y botones destructivos.
-- Agregar iconografia sobria para equipo, historial, herramientas, usuarios y alertas.
+### Diagnostico tecnico automatico
 
-### Dashboard operativo
+- Generar diagnostico inicial segun precheck, error, ajuste y tolerancia.
+- Sugerir factor nuevo y explicar formula usada.
+- Permitir que el tecnico edite observaciones finales sin perder el diagnostico calculado.
 
-- Crear pantalla inicial con KPIs: balanzas activas, vencidas, fuera de tolerancia, eventos del mes y proximas calibraciones.
-- Agregar grafico simple de error por balanza en el tiempo.
-- Mostrar ranking de equipos con mayor desvio.
+## P3 - Evidencia y certificado tecnico
 
-### Mobile-first real en campo
+### Evidencia fotografica por evento
 
-- Optimizar formularios para uso con guantes o pantalla chica: inputs mas altos, acciones pegajosas y menos desplazamiento.
-- Agregar barra de progreso fija en evento.
-- Mejorar uso horizontal para tablets en planta.
+- Implementar el plan de `CAMERA-EVIDENCE-PLAN.md`.
+- Tomar foto desde camara trasera o cargar desde galeria.
+- Categorias iniciales: parametros, cadena, material real, ticket externo, observacion.
+- Comprimir imagenes antes de subir.
+- Guardar el evento aunque falle una foto, dejando advertencia clara.
 
-## Prioridad 5 - Modelo tecnico y calidad
+### Galeria en historial
 
-### Base de datos
+- Mostrar miniaturas por categoria dentro del evento.
+- Abrir imagen ampliada en modal.
+- Indicar `Sin evidencia fotografica cargada` cuando corresponda.
 
-- Normalizar algunos campos historicos si crece el volumen: plantas, lineas, equipos, cadenas, eventos, evidencias y auditoria.
-- Agregar migrations versionadas en vez de un unico `schema.sql` acumulativo.
-- Agregar indices por planta, equipo, fecha y estado.
+### Certificado/reporte por evento
 
-### Testing
+- Crear reporte imprimible/PDF con datos de equipo, cadena, resultados, factores, diagnostico y responsable.
+- Incluir fotos relevantes y QR/link al evento.
+- Mostrar version de app, fecha Argentina y fuente de datos.
 
-- Agregar tests unitarios para calculos: velocidad, errores, factores y diagnosticos.
-- Agregar tests de permisos por rol.
-- Agregar validacion automatica de build en GitHub Actions.
+### Firma y aprobacion
 
-### Seguridad
+- Agregar firma/nombre de tecnico responsable.
+- Permitir aprobacion de supervisor/admin cuando el evento queda fuera de tolerancia o condicionado.
+- Registrar motivo de aprobacion o rechazo.
 
-- Revisar policies RLS con casos reales por rol.
-- Limitar acciones de Edge Function a payloads esperados.
-- Agregar rate limiting o protecciones basicas para operaciones administrativas.
+## P4 - Programa preventivo por balanza
 
-## Siguiente sprint recomendado
+### Estados de equipo mas precisos
 
-1. Agregar dashboard operativo con vencimientos y fuera de tolerancia.
-2. Agregar reporte imprimible/PDF por evento.
-3. Agregar borradores de calibracion para no perder carga en campo.
-4. Agregar tabla de auditoria para ediciones/eliminaciones.
-5. Redisenar Google Sheets como exportacion resumida, no espejo completo de la base.
+- Separar estado administrativo de estado metrologico.
+- Estados sugeridos: `Activa`, `Fuera de servicio`, `Pendiente`, `Calibrada`, `Vencida`, `Fuera de tolerancia`, `Condicionada`.
+- Mantener historial de cambios de estado.
+
+### Vencimientos y agenda
+
+- Usar frecuencia configurable por equipo.
+- Mostrar `Vence pronto`, `Vencida` y `Sin control reciente`.
+- Crear vista calendario/lista de proximas calibraciones.
+- Permitir filtrar por planta, linea, tecnico y estado.
+
+### Alertas operativas
+
+- Alertar equipos fuera de tolerancia.
+- Alertar equipos sin evento en X dias.
+- Alertar errores repetidos o factor que cambia demasiado.
+- Mostrar accion recomendada y responsable sugerido.
+
+### Ordenes simples de trabajo
+
+- No crear un CMMS completo en primera etapa.
+- Agregar tareas simples vinculadas a balanza: revisar, calibrar, corregir mecanica, reprueba.
+- Estados: `Abierta`, `En curso`, `Bloqueada`, `Cerrada`.
+- Convertir alerta critica en tarea manualmente.
+
+## P5 - Dashboard y analitica util
+
+### Dashboard operativo interno
+
+- KPIs: equipos activos, vencidos, fuera de tolerancia, eventos del mes, pendientes de sincronizar.
+- Ranking de balanzas con mayor desvio.
+- Lista de proximas calibraciones.
+- Lista de ultimos eventos fuera de tolerancia.
+
+### Tendencias por balanza
+
+- Evolucion de error final en el tiempo.
+- Evolucion de factor final.
+- Cantidad de ajustes por periodo.
+- Tendencia de estabilidad de cada equipo.
+
+### Analisis de patrones
+
+- Comparar resultados por cadena usada.
+- Detectar equipos que se descalibran mas rapido.
+- Detectar tecnicos/equipos con mayor cantidad de eventos condicionados.
+- Identificar plantas o lineas con mayor carga de trabajo.
+
+### Google Sheets como tablero ejecutivo
+
+- Mantener Sheets como salida resumida, no como fuente de verdad.
+- Confirmar hojas `Eventos`, `Equipos`, `Alertas`, `Dashboard` y `Configuracion`.
+- Agregar link al detalle del evento cuando exista URL estable.
+- Mantener formato visual alineado con la app.
+
+## P6 - Identificacion rapida e integraciones
+
+### QR por equipo
+
+- Generar QR para cada balanza.
+- Escanear QR para abrir ficha, historial o nueva calibracion.
+- Incluir QR en reporte y etiqueta imprimible.
+
+### Codigos cortos operativos
+
+- Mantener IDs internos para trazabilidad.
+- Mostrar codigos cortos tipo `EQ-001`, `CAL-2026-0001` para planta y reportes.
+- Evitar que usuarios operativos dependan de IDs largos.
+
+### Exportaciones
+
+- Exportar historial filtrado a CSV.
+- Exportar evento individual en JSON tecnico para respaldo.
+- Preparar estructura futura para integracion con ERP/CMMS externo sin acoplar la app.
+
+## P7 - Auditoria, permisos y seguridad
+
+### Auditoria completa
+
+- Crear `audit_logs` para altas, ediciones, eliminaciones, login/logout y cambios de permisos.
+- Guardar actor, entidad, accion, fecha Argentina visible, fecha ISO interna y resumen del cambio.
+- Mostrar auditoria solo a admin.
+
+### Edicion historica controlada
+
+- Permitir correcciones de eventos solo a admin/supervisor autorizado.
+- Exigir motivo obligatorio.
+- Guardar revision anterior y revision nueva.
+- Evitar editar eventos aprobados sin crear nueva revision.
+
+### Reglas por rol
+
+- Mantener tecnico enfocado en carga de campo.
+- Supervisor revisa, aprueba y comenta.
+- Admin administra equipos, usuarios, reglas y correcciones historicas.
+- Viewer solo consulta reportes/historial.
+
+### Hardening tecnico
+
+- Revisar policies de permisos con casos reales por rol.
+- Validar payloads de funciones del servidor.
+- Agregar protecciones basicas de abuso en acciones administrativas.
+- Documentar backups y restauracion.
+
+## P8 - Calidad interna y escalabilidad
+
+### Migraciones versionadas
+
+- Pasar de `schema.sql` acumulativo a migraciones versionadas cuando el modelo siga creciendo.
+- Agregar indices por equipo, fecha, planta, estado y tecnico.
+- Mantener scripts re-ejecutables para instalaciones existentes.
+
+### Tests automaticos
+
+- Tests de calculos: error %, factor sugerido, tolerancia, fecha Argentina, vencimientos.
+- Tests de permisos por rol.
+- Tests de conversion `datetime-local` a ISO en zona Argentina.
+- GitHub Actions para `npm run build` en cada rama.
+
+### Performance real
+
+- Medir carga con volumen grande: 1.000, 5.000 y 20.000 eventos.
+- Migrar consultas remotas a paginado real si el historial crece.
+- Mantener lazy loading de historial y fotos.
+
+### Observabilidad simple
+
+- Log tecnico no visible para usuario final con version, fuente de datos y tiempo de carga.
+- Registrar errores de sincronizacion para diagnostico admin.
+- Exportar diagnostico local cuando el tecnico reporta falla.
+
+## P9 - Automatizaciones avanzadas
+
+Estas mejoras son utiles, pero deben esperar a que P1-P8 esten firmes.
+
+### Ayuda inteligente al tecnico
+
+- Sugerir observaciones desde datos cargados.
+- Explicar alertas de factor o error con lenguaje tecnico corto.
+- Generar resumen ejecutivo del evento para reporte.
+
+### Voz a texto
+
+- Permitir dictar observaciones en mobile.
+- Mantener edicion manual antes de guardar.
+- No usar si no se puede garantizar privacidad y control del dato.
+
+### Prediccion de riesgo
+
+- Riesgo de vencimiento o desvio por tendencia historica.
+- Sugerir proxima fecha segun estabilidad real, no solo intervalo fijo.
+- Detectar anomalias de factor, error o repeticion de fallas.
+
+## Sprints recomendados
+
+### Sprint 1 - Campo seguro
+
+- Redeploy de `sync-sheets-event`.
+- Borrador robusto con autoguardado.
+- Revision final antes de guardar.
+- Validaciones numericas duras.
+- Registrar version de app en evento.
+
+### Sprint 2 - Evidencia
+
+- Tabla/bucket de evidencias.
+- Captura de fotos por categoria.
+- Compresion y subida tolerante a fallos.
+- Galeria en historial.
+
+### Sprint 3 - Preventivo
+
+- Estados de equipo refinados.
+- Vencimientos y alertas operativas.
+- Dashboard de pendientes, vencidas y fuera de tolerancia.
+- Google Sheets alineado con alertas ejecutivas.
+
+### Sprint 4 - Reporte y auditoria
+
+- Reporte/certificado imprimible con QR.
+- Firma/aprobacion.
+- Auditoria de ediciones y cambios administrativos.
+- Edicion historica con motivo y revision.
+
+### Sprint 5 - Offline real e integraciones
+
+- Cola offline con resolucion de conflictos.
+- QR por equipo.
+- Exportacion CSV.
+- Preparacion de API/estructura para integraciones externas.
+
+## Ideas descartadas por ahora
+
+- Inventario completo de repuestos: util para CMMS, pero no central para calibracion de balanzas en esta etapa.
+- Compras/proveedores: agrega complejidad administrativa sin mejorar el registro tecnico inmediato.
+- Planificacion financiera de activos: propio de EAM, no del foco actual.
+- Chat interno completo: puede resolverse primero con notas y auditoria.
+- IA predictiva antes de tener datos historicos limpios y suficientes.
+
+## Metricas de exito
+
+- Tiempo promedio para cargar una calibracion completa.
+- Porcentaje de eventos con evidencia fotografica.
+- Porcentaje de eventos guardados sin conexion que luego sincronizan correctamente.
+- Cantidad de eventos fuera de tolerancia detectados a tiempo.
+- Cantidad de equipos vencidos o sin control reciente.
+- Tiempo de carga inicial con volumen real de datos.
+- Cantidad de correcciones historicas con motivo/auditoria completa.
+
+## Fuentes consultadas
+
+- IBM, `What is a CMMS?` (`https://www.ibm.com/topics/what-is-a-cmms`): work orders, inventario, mantenimiento preventivo, dashboards, compliance, mobile y tendencias AI/IoT.
+- IBM Maximo Application Suite (`https://www.ibm.com/products/maximo`): EAM, APM, inspecciones, field service, condition-based maintenance y lifecycle planning.
+- IBM, `What is preventive maintenance?` (`https://www.ibm.com/topics/what-is-preventive-maintenance`): mantenimiento por tiempo, uso, condicion, predictivo y prescriptivo.
+- Fiix CMMS (`https://fiixsoftware.com/cmms/`): ordenes de trabajo, planificador preventivo, perfiles de activos, inventario, reporting, app mobile, QR/offline/fotos/notas.
+- Limble CMMS (`https://limblecmms.com/cmms-software/`): checklists con fotos, jerarquias de activos, QR, dashboards, inventario y adopcion por tecnicos.
+- UpKeep Mobile CMMS (`https://upkeep.com/cmms/`): mobile-first, push notifications, historial en movil, requester flow, offline, costos y partes.
+- Beamex Calibration Management Software (`https://www.beamex.com/calibration-software/`): planificacion, ejecucion, historiales, analisis, reportes, certificados y flujo digital de calibracion.
+- Beamex Data Integrity (`https://www.beamex.com/solutions/calibration-data-integrity/`): exactitud, consistencia, auditoria, firma electronica, integridad offline y riesgos de procesos manuales.
+- Beamex Metrological Traceability (`https://blog.beamex.com/metrological-traceability-in-calibration-are-you-traceable`): cadena documentada, certificados, incertidumbre, procedimientos, competencia y vencimiento de trazabilidad.
+- GAGEtrak Calibration Management Software (`https://gagetrak.com/calibration-management-software/`): trazabilidad, procedimientos, calendario flexible, reporting, auditorias y soporte IIoT/API.
+- ISO/IEC 17025 (`https://www.iso.org/ISO-IEC-17025-testing-and-calibration-laboratories.html`): resultados validos, competencia, certificados/reportes confiables y enfoque de riesgo.
