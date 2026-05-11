@@ -1473,7 +1473,6 @@ body::before {
 }
 
 .topbar {
-  position: relative;
   margin-bottom: 1rem;
   padding: clamp(1rem, 3vw, 1.35rem);
   border-radius: var(--radius);
@@ -1592,10 +1591,17 @@ body::before {
   min-width: 0;
 }
 
+.topbar-control-stack {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: min(100%, 27.5rem);
+}
+
 .topbar-unit-toggle {
-  position: absolute;
-  right: clamp(1rem, 3vw, 1.35rem);
-  bottom: clamp(1rem, 3vw, 1.35rem);
   width: 9.2rem;
   min-height: 38px;
   border-color: var(--color-orange-dark);
@@ -2897,8 +2903,13 @@ body::before {
     flex-direction: column;
   }
 
+  .topbar-control-stack {
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+  }
+
   .topbar-unit-toggle {
-    position: static;
     width: 100%;
     min-height: 38px;
   }

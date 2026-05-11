@@ -2803,40 +2803,42 @@ function App() {
             <time dateTime={clockNow.toISOString()}>{formatArgentinaClock(clockNow)}</time>
           </div>
         </div>
-        <div className="topbar-actions">
-          <div className="chip version-chip">{APP_VERSION}</div>
-          <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'tecnico' ? 'Tecnico' : currentUser.role === 'supervisor' ? 'Supervisor' : 'Consulta'}</div>
-          <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
-            {dataSource === 'supabase' ? 'Servidor online' : 'Modo local'}
+        <div className="topbar-control-stack">
+          <div className="topbar-actions">
+            <div className="chip version-chip">{APP_VERSION}</div>
+            <div className="chip">{currentUser.username} · {currentUser.role === 'admin' ? 'Admin' : currentUser.role === 'tecnico' ? 'Tecnico' : currentUser.role === 'supervisor' ? 'Supervisor' : 'Consulta'}</div>
+            <div className={`chip ${dataSource === 'supabase' ? 'sincronizado' : 'pendiente'}`}>
+              {dataSource === 'supabase' ? 'Servidor online' : 'Modo local'}
+            </div>
+            <button
+              className="secondary small theme-toggle"
+              type="button"
+              onClick={handleThemeToggle}
+              aria-label={theme === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'}
+            >
+              {theme === 'dark' ? <Sun className="action-icon" aria-hidden="true" /> : <Moon className="action-icon" aria-hidden="true" />}
+              {theme === 'dark' ? 'Claro' : 'Oscuro'}
+            </button>
+            {currentUser.role === 'admin' ? (
+              <button className="secondary small manual-link" type="button" onClick={openAdminManual}>
+                <Download className="action-icon" aria-hidden="true" />Manual
+              </button>
+            ) : (
+              <a className="secondary small manual-link" href={manualHref} target="_blank" rel="noreferrer">
+                <Download className="action-icon" aria-hidden="true" />Manual
+              </a>
+            )}
+            <button className="secondary small" onClick={handleLogout}>Salir</button>
           </div>
           <button
-            className="secondary small theme-toggle"
+            className="secondary small unit-toggle topbar-unit-toggle"
             type="button"
-            onClick={handleThemeToggle}
-            aria-label={theme === 'dark' ? 'Activar tema claro' : 'Activar tema oscuro'}
+            onClick={handleUnitSystemToggle}
+            aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
           >
-            {theme === 'dark' ? <Sun className="action-icon" aria-hidden="true" /> : <Moon className="action-icon" aria-hidden="true" />}
-            {theme === 'dark' ? 'Claro' : 'Oscuro'}
+            {unitSystemName}
           </button>
-          {currentUser.role === 'admin' ? (
-            <button className="secondary small manual-link" type="button" onClick={openAdminManual}>
-              <Download className="action-icon" aria-hidden="true" />Manual
-            </button>
-          ) : (
-            <a className="secondary small manual-link" href={manualHref} target="_blank" rel="noreferrer">
-              <Download className="action-icon" aria-hidden="true" />Manual
-            </a>
-          )}
-          <button className="secondary small" onClick={handleLogout}>Salir</button>
         </div>
-        <button
-          className="secondary small unit-toggle topbar-unit-toggle"
-          type="button"
-          onClick={handleUnitSystemToggle}
-          aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
-        >
-          {unitSystemName}
-        </button>
       </header>
 
       <section className="hero-strip">
