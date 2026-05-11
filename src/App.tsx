@@ -53,13 +53,20 @@ import {
   formatArgentinaYearMonth,
   formatDateOnly,
   formatDateTime,
+  formatMeasureInput,
+  formatMeasureValue,
+  formatNumberForDisplay,
+  getMeasureUnit,
   generateEventCode,
   generateId,
   normalizeDecimalInput,
   nowLocalValue,
+  parseMeasureInput,
   round,
+  toDisplayMeasure,
   toNumber,
 } from './utils'
+import type { MeasureKind, UnitSystem } from './utils'
 
 type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
@@ -107,9 +114,10 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.12'
+const APP_VERSION = 'v3.0.13'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
+const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
 const HISTORY_PAGE_SIZE = 25
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
@@ -180,6 +188,11 @@ function dedupeSessionLogs(logs: SessionLog[]) {
 function getInitialTheme(): AppTheme {
   const stored = localStorage.getItem(THEME_STORAGE_KEY)
   return stored === 'dark' ? 'dark' : 'light'
+}
+
+function getInitialUnitSystem(): UnitSystem {
+  const stored = localStorage.getItem(UNIT_SYSTEM_STORAGE_KEY)
+  return stored === 'imperial' ? 'imperial' : 'metric'
 }
 
 const defaultEquipmentForm = {
@@ -651,11 +664,11 @@ function buildAdminManualHtml(user: AuthUser) {
 
     <section>
       <h2>6. Gestion de cadenas patron</h2>
-      <p>Las cadenas se reutilizan en calibraciones. Mantener <code>kg/m</code>, largo, peso total y planta correctamente cargados evita errores de span.</p>
+      <p>Las cadenas se reutilizan en calibraciones. Mantener peso lineal, largo, peso total y planta correctamente cargados evita errores de span.</p>
       <ul>
         <li>Si hay cadenas de la misma planta que la balanza, la app prioriza esas cadenas.</li>
         <li>Si una planta no tiene cadenas, se habilita fallback a todas las cadenas disponibles.</li>
-        <li>Los eventos historicos conservan el nombre y kg/m usados aunque luego se edite la cadena.</li>
+        <li>Los eventos historicos conservan el nombre y peso lineal usados aunque luego se edite la cadena.</li>
       </ul>
     </section>
 
@@ -725,7 +738,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>Version visible coincide con el ultimo deploy.</li>
         <li>Usuarios tienen rol minimo necesario.</li>
         <li>Balanzas nuevas tienen planta, linea, cinta, nombre y foto si corresponde.</li>
-        <li>Cadenas tienen kg/m verificado.</li>
+        <li>Cadenas tienen peso lineal verificado.</li>
         <li>Eventos recientes tienen Factor final confirmado y guardado.</li>
         <li>Sheets muestra codigos cortos de equipo, dashboard y alertas actualizadas.</li>
         <li>Eventos fuera de tolerancia tienen seguimiento.</li>
@@ -738,9 +751,10 @@ function buildAdminManualHtml(user: AuthUser) {
 </html>`
 }
 
-function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equipment) {
+function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equipment | undefined, unitSystem: UnitSystem) {
   const materialSummary = getEventMaterialOutcome(item)
   const status = materialSummary.status
+  const measure = (value: number, kind: MeasureKind, digits = 3) => formatMeasureValue(value, kind, unitSystem, digits)
   const equipmentLabel = equipmentItem
     ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}`
     : 'Equipo no encontrado'
@@ -748,8 +762,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
     .map(
       (pass) => `<tr>
         <td>${reportValue(`Pasada ${pass.index}`)}</td>
-        <td>${reportValue(`${pass.externalWeightKg} kg`)}</td>
-        <td>${reportValue(`${pass.beltWeightKg} kg`)}</td>
+        <td>${reportValue(measure(pass.externalWeightKg, 'weightKg'))}</td>
+        <td>${reportValue(measure(pass.beltWeightKg, 'weightKg'))}</td>
         <td>${reportValue(pass.factorUsed || '-')}</td>
         <td>${reportValue(`${pass.errorPct} %`)}</td>
         <td>${reportValue(materialSummary.finalPass?.index === pass.index ? 'Final' : pass.index === 1 ? 'Control inicial' : 'Post-ajuste')}</td>
@@ -821,11 +835,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
     ${reportRow('Cero', item.parameterSnapshot.zeroValue)}
     ${reportRow('Span', item.parameterSnapshot.spanValue)}
     ${reportRow('Filtro', item.parameterSnapshot.filterValue)}
-    ${reportRow('Puente', `${item.parameterSnapshot.bridgeLengthM} m`)}
-    ${reportRow('Velocidad', `${item.parameterSnapshot.nominalSpeedMs} m/s`)}
+    ${reportRow('Puente', measure(item.parameterSnapshot.bridgeLengthM, 'lengthM'))}
+    ${reportRow('Velocidad', measure(item.parameterSnapshot.nominalSpeedMs, 'speedMs'))}
     ${reportRow('Cadena', item.chainSpan.chainName)}
-    ${reportRow('Kg/m cadena', item.chainSpan.chainLinearKgM)}
-    ${reportRow('Lectura prom.', item.chainSpan.avgControllerReadingKgM)}
+    ${reportRow('Peso lineal cadena', measure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
+    ${reportRow('Lectura prom.', measure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
   </div>
   <h2>Pasadas con material certificado</h2>
   <table>
@@ -834,12 +848,12 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem?: Equi
   </table>
   <h2>Acumulado, material real y cierre</h2>
   <div class="grid">
-    ${reportRow('Caudal esperado', `${item.accumulatedCheck.expectedFlowTph} tn/h`)}
+    ${reportRow('Caudal esperado', measure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
     ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
-    ${reportRow('Total esperado', item.accumulatedCheck.expectedTotal)}
-    ${reportRow('Total indicado', item.accumulatedCheck.indicatedTotal)}
-    ${reportRow('Peso externo final', `${materialSummary.finalPass?.externalWeightKg ?? item.materialValidation.externalWeightKg} kg`)}
-    ${reportRow('Peso balanza final', `${materialSummary.finalPass?.beltWeightKg ?? item.materialValidation.beltWeightKg} kg`)}
+    ${reportRow('Total esperado', measure(item.accumulatedCheck.expectedTotal, 'massT'))}
+    ${reportRow('Total indicado', measure(item.accumulatedCheck.indicatedTotal, 'massT'))}
+    ${reportRow('Peso externo final', measure(materialSummary.finalPass?.externalWeightKg ?? item.materialValidation.externalWeightKg, 'weightKg'))}
+    ${reportRow('Peso balanza final', measure(materialSummary.finalPass?.beltWeightKg ?? item.materialValidation.beltWeightKg, 'weightKg'))}
     ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
     ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
     ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
@@ -889,6 +903,7 @@ function App() {
   const [loadingData, setLoadingData] = useState(true)
   const [dataSource, setDataSource] = useState<'local' | 'supabase'>('local')
   const [theme, setTheme] = useState<AppTheme>(getInitialTheme)
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(getInitialUnitSystem)
   const [clockNow, setClockNow] = useState(() => new Date())
   const [toasts, setToasts] = useState<Toast[]>([])
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
@@ -922,6 +937,22 @@ function App() {
     document.documentElement.dataset.theme = theme
     localStorage.setItem(THEME_STORAGE_KEY, theme)
   }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem(UNIT_SYSTEM_STORAGE_KEY, unitSystem)
+  }, [unitSystem])
+
+  useEffect(() => {
+    setEventForm((current) => (
+      current.units === 'kg' || current.units === 'lb' || current.zeroDisplayUnit === 'kg' || current.zeroDisplayUnit === 'lb'
+        ? {
+            ...current,
+            units: current.units === 'kg' || current.units === 'lb' ? getMeasureUnit('weightKg', unitSystem) : current.units,
+            zeroDisplayUnit: current.zeroDisplayUnit === 'kg' || current.zeroDisplayUnit === 'lb' ? getMeasureUnit('weightKg', unitSystem) : current.zeroDisplayUnit,
+          }
+        : current
+    ))
+  }, [unitSystem])
 
   useEffect(() => () => {
     if (loginTransitionTimeoutRef.current !== null) {
@@ -959,6 +990,20 @@ function App() {
     window.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== id))
     }, 4200)
+  }
+
+  const unitSystemName = unitSystem === 'metric' ? 'Metrico' : 'Imperial'
+  const measureUnit = (kind: MeasureKind) => getMeasureUnit(kind, unitSystem)
+  const measureLabel = (label: string, kind: MeasureKind) => `${label} (${measureUnit(kind)})`
+  const measureInput = (value: string, kind: MeasureKind, digits = 6) => formatMeasureInput(value, kind, unitSystem, digits)
+  const parseMeasure = (value: string, kind: MeasureKind, digits = 6) => parseMeasureInput(value, kind, unitSystem, digits)
+  const measureText = (value: number, kind: MeasureKind, digits = 3) => formatMeasureValue(value, kind, unitSystem, digits)
+  const measureNumber = (value: number, kind: MeasureKind, digits = 3) => formatNumberForDisplay(toDisplayMeasure(value, kind, unitSystem), digits)
+
+  function handleUnitSystemToggle() {
+    const nextUnitSystem = unitSystem === 'metric' ? 'imperial' : 'metric'
+    setUnitSystem(nextUnitSystem)
+    setSyncNotice(`Unidades ${nextUnitSystem === 'metric' ? 'metricas' : 'imperiales'} activadas. Los datos guardados no se modifican.`)
   }
 
   useEffect(() => {
@@ -1445,7 +1490,7 @@ function App() {
     if (!eventForm.zeroCompleted) issues.push('Debés registrar el cero antes de calibrar.')
     if (!currentUser?.username.trim()) issues.push('Falta usuario responsable logueado.')
     if (requiresFullCalibration) {
-      if (!(toNumber(eventForm.chainLinearKgM) > 0)) issues.push('Falta el kg/m de cadena.')
+      if (!(toNumber(eventForm.chainLinearKgM) > 0)) issues.push('Falta el peso lineal de cadena.')
       if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
       if (!(toNumber(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
       if (!(toNumber(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
@@ -1488,7 +1533,7 @@ function App() {
     precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
     eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
     eventForm.calibrationFactor || eventForm.zeroValue || eventForm.spanValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
-    !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga kg/m de cadena y promedio del controlador.',
+    !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga peso lineal de cadena y promedio del controlador.',
     !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal, tiempo y acumulado indicado.',
     finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
     eventBlockingIssues.length === 0 ? 'Evento listo para guardar con factor final confirmado.' : eventBlockingIssues[0],
@@ -1581,19 +1626,16 @@ function App() {
     const adjustmentFactorCurrent = toNumber(accumulatedToolForm.adjustmentFactorCurrent) || 0
     if (!expectedFlowTph || !testMinutes || !indicatedTotal || !adjustmentFactorCurrent) return null
 
-    const unit = selectedEquipment?.totalizerUnit || 'tn'
     const expectedTotal = (expectedFlowTph * testMinutes) / 60
-    const expectedForCalc = unit === 'kg' ? expectedTotal * 1000 : expectedTotal
-    const errorPct = ((indicatedTotal - expectedForCalc) / expectedForCalc) * 100
-    const suggestedAdjustmentFactor = adjustmentFactorCurrent * (expectedForCalc / indicatedTotal)
+    const errorPct = ((indicatedTotal - expectedTotal) / expectedTotal) * 100
+    const suggestedAdjustmentFactor = adjustmentFactorCurrent * (expectedTotal / indicatedTotal)
 
     return {
       expectedTotal,
-      expectedForCalc,
       errorPct,
       suggestedAdjustmentFactor,
     }
-  }, [accumulatedToolForm, selectedEquipment])
+  }, [accumulatedToolForm])
 
   const automaticDiagnosis = useMemo(() => {
     const messages: string[] = []
@@ -1683,7 +1725,7 @@ function App() {
   }, [historyTotalPages])
 
   function resetEventForm() {
-    setEventForm({ ...defaultEventForm, eventDate: nowLocalValue() })
+    setEventForm({ ...defaultEventForm, eventDate: nowLocalValue(), units: measureUnit('weightKg') })
     setCalibrationStep(0)
     setMaterialPassCount(1)
     setEventSubmitAttempted(false)
@@ -1747,7 +1789,7 @@ function App() {
     }
 
     reportWindow.opener = null
-    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem))
+    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem, unitSystem))
     reportWindow.document.close()
     reportWindow.focus()
     reportWindow.setTimeout(() => reportWindow.print(), 250)
@@ -1909,6 +1951,7 @@ function App() {
     setEventForm({
       ...defaultEventForm,
       eventDate: nowLocalValue(),
+      units: measureUnit('weightKg'),
       snapshotBridgeLengthM: String(item.bridgeLengthM || ''),
       snapshotNominalSpeedMs: String(item.nominalSpeedMs || ''),
       chainId: plantChain?.id || '',
@@ -2390,7 +2433,7 @@ function App() {
     setConfirmDialog({
       title: 'Eliminar cadena',
       message: `${item.plant} / ${item.name}`,
-      detail: 'Los eventos historicos conservaran el nombre y kg/m registrados. Esta accion no se puede deshacer.',
+      detail: 'Los eventos historicos conservaran el nombre y peso lineal registrados. Esta accion no se puede deshacer.',
       confirmLabel: 'Eliminar cadena',
       onConfirm: async () => {
         try {
@@ -2767,6 +2810,14 @@ function App() {
             {dataSource === 'supabase' ? 'Servidor online' : 'Modo local'}
           </div>
           <button
+            className="secondary small unit-toggle"
+            type="button"
+            onClick={handleUnitSystemToggle}
+            aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
+          >
+            {unitSystemName}
+          </button>
+          <button
             className="secondary small theme-toggle"
             type="button"
             onClick={handleThemeToggle}
@@ -2991,11 +3042,11 @@ function App() {
                   <Field label="Balanza" value={equipmentForm.scaleName} onChange={(value) => setEquipmentForm((current) => ({ ...current, scaleName: value }))} />
                   <Field label="Modelo controlador" value={equipmentForm.controllerModel} onChange={(value) => setEquipmentForm((current) => ({ ...current, controllerModel: value }))} />
                   <Field label="Serie controlador" value={equipmentForm.controllerSerial} onChange={(value) => setEquipmentForm((current) => ({ ...current, controllerSerial: value }))} />
-                  <Field label="Ancho cinta (mm)" type="number" value={equipmentForm.beltWidthMm} onChange={(value) => setEquipmentForm((current) => ({ ...current, beltWidthMm: value }))} />
-                  <Field label="Largo cinta (m)" type="number" value={equipmentForm.beltLengthM} onChange={(value) => setEquipmentForm((current) => ({ ...current, beltLengthM: value }))} />
-                  <Field label="Capacidad nominal (t/h)" type="number" value={equipmentForm.nominalCapacityTph} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalCapacityTph: value }))} />
-                  <Field label="Distancia puente pesaje (m)" type="number" value={equipmentForm.bridgeLengthM} onChange={(value) => setEquipmentForm((current) => ({ ...current, bridgeLengthM: value }))} />
-                  <Field label="Velocidad nominal (m/s)" type="number" value={equipmentForm.nominalSpeedMs} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalSpeedMs: value }))} />
+                  <Field label={measureLabel('Ancho cinta', 'lengthMm')} type="number" value={measureInput(equipmentForm.beltWidthMm, 'lengthMm')} onChange={(value) => setEquipmentForm((current) => ({ ...current, beltWidthMm: parseMeasure(value, 'lengthMm') }))} />
+                  <Field label={measureLabel('Largo cinta', 'lengthM')} type="number" value={measureInput(equipmentForm.beltLengthM, 'lengthM')} onChange={(value) => setEquipmentForm((current) => ({ ...current, beltLengthM: parseMeasure(value, 'lengthM') }))} />
+                  <Field label={measureLabel('Capacidad nominal', 'flowTph')} type="number" value={measureInput(equipmentForm.nominalCapacityTph, 'flowTph')} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalCapacityTph: parseMeasure(value, 'flowTph') }))} />
+                  <Field label={measureLabel('Distancia puente pesaje', 'lengthM')} type="number" value={measureInput(equipmentForm.bridgeLengthM, 'lengthM')} onChange={(value) => setEquipmentForm((current) => ({ ...current, bridgeLengthM: parseMeasure(value, 'lengthM') }))} />
+                  <Field label={measureLabel('Velocidad nominal', 'speedMs')} type="number" value={measureInput(equipmentForm.nominalSpeedMs, 'speedMs')} onChange={(value) => setEquipmentForm((current) => ({ ...current, nominalSpeedMs: parseMeasure(value, 'speedMs') }))} />
                   <Field label="Factor calibracion actual" type="number" value={equipmentForm.calibrationFactorCurrent} onChange={(value) => setEquipmentForm((current) => ({ ...current, calibrationFactorCurrent: value }))} />
                   <Field label="Factor ajuste actual" type="number" value={equipmentForm.adjustmentFactorCurrent} onChange={(value) => setEquipmentForm((current) => ({ ...current, adjustmentFactorCurrent: value }))} />
                   <Field label="Frecuencia control (dias)" type="number" value={equipmentForm.checkIntervalDays} onChange={(value) => setEquipmentForm((current) => ({ ...current, checkIntervalDays: value }))} />
@@ -3007,14 +3058,11 @@ function App() {
                       <option value="rpm">RPM</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="label">Unidad de acumulado</label>
-                    <select className="input" value={equipmentForm.totalizerUnit} onChange={(e) => setEquipmentForm((current) => ({ ...current, totalizerUnit: e.target.value }))}>
-                      <option value="tn">tn</option>
-                      <option value="kg">kg</option>
-                    </select>
+                  <div className="system-field">
+                    <span>Unidad visible</span>
+                    <strong>{unitSystemName}</strong>
                   </div>
-                  <Field label="Diametro rolo RPM (mm)" type="number" value={equipmentForm.rpmRollDiameterMm} onChange={(value) => setEquipmentForm((current) => ({ ...current, rpmRollDiameterMm: value }))} />
+                  <Field label={measureLabel('Diametro rolo RPM', 'lengthMm')} type="number" value={measureInput(equipmentForm.rpmRollDiameterMm, 'lengthMm')} onChange={(value) => setEquipmentForm((current) => ({ ...current, rpmRollDiameterMm: parseMeasure(value, 'lengthMm') }))} />
                 </div>
                 <div className="photo-field">
                   <div className="equipment-avatar">
@@ -3067,9 +3115,9 @@ function App() {
                 <div className="grid two">
                   <Field label="Planta" value={chainForm.plant} onChange={(value) => setChainForm((current) => ({ ...current, plant: value }))} />
                   <Field label="Nombre de cadena" value={chainForm.name} onChange={(value) => setChainForm((current) => ({ ...current, name: value }))} />
-                  <Field label="Peso por metro (kg/m)" type="number" value={chainForm.linearWeightKgM} onChange={(value) => setChainForm((current) => ({ ...current, linearWeightKgM: value }))} />
-                  <Field label="Largo total (m)" type="number" value={chainForm.totalLengthM} onChange={(value) => setChainForm((current) => ({ ...current, totalLengthM: value }))} />
-                  <Field label="Peso total (kg)" type="number" value={chainForm.totalWeightKg} onChange={(value) => setChainForm((current) => ({ ...current, totalWeightKg: value }))} />
+                  <Field label={measureLabel('Peso por longitud', 'linearWeightKgM')} type="number" value={measureInput(chainForm.linearWeightKgM, 'linearWeightKgM')} onChange={(value) => setChainForm((current) => ({ ...current, linearWeightKgM: parseMeasure(value, 'linearWeightKgM') }))} />
+                  <Field label={measureLabel('Largo total', 'lengthM')} type="number" value={measureInput(chainForm.totalLengthM, 'lengthM')} onChange={(value) => setChainForm((current) => ({ ...current, totalLengthM: parseMeasure(value, 'lengthM') }))} />
+                  <Field label={measureLabel('Peso total', 'weightKg')} type="number" value={measureInput(chainForm.totalWeightKg, 'weightKg')} onChange={(value) => setChainForm((current) => ({ ...current, totalWeightKg: parseMeasure(value, 'weightKg') }))} />
                 </div>
                 <TextArea label="Observaciones de cadena" value={chainForm.notes} onChange={(value) => setChainForm((current) => ({ ...current, notes: value }))} />
                 {chainSubmitAttempted && chainBlockingIssues.length > 0 && (
@@ -3089,7 +3137,7 @@ function App() {
                   <div className="result-row" key={item.id}>
                     <span>{item.plant} / {item.name}</span>
                     <div className="row compact-actions">
-                      <strong>{item.linearWeightKgM} kg/m</strong>
+                      <strong>{measureText(item.linearWeightKgM, 'linearWeightKgM', 6)}</strong>
                       {canDelete && <button className="secondary small danger" type="button" onClick={() => handleDeleteChain(item)}><Trash2 className="action-icon" aria-hidden="true" />Eliminar</button>}
                     </div>
                   </div>
@@ -3219,9 +3267,9 @@ function App() {
                     onOpen={() => openEquipmentPhoto(selectedEquipment)}
                   />
                   <div className="grid four">
-                    <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM} m`} />
-                    <Metric label="Velocidad" value={`${selectedEquipment.nominalSpeedMs} m/s`} />
-                    <Metric label="Capacidad" value={`${selectedEquipment.nominalCapacityTph} t/h`} />
+                    <Metric label="Puente" value={measureText(selectedEquipment.bridgeLengthM, 'lengthM')} />
+                    <Metric label="Velocidad" value={measureText(selectedEquipment.nominalSpeedMs, 'speedMs')} />
+                    <Metric label="Capacidad" value={measureText(selectedEquipment.nominalCapacityTph, 'flowTph')} />
                     <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
                     <Metric label="Frecuencia control" value={`${selectedEquipment.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
                     <Metric label="Dias restantes" value={selectedEquipmentMaintenance?.daysText || '-'} />
@@ -3255,8 +3303,8 @@ function App() {
               {selectedChain && (
                 <div className="grid three compact-top">
                   <Metric label="Cadena" value={selectedChain.name} />
-                  <Metric label="kg/m" value={String(selectedChain.linearWeightKgM)} />
-                  <Metric label="Peso total" value={`${selectedChain.totalWeightKg} kg`} />
+                  <Metric label={measureUnit('linearWeightKgM')} value={measureNumber(selectedChain.linearWeightKgM, 'linearWeightKgM', 6)} />
+                  <Metric label="Peso total" value={measureText(selectedChain.totalWeightKg, 'weightKg')} />
                 </div>
               )}
             </div>
@@ -3299,7 +3347,7 @@ function App() {
                     <label className="label">Unidad / referencia visible</label>
                     <select className="input" value={eventForm.zeroDisplayUnit} onChange={(e) => setEventForm((current) => ({ ...current, zeroDisplayUnit: e.target.value }))}>
                       <option value="mV">mV</option>
-                      <option value="kg">kg</option>
+                      <option value={measureUnit('weightKg')}>{measureUnit('weightKg')}</option>
                       <option value="cuentas">Cuentas</option>
                       <option value="no_visible">No visible en controlador</option>
                       <option value="otro">Otro</option>
@@ -3324,8 +3372,8 @@ function App() {
                   <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
                   <Field label="Span" type="number" value={eventForm.spanValue} onChange={(value) => setEventForm((current) => ({ ...current, spanValue: value }))} />
                   <Field label="Filtro" value={eventForm.filterValue} onChange={(value) => setEventForm((current) => ({ ...current, filterValue: value }))} />
-                  <Field label="Puente pesaje (m)" type="number" value={eventForm.snapshotBridgeLengthM} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: value }))} />
-                  <Field label="Velocidad nominal (m/s)" type="number" value={eventForm.snapshotNominalSpeedMs} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: value }))} />
+                  <Field label={measureLabel('Puente pesaje', 'lengthM')} type="number" value={measureInput(eventForm.snapshotBridgeLengthM, 'lengthM')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: parseMeasure(value, 'lengthM') }))} />
+                  <Field label={measureLabel('Velocidad nominal', 'speedMs')} type="number" value={measureInput(eventForm.snapshotNominalSpeedMs, 'speedMs')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: parseMeasure(value, 'speedMs') }))} />
                   <Field label="Unidades" value={eventForm.units} onChange={(value) => setEventForm((current) => ({ ...current, units: value }))} />
                   <div className="system-field">
                     <span>Cambio registrado por</span>
@@ -3339,15 +3387,15 @@ function App() {
                 <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
-                  <Field label="Kg/m de cadena (editable)" type="number" value={eventForm.chainLinearKgM} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: value }))} />
+                  <Field label={measureLabel('Peso lineal de cadena', 'linearWeightKgM')} type="number" value={measureInput(eventForm.chainLinearKgM, 'linearWeightKgM')} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: parseMeasure(value, 'linearWeightKgM') }))} />
                   <Field label="Tiempo de test" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
-                  <Field label="Promedio lectura controlador (kg/m)" type="number" value={eventForm.avgControllerReadingKgM} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: value }))} />
+                  <Field label={measureLabel('Promedio lectura controlador', 'linearWeightKgM')} type="number" value={measureInput(eventForm.avgControllerReadingKgM, 'linearWeightKgM')} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: parseMeasure(value, 'linearWeightKgM') }))} />
                   <Field label="Factor provisorio" type="number" value={eventForm.provisionalFactor} onChange={(value) => setEventForm((current) => ({ ...current, provisionalFactor: value }))} />
                 </div>
                 <div className="grid three compact-top">
                   <Metric label="Error promedio" value={`${round(avgErrorPct)} %`} />
-                  <Metric label="Referencia cadena" value={`${round(toNumber(eventForm.chainLinearKgM) || 0)} kg/m`} />
-                  <Metric label="Promedio controlador" value={`${round(toNumber(eventForm.avgControllerReadingKgM) || 0)} kg/m`} />
+                  <Metric label="Referencia cadena" value={measureText(toNumber(eventForm.chainLinearKgM) || 0, 'linearWeightKgM')} />
+                  <Metric label="Promedio controlador" value={measureText(toNumber(eventForm.avgControllerReadingKgM) || 0, 'linearWeightKgM')} />
                 </div>
               </CollapsibleCard>}
 
@@ -3355,31 +3403,27 @@ function App() {
                 <div className="card-tag">Paso 6</div>
                 <h2>Acumulado y factor de ajuste</h2>
                 <div className="grid two">
-                  <Field label="Caudal esperado (tn/h)" type="number" value={eventForm.expectedFlowTph} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: value }))} />
+                  <Field label={measureLabel('Caudal esperado', 'flowTph')} type="number" value={measureInput(eventForm.expectedFlowTph, 'flowTph')} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: parseMeasure(value, 'flowTph') }))} />
                   <Field label="Tiempo de prueba (min)" type="number" value={eventForm.accumulatedTestMinutes} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedTestMinutes: value }))} />
-                  <Field label={`Acumulado indicado (${selectedEquipment?.totalizerUnit || 'tn'})`} type="number" value={eventForm.accumulatedIndicatedTotal} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedIndicatedTotal: value }))} />
+                  <Field label={measureLabel('Acumulado indicado', 'massT')} type="number" value={measureInput(eventForm.accumulatedIndicatedTotal, 'massT')} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedIndicatedTotal: parseMeasure(value, 'massT') }))} />
                   <Field label="Factor ajuste antes" type="number" value={eventForm.adjustmentFactorBefore} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentFactorBefore: value }))} />
                 </div>
                 <div className="grid four compact-top">
-                  <Metric label={`Acumulado esperado (${selectedEquipment?.totalizerUnit || 'tn'})`} value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? String(round((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60, 6)) : '-'} />
+                  <Metric label={`Acumulado esperado (${measureUnit('massT')})`} value={eventForm.expectedFlowTph && eventForm.accumulatedTestMinutes ? measureNumber((toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60, 'massT', 6) : '-'} />
                   <Metric label="Error acumulado" value={(() => {
                     if (!eventForm.expectedFlowTph || !eventForm.accumulatedTestMinutes || !eventForm.accumulatedIndicatedTotal) return '-'
-                    const unit = selectedEquipment?.totalizerUnit || 'tn'
                     const expectedTotal = (toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60
                     const indicated = toNumber(eventForm.accumulatedIndicatedTotal)
-                    const expectedForCalc = unit === 'kg' ? expectedTotal * 1000 : expectedTotal
-                    if (expectedForCalc === 0) return '-'
-                    const errorPct = ((indicated - expectedForCalc) / expectedForCalc) * 100
+                    if (expectedTotal === 0) return '-'
+                    const errorPct = ((indicated - expectedTotal) / expectedTotal) * 100
                     return `${round(errorPct, 3)} %`
                   })()} />
                   <Metric label="Factor ajuste sugerido" value={(() => {
                     if (!eventForm.expectedFlowTph || !eventForm.accumulatedTestMinutes || !eventForm.accumulatedIndicatedTotal || !eventForm.adjustmentFactorBefore) return '-'
-                    const unit = selectedEquipment?.totalizerUnit || 'tn'
                     const expectedTotal = (toNumber(eventForm.expectedFlowTph) * toNumber(eventForm.accumulatedTestMinutes)) / 60
                     const indicated = toNumber(eventForm.accumulatedIndicatedTotal)
-                    const expectedForCalc = unit === 'kg' ? expectedTotal * 1000 : expectedTotal
                     if (indicated === 0) return '-'
-                    return String(round(toNumber(eventForm.adjustmentFactorBefore) * (expectedForCalc / indicated), 6))
+                    return String(round(toNumber(eventForm.adjustmentFactorBefore) * (expectedTotal / indicated), 6))
                   })()} />
                   <Metric label="Regla" value="Si el instantaneo esta bien, corregir con factor de ajuste" />
                 </div>
@@ -3405,8 +3449,8 @@ function App() {
                         </strong>
                       </div>
                       <div className="grid two compact-top">
-                        <Field label="Peso balanza certificada (kg)" type="number" value={eventForm[`${prefix}ExternalWeightKg`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: value }))} />
-                        <Field label="Peso indicado controlador (kg)" type="number" value={eventForm[`${prefix}BeltWeightKg`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: value }))} />
+                        <Field label={measureLabel('Peso balanza certificada', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
+                        <Field label={measureLabel('Peso indicado controlador', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
                         <Field label="Factor usado" type="number" value={eventForm[`${prefix}Factor`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Factor`]: value }))} />
                         <TextArea label="Nota de pasada" value={eventForm[`${prefix}Notes`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Notes`]: value }))} />
                       </div>
@@ -3452,12 +3496,12 @@ function App() {
                   <div className="grid four compact-top">
                     <Metric label="Cero" value={eventForm.zeroCompleted ? 'Registrado' : 'Pendiente'} />
                     <Metric label="Factor" value={eventForm.calibrationFactor ? String(eventForm.calibrationFactor) : '-'} />
-                    <Metric label="Cadena kg/m" value={eventForm.chainLinearKgM ? `${eventForm.chainLinearKgM} kg/m` : '-'} />
-                    <Metric label="Caudal" value={eventForm.expectedFlowTph ? `${eventForm.expectedFlowTph} t/h` : '-'} />
+                    <Metric label="Cadena" value={eventForm.chainLinearKgM ? measureText(toNumber(eventForm.chainLinearKgM), 'linearWeightKgM') : '-'} />
+                    <Metric label="Caudal" value={eventForm.expectedFlowTph ? measureText(toNumber(eventForm.expectedFlowTph), 'flowTph') : '-'} />
                   </div>
                   <div className="grid four compact-top">
                     <Metric label="Acum. tiempo" value={eventForm.accumulatedTestMinutes ? `${eventForm.accumulatedTestMinutes} min` : '-'} />
-                    <Metric label="Acum. indicado" value={eventForm.accumulatedIndicatedTotal ? `${eventForm.accumulatedIndicatedTotal} t` : '-'} />
+                    <Metric label="Acum. indicado" value={eventForm.accumulatedIndicatedTotal ? measureText(toNumber(eventForm.accumulatedIndicatedTotal), 'massT') : '-'} />
                     <Metric label="Factor final" value={eventForm.finalFactor ? String(eventForm.finalFactor) : '-'} />
                     <Metric label="Responsable" value={currentUser.username} />
                   </div>
@@ -3467,7 +3511,7 @@ function App() {
                         <Metric
                           key={pass.index}
                           label={`Pasada ${i + 1}`}
-                          value={pass.factorUsed ? `Ext: ${pass.externalWeightKg} kg | Factor: ${pass.factorUsed}` : '-'}
+                          value={pass.factorUsed ? `Ext: ${measureText(pass.externalWeightKg, 'weightKg')} | Factor: ${pass.factorUsed}` : '-'}
                         />
                       ))}
                     </div>
@@ -3529,10 +3573,10 @@ function App() {
                     onOpen={() => openEquipmentPhoto(selectedEquipment)}
                   />
                   <div className="grid four">
-                    <Metric label="Diametro RPM" value={`${selectedEquipment.rpmRollDiameterMm || 0} mm`} />
-                    <Metric label="Largo cinta" value={`${selectedEquipment.beltLengthM || 0} m`} />
-                    <Metric label="Puente" value={`${selectedEquipment.bridgeLengthM || 0} m`} />
-                    <Metric label="Velocidad nominal" value={`${selectedEquipment.nominalSpeedMs || 0} m/s`} />
+                    <Metric label="Diametro RPM" value={measureText(selectedEquipment.rpmRollDiameterMm || 0, 'lengthMm')} />
+                    <Metric label="Largo cinta" value={measureText(selectedEquipment.beltLengthM || 0, 'lengthM')} />
+                    <Metric label="Puente" value={measureText(selectedEquipment.bridgeLengthM || 0, 'lengthM')} />
+                    <Metric label="Velocidad nominal" value={measureText(selectedEquipment.nominalSpeedMs || 0, 'speedMs')} />
                   </div>
                 </div>
               )}
@@ -3563,9 +3607,9 @@ function App() {
               {usingAllChainsFallback && <p className="hint compact-top">No hay cadenas para esta planta. Se muestran todas las disponibles.</p>}
               {selectedChain && (
                 <div className="grid three compact-top">
-                  <Metric label="kg/m" value={String(selectedChain.linearWeightKgM)} />
-                  <Metric label="Largo total" value={`${selectedChain.totalLengthM} m`} />
-                  <Metric label="Peso total" value={`${selectedChain.totalWeightKg} kg`} />
+                  <Metric label={measureUnit('linearWeightKgM')} value={measureNumber(selectedChain.linearWeightKgM, 'linearWeightKgM', 6)} />
+                  <Metric label="Largo total" value={measureText(selectedChain.totalLengthM, 'lengthM')} />
+                  <Metric label="Peso total" value={measureText(selectedChain.totalWeightKg, 'weightKg')} />
                 </div>
               )}
             </div>
@@ -3574,12 +3618,12 @@ function App() {
               <h2>Velocidad por RPM</h2>
               <div className="grid two">
                 <Field label="RPM del rolo" type="number" value={rpmToolForm.rpm} onChange={(value) => setRpmToolForm((current) => ({ ...current, rpm: value }))} />
-                <Field label="Velocidad indicada (m/s)" type="number" value={rpmToolForm.indicatedSpeedMs} onChange={(value) => setRpmToolForm((current) => ({ ...current, indicatedSpeedMs: value }))} />
+                <Field label={measureLabel('Velocidad indicada', 'speedMs')} type="number" value={measureInput(rpmToolForm.indicatedSpeedMs, 'speedMs')} onChange={(value) => setRpmToolForm((current) => ({ ...current, indicatedSpeedMs: parseMeasure(value, 'speedMs') }))} />
               </div>
               <div className="grid four compact-top">
-                <Metric label="m/s" value={rpmToolResult ? String(round(rpmToolResult.speedMs, 6)) : '-'} />
-                <Metric label="m/min" value={rpmToolResult ? String(round(rpmToolResult.speedMmin, 3)) : '-'} />
-                <Metric label="m/h" value={rpmToolResult ? String(round(rpmToolResult.speedMh, 1)) : '-'} />
+                <Metric label={measureUnit('speedMs')} value={rpmToolResult ? measureNumber(rpmToolResult.speedMs, 'speedMs', 6) : '-'} />
+                <Metric label={unitSystem === 'metric' ? 'm/min' : 'ft/s'} value={rpmToolResult ? String(round(unitSystem === 'metric' ? rpmToolResult.speedMmin : toDisplayMeasure(rpmToolResult.speedMs, 'lengthM', unitSystem), 3)) : '-'} />
+                <Metric label={unitSystem === 'metric' ? 'm/h' : 'ft/h'} value={rpmToolResult ? String(round(unitSystem === 'metric' ? rpmToolResult.speedMh : toDisplayMeasure(rpmToolResult.speedMh, 'lengthM', unitSystem), 1)) : '-'} />
                 <Metric label="Error %" value={rpmToolResult && rpmToolForm.indicatedSpeedMs ? `${round(rpmToolResult.errorPct, 3)} %` : '-'} />
               </div>
               <button className="secondary" disabled={!rpmToolResult || !canOperate} onClick={() => rpmToolResult && applyMeasuredSpeed(rpmToolResult.speedMs)}>
@@ -3592,12 +3636,12 @@ function App() {
               <h2>Velocidad por vuelta completa</h2>
               <div className="grid two">
                 <Field label="Tiempo por vuelta (s)" type="number" value={loopToolForm.loopTimeSeconds} onChange={(value) => setLoopToolForm((current) => ({ ...current, loopTimeSeconds: value }))} />
-                <Field label="Velocidad indicada (m/s)" type="number" value={loopToolForm.indicatedSpeedMs} onChange={(value) => setLoopToolForm((current) => ({ ...current, indicatedSpeedMs: value }))} />
+                <Field label={measureLabel('Velocidad indicada', 'speedMs')} type="number" value={measureInput(loopToolForm.indicatedSpeedMs, 'speedMs')} onChange={(value) => setLoopToolForm((current) => ({ ...current, indicatedSpeedMs: parseMeasure(value, 'speedMs') }))} />
               </div>
               <div className="grid four compact-top">
-                <Metric label="m/s" value={loopToolResult ? String(round(loopToolResult.speedMs, 6)) : '-'} />
-                <Metric label="m/min" value={loopToolResult ? String(round(loopToolResult.speedMmin, 3)) : '-'} />
-                <Metric label="m/h" value={loopToolResult ? String(round(loopToolResult.speedMh, 1)) : '-'} />
+                <Metric label={measureUnit('speedMs')} value={loopToolResult ? measureNumber(loopToolResult.speedMs, 'speedMs', 6) : '-'} />
+                <Metric label={unitSystem === 'metric' ? 'm/min' : 'ft/s'} value={loopToolResult ? String(round(unitSystem === 'metric' ? loopToolResult.speedMmin : toDisplayMeasure(loopToolResult.speedMs, 'lengthM', unitSystem), 3)) : '-'} />
+                <Metric label={unitSystem === 'metric' ? 'm/h' : 'ft/h'} value={loopToolResult ? String(round(unitSystem === 'metric' ? loopToolResult.speedMh : toDisplayMeasure(loopToolResult.speedMh, 'lengthM', unitSystem), 1)) : '-'} />
                 <Metric label="Error %" value={loopToolResult && loopToolForm.indicatedSpeedMs ? `${round(loopToolResult.errorPct, 3)} %` : '-'} />
               </div>
               <button className="secondary" disabled={!loopToolResult || !canOperate} onClick={() => loopToolResult && applyMeasuredSpeed(loopToolResult.speedMs)}>
@@ -3606,18 +3650,18 @@ function App() {
               </button>
             </CollapsibleCard>
 
-            <CollapsibleCard title="Cadena de calibracion" hint="Caudal esperado y kg/m desde cadena patron." defaultOpen={false}>
+            <CollapsibleCard title="Cadena de calibracion" hint="Caudal esperado y peso lineal desde cadena patron." defaultOpen={false}>
               <h2>Cadena de calibracion</h2>
               <div className="grid two">
-                <Field label="Largo total cadena (m)" type="number" value={chainToolForm.chainLengthM} onChange={(value) => setChainToolForm((current) => ({ ...current, chainLengthM: value }))} />
-                <Field label="Peso total cadena (kg)" type="number" value={chainToolForm.chainWeightKg} onChange={(value) => setChainToolForm((current) => ({ ...current, chainWeightKg: value }))} />
-                <Field label="Largo tren pesaje (m)" type="number" value={chainToolForm.trainLengthM} onChange={(value) => setChainToolForm((current) => ({ ...current, trainLengthM: value }))} />
-                <Field label="Velocidad (m/s)" type="number" value={chainToolForm.speedMs} onChange={(value) => setChainToolForm((current) => ({ ...current, speedMs: value }))} />
+                <Field label={measureLabel('Largo total cadena', 'lengthM')} type="number" value={measureInput(chainToolForm.chainLengthM, 'lengthM')} onChange={(value) => setChainToolForm((current) => ({ ...current, chainLengthM: parseMeasure(value, 'lengthM') }))} />
+                <Field label={measureLabel('Peso total cadena', 'weightKg')} type="number" value={measureInput(chainToolForm.chainWeightKg, 'weightKg')} onChange={(value) => setChainToolForm((current) => ({ ...current, chainWeightKg: parseMeasure(value, 'weightKg') }))} />
+                <Field label={measureLabel('Largo tren pesaje', 'lengthM')} type="number" value={measureInput(chainToolForm.trainLengthM, 'lengthM')} onChange={(value) => setChainToolForm((current) => ({ ...current, trainLengthM: parseMeasure(value, 'lengthM') }))} />
+                <Field label={measureLabel('Velocidad', 'speedMs')} type="number" value={measureInput(chainToolForm.speedMs, 'speedMs')} onChange={(value) => setChainToolForm((current) => ({ ...current, speedMs: parseMeasure(value, 'speedMs') }))} />
               </div>
               <div className="grid three compact-top">
-                <Metric label="kg/m" value={chainToolResult ? String(round(chainToolResult.kgPerMeter, 6)) : '-'} />
-                <Metric label="kg sobre tren" value={chainToolResult ? String(round(chainToolResult.kgOnTrain, 3)) : '-'} />
-                <Metric label="Caudal esperado t/h" value={chainToolResult ? String(round(chainToolResult.tph, 3)) : '-'} />
+                <Metric label={measureUnit('linearWeightKgM')} value={chainToolResult ? measureNumber(chainToolResult.kgPerMeter, 'linearWeightKgM', 6) : '-'} />
+                <Metric label={`Carga sobre tren (${measureUnit('weightKg')})`} value={chainToolResult ? measureNumber(chainToolResult.kgOnTrain, 'weightKg', 3) : '-'} />
+                <Metric label={`Caudal esperado (${measureUnit('flowTph')})`} value={chainToolResult ? measureNumber(chainToolResult.tph, 'flowTph', 3) : '-'} />
               </div>
               <button className="secondary" disabled={!chainToolResult || !canOperate} onClick={applyChainToEvent}>
                 <ClipboardCheck className="action-icon" aria-hidden="true" />
@@ -3628,13 +3672,13 @@ function App() {
             <CollapsibleCard title="Acumulado" hint="Control de totalizador y factor de ajuste." defaultOpen={false}>
               <h2>Acumulado</h2>
               <div className="grid two">
-                <Field label="Caudal esperado (tn/h)" type="number" value={accumulatedToolForm.expectedFlowTph} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, expectedFlowTph: value }))} />
+                <Field label={measureLabel('Caudal esperado', 'flowTph')} type="number" value={measureInput(accumulatedToolForm.expectedFlowTph, 'flowTph')} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, expectedFlowTph: parseMeasure(value, 'flowTph') }))} />
                 <Field label="Tiempo de prueba (min)" type="number" value={accumulatedToolForm.testMinutes} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, testMinutes: value }))} />
-                <Field label={`Acumulado indicado (${selectedEquipment?.totalizerUnit || 'tn'})`} type="number" value={accumulatedToolForm.indicatedTotal} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, indicatedTotal: value }))} />
+                <Field label={measureLabel('Acumulado indicado', 'massT')} type="number" value={measureInput(accumulatedToolForm.indicatedTotal, 'massT')} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, indicatedTotal: parseMeasure(value, 'massT') }))} />
                 <Field label="Factor ajuste actual" type="number" value={accumulatedToolForm.adjustmentFactorCurrent} onChange={(value) => setAccumulatedToolForm((current) => ({ ...current, adjustmentFactorCurrent: value }))} />
               </div>
               <div className="grid four compact-top">
-                <Metric label={`Acumulado esperado (${selectedEquipment?.totalizerUnit || 'tn'})`} value={accumulatedToolResult ? String(round(selectedEquipment?.totalizerUnit === 'kg' ? accumulatedToolResult.expectedTotal * 1000 : accumulatedToolResult.expectedTotal, 6)) : '-'} />
+                <Metric label={`Acumulado esperado (${measureUnit('massT')})`} value={accumulatedToolResult ? measureNumber(accumulatedToolResult.expectedTotal, 'massT', 6) : '-'} />
                 <Metric label="Error %" value={accumulatedToolResult ? `${round(accumulatedToolResult.errorPct, 3)} %` : '-'} />
                 <Metric label="Factor ajuste sugerido" value={accumulatedToolResult ? String(round(accumulatedToolResult.suggestedAdjustmentFactor, 6)) : '-'} />
                 <Metric label="Diagnostico" value={accumulatedToolResult ? (Math.abs(accumulatedToolResult.errorPct) > 2 ? 'Revisar/ajustar acumulado' : 'Acumulado coherente') : '-'} />
@@ -3649,12 +3693,12 @@ function App() {
               <h2>Factor de correccion</h2>
               <div className="grid two">
                 <Field label="Factor actual" type="number" value={factorToolForm.currentFactor} onChange={(value) => setFactorToolForm((current) => ({ ...current, currentFactor: value }))} />
-                <Field label="Peso medido por balanza (kg)" type="number" value={factorToolForm.controllerWeightKg} onChange={(value) => setFactorToolForm((current) => ({ ...current, controllerWeightKg: value }))} />
-                <Field label="Peso real externo (kg)" type="number" value={factorToolForm.realWeightKg} onChange={(value) => setFactorToolForm((current) => ({ ...current, realWeightKg: value }))} />
+                <Field label={measureLabel('Peso medido por balanza', 'weightKg')} type="number" value={measureInput(factorToolForm.controllerWeightKg, 'weightKg')} onChange={(value) => setFactorToolForm((current) => ({ ...current, controllerWeightKg: parseMeasure(value, 'weightKg') }))} />
+                <Field label={measureLabel('Peso real externo', 'weightKg')} type="number" value={measureInput(factorToolForm.realWeightKg, 'weightKg')} onChange={(value) => setFactorToolForm((current) => ({ ...current, realWeightKg: parseMeasure(value, 'weightKg') }))} />
               </div>
               <div className="grid four compact-top">
                 <Metric label="Factor nuevo" value={factorToolResult ? String(round(factorToolResult.newFactor, 6)) : '-'} />
-                <Metric label="Diferencia kg" value={factorToolResult ? String(round(factorToolResult.diffKg, 3)) : '-'} />
+                <Metric label={`Diferencia (${measureUnit('weightKg')})`} value={factorToolResult ? measureNumber(factorToolResult.diffKg, 'weightKg', 3) : '-'} />
                 <Metric label="Error %" value={factorToolResult ? `${round(factorToolResult.errorPct, 3)} %` : '-'} />
                 <Metric label="Recomendacion" value={factorToolResult ? factorToolResult.recommendation : '-'} />
               </div>
@@ -3729,6 +3773,7 @@ function App() {
                     onPrint={() => printCalibrationReport(item, equipmentItem)}
                     onDelete={() => handleDeleteEvent(item.id)}
                     formatDateTime={formatDateTime}
+                    formatWeight={(value) => measureText(value, 'weightKg')}
                   />
                 )
               })}

@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-11 - v3.0.13 - Selector metrico/imperial de interfaz
+
+- Contexto: algunos equipos trabajan referencias en imperial, pero los datos existentes y el esquema ya estan modelados como metricos (`mm`, `m`, `kg`, `kg/m`, `t/h`, `m/s`).
+- Decision: mantener metrico como base canonica para estado interno, Supabase y calculos, y aplicar conversion solo en formularios, metricas visibles, historial y reportes.
+- Cambio UI: se agrega un switch global `Metrico / Imperial` persistido en `localStorage` con clave `calibracinta:unit-system`.
+- Unidades imperial: ancho/diametro en `in`, longitudes en `ft`, pesos en `lb`, peso lineal en `lb/ft`, velocidad en `ft/min` y caudal en `lb/h`.
+- Compatibilidad: no se migra ni reescribe informacion historica; al guardar desde imperial, la app convierte el input a la base metrica antes de persistir.
+- Verificacion requerida: correr `npm run build`, alternar unidades, revisar alta/edicion de balanza, cadenas, nueva calibracion, herramientas, historial y reporte impreso.
+
 ## 2026-05-09 - v3.0.12 - Reloj sin etiqueta visible
 
 - Contexto: la capsula del reloj no necesitaba mostrar `Hora AR`; alcanzaba con fecha y hora visibles.

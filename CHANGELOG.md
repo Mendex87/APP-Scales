@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.0.13 - Selector metrico/imperial
+
+- Se agrega un switch global `Metrico / Imperial` en la cabecera autenticada.
+- Los formularios, herramientas, historial y reportes convierten unidades solo en la interfaz; los datos guardados siguen en metrico como base canonica.
+- El modo imperial muestra longitudes en `ft`/`in`, pesos en `lb`, peso lineal en `lb/ft`, velocidad en `ft/min` y caudal en `lb/h`.
+- Se actualizan manuales HTML para aclarar que el cambio de unidades no migra ni reescribe datos historicos.
+
 ## v3.0.12 - Reloj sin etiqueta visible
 
 - La capsula de hora Argentina queda solo con fecha y hora, sin el texto visible `Hora AR`.

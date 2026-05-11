@@ -22,6 +22,7 @@ type HistoryEventCardProps = {
   onPrint: () => void
   onDelete: () => void
   formatDateTime: (value: string) => string
+  formatWeight: (value: number) => string
 }
 
 export function HistoryEventCard({
@@ -35,6 +36,7 @@ export function HistoryEventCard({
   onPrint,
   onDelete,
   formatDateTime,
+  formatWeight,
 }: HistoryEventCardProps) {
   const statusText = materialSummary.status
 
@@ -84,7 +86,7 @@ export function HistoryEventCard({
           {materialSummary.passes.map((pass) => (
             <div className="result-row" key={`${item.id}-${pass.index}`}>
               <span>Pasada {pass.index} {materialSummary.finalPass?.index === pass.index ? '· final' : ''}</span>
-              <strong>{pass.externalWeightKg} kg cert. / {pass.beltWeightKg} kg ctrl. / {pass.errorPct} %</strong>
+              <strong>{formatWeight(pass.externalWeightKg)} cert. / {formatWeight(pass.beltWeightKg)} ctrl. / {pass.errorPct} %</strong>
             </div>
           ))}
         </div>

@@ -417,9 +417,9 @@
     <section id="conceptos">
       <h2>2. Conceptos principales</h2>
       <h3>Balanza</h3>
-      <p>Representa el equipo instalado en una cinta. Incluye planta, linea, codigo de cinta, nombre, controlador, dimensiones, velocidad nominal, factores actuales, unidad del totalizador, foto y notas.</p>
+      <p>Representa el equipo instalado en una cinta. Incluye planta, linea, codigo de cinta, nombre, controlador, dimensiones, velocidad nominal, factores actuales, foto y notas. Las unidades visibles pueden alternarse entre sistema metrico e imperial desde la cabecera.</p>
       <h3>Cadena patron</h3>
-      <p>Es el peso patron usado para simular carga sobre la cinta. Cada cadena tiene planta, nombre, peso lineal en kg/m, largo total, peso total y observaciones. La app filtra cadenas por planta cuando corresponde, pero si una balanza pertenece a una planta sin cadenas, permite elegir entre todas las cadenas disponibles.</p>
+      <p>Es el peso patron usado para simular carga sobre la cinta. Cada cadena tiene planta, nombre, peso lineal, largo total, peso total y observaciones. La app filtra cadenas por planta cuando corresponde, pero si una balanza pertenece a una planta sin cadenas, permite elegir entre todas las cadenas disponibles.</p>
       <h3>Evento de calibracion</h3>
       <p>Es el registro de trabajo realizado sobre una balanza en una fecha determinada. Puede ser una calibracion inicial completa, una recalibracion con ajuste o un control preventivo con material.</p>
       <h3>Control preventivo</h3>
@@ -447,6 +447,7 @@
       <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra el servidor de usuarios y consulta el perfil para conocer el rol.</p></div></div>
       <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior muestra las secciones disponibles para el rol actual: balanzas, nueva calibracion, herramientas, historial y usuarios.</p></div></div>
       <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con servidor online o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
+      <div class="callout"><strong>Unidades visibles:</strong> el switch <strong>Metrico / Imperial</strong> de la cabecera cambia formularios, herramientas, historial y reportes. Los datos guardados se conservan internamente en metrico para trazabilidad y se convierten solo al mostrar o cargar valores.</div>
       <div class="callout"><strong>Version visible:</strong> la version de la app se muestra en la cabecera. Usarla para confirmar que Vercel ya desplego el ultimo cambio.</div>
     </section>
 
@@ -481,12 +482,12 @@
 
     <section id="cadenas">
       <h2>6. Gestion de cadenas patron</h2>
-      <p>Las cadenas son datos maestros reutilizables. Una cadena bien cargada evita errores de kg/m y acelera la calibracion.</p>
+      <p>Las cadenas son datos maestros reutilizables. Una cadena bien cargada evita errores de peso lineal y acelera la calibracion.</p>
       <h3>Alta de cadena</h3>
       <ol>
         <li>Ir a <strong>Balanzas</strong>.</li>
         <li>Abrir <strong>Cadenas de calibracion</strong>.</li>
-        <li>Completar planta, nombre, kg/m, largo total y peso total.</li>
+        <li>Completar planta, nombre, peso lineal, largo total y peso total.</li>
         <li>Guardar.</li>
       </ol>
       <h3>Seleccion flexible por planta</h3>
@@ -529,8 +530,8 @@
       <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, span, filtro, puente, velocidad nominal, unidades y parametros extra si corresponde.</p>
 
       <h3>Paso 5: Span con cadena</h3>
-      <p>Registrar kg/m de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
-      <div class="callout"><strong>Campo editable:</strong> aunque el kg/m se precarga desde la cadena seleccionada, queda editable para registrar la referencia real usada en campo.</div>
+      <p>Registrar peso lineal de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
+      <div class="callout"><strong>Campo editable:</strong> aunque el peso lineal se precarga desde la cadena seleccionada, queda editable para registrar la referencia real usada en campo.</div>
 
       <h3>Paso 6: Acumulado</h3>
       <p>Controla totalizador y factor de ajuste. Se carga caudal esperado, tiempo de prueba, acumulado indicado y factor antes. La app calcula acumulado esperado, error acumulado y factor sugerido.</p>
@@ -587,11 +588,11 @@
       <h2>10. Herramientas tecnicas</h2>
       <p>La seccion herramientas permite hacer calculos rapidos y trasladar resultados al evento activo cuando el usuario tiene permiso operativo.</p>
       <h3>Velocidad por RPM</h3>
-      <p>Calcula velocidad de cinta a partir de RPM y diametro del rolo. Entrega m/s, m/min, m/h y diferencia contra velocidad indicada.</p>
+      <p>Calcula velocidad de cinta a partir de RPM y diametro del rolo. Entrega resultados en el sistema de unidades visible y diferencia contra velocidad indicada.</p>
       <h3>Velocidad por vuelta completa</h3>
       <p>Calcula velocidad con largo de cinta y tiempo de una vuelta completa. Es util cuando no se dispone de senal confiable de RPM.</p>
       <h3>Cadena de calibracion</h3>
-      <p>Calcula kg/m, caudal esperado y carga segun cadena, largo de tren y velocidad. Puede trasladarse al evento para evitar recarga manual.</p>
+      <p>Calcula peso lineal, caudal esperado y carga segun cadena, largo de tren y velocidad. Puede trasladarse al evento para evitar recarga manual.</p>
       <h3>Acumulado</h3>
       <p>Calcula total esperado y factor de ajuste sugerido a partir de caudal esperado, tiempo e indicado del totalizador.</p>
       <h3>Factor de correccion</h3>

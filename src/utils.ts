@@ -127,6 +127,79 @@ export const round = (value: number, digits = 3) => {
   return Math.round(value * factor) / factor
 }
 
+export type UnitSystem = 'metric' | 'imperial'
+export type MeasureKind = 'lengthM' | 'lengthMm' | 'weightKg' | 'linearWeightKgM' | 'speedMs' | 'flowTph' | 'massT'
+
+const KG_TO_LB = 2.20462262185
+const M_TO_FT = 3.28083989501
+const MM_TO_IN = 0.03937007874
+const MS_TO_FT_MIN = M_TO_FT * 60
+const TPH_TO_LB_H = 1000 * KG_TO_LB
+
+export const getMeasureUnit = (kind: MeasureKind, unitSystem: UnitSystem) => {
+  if (unitSystem === 'metric') {
+    if (kind === 'lengthM') return 'm'
+    if (kind === 'lengthMm') return 'mm'
+    if (kind === 'weightKg') return 'kg'
+    if (kind === 'linearWeightKgM') return 'kg/m'
+    if (kind === 'speedMs') return 'm/s'
+    if (kind === 'flowTph') return 't/h'
+    return 't'
+  }
+
+  if (kind === 'lengthM') return 'ft'
+  if (kind === 'lengthMm') return 'in'
+  if (kind === 'weightKg') return 'lb'
+  if (kind === 'linearWeightKgM') return 'lb/ft'
+  if (kind === 'speedMs') return 'ft/min'
+  if (kind === 'flowTph') return 'lb/h'
+  return 'lb'
+}
+
+export const toDisplayMeasure = (value: number, kind: MeasureKind, unitSystem: UnitSystem) => {
+  if (!Number.isFinite(value) || unitSystem === 'metric') return Number.isFinite(value) ? value : 0
+  if (kind === 'lengthM') return value * M_TO_FT
+  if (kind === 'lengthMm') return value * MM_TO_IN
+  if (kind === 'weightKg') return value * KG_TO_LB
+  if (kind === 'linearWeightKgM') return (value * KG_TO_LB) / M_TO_FT
+  if (kind === 'speedMs') return value * MS_TO_FT_MIN
+  if (kind === 'flowTph') return value * TPH_TO_LB_H
+  return value * 1000 * KG_TO_LB
+}
+
+export const fromDisplayMeasure = (value: number, kind: MeasureKind, unitSystem: UnitSystem) => {
+  if (!Number.isFinite(value) || unitSystem === 'metric') return Number.isFinite(value) ? value : 0
+  if (kind === 'lengthM') return value / M_TO_FT
+  if (kind === 'lengthMm') return value / MM_TO_IN
+  if (kind === 'weightKg') return value / KG_TO_LB
+  if (kind === 'linearWeightKgM') return (value * M_TO_FT) / KG_TO_LB
+  if (kind === 'speedMs') return value / MS_TO_FT_MIN
+  if (kind === 'flowTph') return value / TPH_TO_LB_H
+  return value / KG_TO_LB / 1000
+}
+
+export const formatNumberForDisplay = (value: number, digits = 3) => {
+  const rounded = round(value, digits)
+  return Object.is(rounded, -0) ? '0' : String(rounded)
+}
+
+export const formatMeasureValue = (value: number, kind: MeasureKind, unitSystem: UnitSystem, digits = 3) =>
+  `${formatNumberForDisplay(toDisplayMeasure(value, kind, unitSystem), digits)} ${getMeasureUnit(kind, unitSystem)}`
+
+export const formatMeasureInput = (value: string, kind: MeasureKind, unitSystem: UnitSystem, digits = 6) => {
+  if (!value.trim()) return ''
+  const parsed = toNumber(value, Number.NaN)
+  if (!Number.isFinite(parsed)) return ''
+  return formatNumberForDisplay(toDisplayMeasure(parsed, kind, unitSystem), digits)
+}
+
+export const parseMeasureInput = (value: string, kind: MeasureKind, unitSystem: UnitSystem, digits = 6) => {
+  if (!value.trim()) return ''
+  const parsed = toNumber(value, Number.NaN)
+  if (!Number.isFinite(parsed)) return ''
+  return formatNumberForDisplay(fromDisplayMeasure(parsed, kind, unitSystem), digits)
+}
+
 export const nowLocalValue = () => {
   const parts = getArgentinaDateParts()
   return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`
