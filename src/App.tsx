@@ -2810,14 +2810,6 @@ function App() {
             {dataSource === 'supabase' ? 'Servidor online' : 'Modo local'}
           </div>
           <button
-            className="secondary small unit-toggle"
-            type="button"
-            onClick={handleUnitSystemToggle}
-            aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
-          >
-            {unitSystemName}
-          </button>
-          <button
             className="secondary small theme-toggle"
             type="button"
             onClick={handleThemeToggle}
@@ -2837,6 +2829,14 @@ function App() {
           )}
           <button className="secondary small" onClick={handleLogout}>Salir</button>
         </div>
+        <button
+          className="secondary small unit-toggle topbar-unit-toggle"
+          type="button"
+          onClick={handleUnitSystemToggle}
+          aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
+        >
+          {unitSystemName}
+        </button>
       </header>
 
       <section className="hero-strip">
