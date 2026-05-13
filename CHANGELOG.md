@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.14 - Cierre automatico de sesion
+
+- La app cierra automaticamente la sesion tras 30 minutos sin actividad de teclado, click, toque, scroll o foco.
+- El cierre automatico reutiliza el flujo normal de logout, registra `logout_at` en auditoria de sesiones y vuelve a la pantalla de login.
+- La ultima actividad queda persistida en el navegador para que recargar la pagina no evite el vencimiento.
+
 ## v3.0.13 - Selector metrico/imperial
 
 - Se agrega un switch global `Metrico / Imperial` en la cabecera autenticada.

@@ -114,11 +114,14 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.13'
+const APP_VERSION = 'v3.0.14'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
+const SESSION_LAST_ACTIVITY_KEY = 'calibracinta:session-last-activity'
+const SESSION_TIMEOUT_MINUTES = 30
+const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000
 const HISTORY_PAGE_SIZE = 25
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 
@@ -1836,6 +1839,7 @@ function App() {
   async function loadAuthenticatedUser(session: Session | null, options: { recordLogin?: boolean } = {}) {
     if (!session?.user || !supabase) {
       setCurrentUser(null)
+      localStorage.removeItem(SESSION_LAST_ACTIVITY_KEY)
       return
     }
 
@@ -1847,6 +1851,7 @@ function App() {
 
     if (error || !data) {
       setCurrentUser(null)
+      localStorage.removeItem(SESSION_LAST_ACTIVITY_KEY)
       setSyncNotice('Tu usuario no tiene perfil asignado. Contactá a un administrador.')
       return
     }
@@ -1865,11 +1870,12 @@ function App() {
     }
   }
 
-  async function handleLogout() {
+  async function handleLogout(message = 'Sesion cerrada.') {
     if (!supabase) {
       setCurrentUser(null)
       setScreen('dashboard')
-      setSyncNotice('Sesion cerrada.')
+      localStorage.removeItem(SESSION_LAST_ACTIVITY_KEY)
+      setSyncNotice(message)
       return
     }
 
@@ -1903,10 +1909,11 @@ function App() {
     }
 
     localStorage.removeItem(SESSION_LOG_ID_KEY)
+    localStorage.removeItem(SESSION_LAST_ACTIVITY_KEY)
     await supabase.auth.signOut()
     setCurrentUser(null)
     setScreen('dashboard')
-    setSyncNotice('Sesion cerrada.')
+    setSyncNotice(message)
   }
 
   async function handleLogin(event: FormEvent) {
@@ -1932,6 +1939,7 @@ function App() {
       return
     }
 
+    localStorage.setItem(SESSION_LAST_ACTIVITY_KEY, String(Date.now()))
     const shouldRevealLoginTransition = beginLoginTransition()
     await loadAuthenticatedUser(data.session, { recordLogin: true })
     setLoginEmail('')
@@ -1941,6 +1949,108 @@ function App() {
     clearAccessHash()
     if (shouldRevealLoginTransition) revealLoginTransition()
   }
+
+  useEffect(() => {
+    if (!currentUser) return undefined
+
+    let timeoutId: number | null = null
+    let closingSession = false
+
+    const getLastActivity = () => {
+      const stored = Number(localStorage.getItem(SESSION_LAST_ACTIVITY_KEY))
+      return Number.isFinite(stored) && stored > 0 ? stored : null
+    }
+
+    const clearSessionTimer = () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId)
+        timeoutId = null
+      }
+    }
+
+    const closeIfExpired = () => {
+      if (closingSession) return
+
+      const lastActivity = getLastActivity()
+      const elapsed = lastActivity ? Date.now() - lastActivity : SESSION_TIMEOUT_MS
+      if (elapsed < SESSION_TIMEOUT_MS) {
+        scheduleSessionClose()
+        return
+      }
+
+      closingSession = true
+      void handleLogout(`Sesion cerrada automaticamente tras ${SESSION_TIMEOUT_MINUTES} minutos sin actividad.`)
+    }
+
+    function scheduleSessionClose() {
+      clearSessionTimer()
+      const lastActivity = getLastActivity()
+      const elapsed = lastActivity ? Date.now() - lastActivity : SESSION_TIMEOUT_MS
+      const remaining = SESSION_TIMEOUT_MS - elapsed
+
+      if (remaining <= 0) {
+        closeIfExpired()
+        return
+      }
+
+      timeoutId = window.setTimeout(closeIfExpired, remaining)
+    }
+
+    const registerSessionActivity = () => {
+      if (closingSession) return
+      localStorage.setItem(SESSION_LAST_ACTIVITY_KEY, String(Date.now()))
+      scheduleSessionClose()
+    }
+
+    const resumeSessionActivity = () => {
+      if (closingSession) return
+
+      const lastActivity = getLastActivity()
+      const elapsed = lastActivity ? Date.now() - lastActivity : SESSION_TIMEOUT_MS
+      if (elapsed >= SESSION_TIMEOUT_MS) {
+        closeIfExpired()
+        return
+      }
+
+      registerSessionActivity()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') resumeSessionActivity()
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === SESSION_LAST_ACTIVITY_KEY) scheduleSessionClose()
+    }
+
+    const lastActivity = getLastActivity()
+    if (!lastActivity) {
+      registerSessionActivity()
+    } else if (Date.now() - lastActivity >= SESSION_TIMEOUT_MS) {
+      closeIfExpired()
+    } else {
+      registerSessionActivity()
+    }
+
+    window.addEventListener('pointerdown', registerSessionActivity)
+    window.addEventListener('keydown', registerSessionActivity)
+    window.addEventListener('touchstart', registerSessionActivity, { passive: true })
+    window.addEventListener('wheel', registerSessionActivity, { passive: true })
+    window.addEventListener('focus', resumeSessionActivity)
+    window.addEventListener('storage', handleStorage)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearSessionTimer()
+      window.removeEventListener('pointerdown', registerSessionActivity)
+      window.removeEventListener('keydown', registerSessionActivity)
+      window.removeEventListener('touchstart', registerSessionActivity)
+      window.removeEventListener('wheel', registerSessionActivity)
+      window.removeEventListener('focus', resumeSessionActivity)
+      window.removeEventListener('storage', handleStorage)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [currentUser?.id])
 
   function primeEventForm(item: Equipment) {
     const plantChain = chains.find((chain) => chain.plant.trim().toLowerCase() === item.plant.trim().toLowerCase())
@@ -2828,7 +2938,7 @@ function App() {
                 <Download className="action-icon" aria-hidden="true" />Manual
               </a>
             )}
-            <button className="secondary small" onClick={handleLogout}>Salir</button>
+            <button className="secondary small" onClick={() => void handleLogout()}>Salir</button>
           </div>
           <button
             className="secondary small unit-toggle topbar-unit-toggle"
