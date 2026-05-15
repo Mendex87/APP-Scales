@@ -650,6 +650,13 @@ body::before {
   gap: 0.5rem;
 }
 
+.draft-status {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .wizard-panel {
   position: sticky;
   top: 0.75rem;

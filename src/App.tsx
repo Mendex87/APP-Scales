@@ -323,12 +323,27 @@ const calibrationSteps = [
   'Cierre',
 ]
 
+const MAX_TOLERANCE_PERCENT = 20
+const MAX_TEST_MINUTES = 240
+const MAX_FACTOR_VALUE = 1_000_000
+
 type EventDraft = {
   eventForm: typeof defaultEventForm
   selectedEquipmentId: string
   selectedChainId: string
   materialPassCount: number
   savedAt: string
+}
+
+function getStoredEventDraftSavedAt() {
+  try {
+    const rawDraft = localStorage.getItem(CALIBRATION_DRAFT_KEY)
+    if (!rawDraft) return ''
+    const draft = JSON.parse(rawDraft) as Partial<EventDraft>
+    return typeof draft.savedAt === 'string' ? draft.savedAt : ''
+  } catch {
+    return ''
+  }
 }
 
 type EventBlockingIssue = {
@@ -764,6 +779,7 @@ function buildAdminManualHtml(user: AuthUser) {
 function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equipment | undefined, unitSystem: UnitSystem) {
   const materialSummary = getEventMaterialOutcome(item)
   const status = materialSummary.status
+  const eventAppVersion = item.appVersion || item.parameterSnapshot.appVersion || '-'
   const measure = (value: number, kind: MeasureKind, digits = 3) => formatMeasureValue(value, kind, unitSystem, digits)
   const equipmentLabel = equipmentItem
     ? `${equipmentItem.plant} / ${equipmentItem.line} / ${equipmentItem.beltCode} / ${equipmentItem.scaleName}`
@@ -885,6 +901,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         ${reportRow('Tecnico', item.approval.technician)}
         ${reportRow('Pasadas', materialSummary.passes.length)}
         ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
+        ${reportRow('Version app', eventAppVersion)}
       </div>
     </section>
 
@@ -981,6 +998,7 @@ function App() {
   const [calibrationStep, setCalibrationStep] = useState(0)
   const [materialPassCount, setMaterialPassCount] = useState(1)
   const [hasEventDraft, setHasEventDraft] = useState(() => Boolean(localStorage.getItem(CALIBRATION_DRAFT_KEY)))
+  const [eventDraftSavedAt, setEventDraftSavedAt] = useState(getStoredEventDraftSavedAt)
   const [equipmentSubmitAttempted, setEquipmentSubmitAttempted] = useState(false)
   const [chainSubmitAttempted, setChainSubmitAttempted] = useState(false)
   const [eventSubmitAttempted, setEventSubmitAttempted] = useState(false)
@@ -1352,15 +1370,17 @@ function App() {
     if (screen !== 'nueva') return
 
     const intervalId = window.setInterval(() => {
+      const savedAt = new Date().toISOString()
       const draft: EventDraft = {
         eventForm,
         selectedEquipmentId,
         selectedChainId,
         materialPassCount,
-        savedAt: new Date().toISOString(),
+        savedAt,
       }
       localStorage.setItem(CALIBRATION_DRAFT_KEY, JSON.stringify(draft))
       setHasEventDraft(true)
+      setEventDraftSavedAt(savedAt)
     }, 30_000)
 
     return () => window.clearInterval(intervalId)
@@ -1458,6 +1478,10 @@ function App() {
 
   const completeMaterialPasses = useMemo(
     () => materialPasses.filter((pass) => pass.externalWeightKg > 0 && pass.beltWeightKg > 0),
+    [materialPasses],
+  )
+  const displayedMaterialPassesComplete = useMemo(
+    () => materialPasses.every((pass) => pass.externalWeightKg > 0 && pass.beltWeightKg > 0 && (pass.index === 1 || pass.factorUsed > 0)),
     [materialPasses],
   )
 
@@ -1586,24 +1610,43 @@ function App() {
   const eventBlockingIssues = useMemo(() => {
     const issues: EventBlockingIssue[] = []
     const addIssue = (message: string, step: number) => issues.push({ message, step })
+    const tolerancePercent = toNumber(eventForm.tolerancePercent)
+    const calibrationFactor = toNumber(eventForm.calibrationFactor)
+    const finalFactor = toNumber(eventForm.finalFactor)
     if (!selectedEquipment) addIssue('Seleccioná una balanza.', 0)
+    if (!(tolerancePercent > 0)) addIssue('La tolerancia debe ser mayor a 0.', 0)
+    if (tolerancePercent > MAX_TOLERANCE_PERCENT) addIssue(`La tolerancia no puede superar ${MAX_TOLERANCE_PERCENT} %.`, 0)
     if (!precheckPassed) addIssue('Completá toda la inspeccion previa.', 1)
     if (!eventForm.zeroCompleted) addIssue('Debés registrar el cero antes de calibrar.', 2)
-    if (!(toNumber(eventForm.calibrationFactor) > 0)) addIssue('Falta el factor de calibracion actual del controlador.', 3)
+    if (!(calibrationFactor > 0)) addIssue('Falta el factor de calibracion actual del controlador.', 3)
+    if (calibrationFactor > MAX_FACTOR_VALUE) addIssue('El factor de calibracion actual es demasiado alto; revisá el valor cargado.', 3)
     if (!currentUser?.username.trim()) addIssue('Falta usuario responsable logueado.', 7)
     if (requiresFullCalibration) {
+      const chainTestMinutes = toNumber(eventForm.passCount)
+      const accumulatedTestMinutes = toNumber(eventForm.accumulatedTestMinutes)
       if (!(toNumber(eventForm.chainLinearKgM) > 0)) addIssue('Falta el peso lineal de cadena.', 4)
+      if (!(chainTestMinutes > 0)) addIssue('Falta el tiempo de test con cadena.', 4)
+      if (chainTestMinutes > MAX_TEST_MINUTES) addIssue(`El tiempo de test con cadena no puede superar ${MAX_TEST_MINUTES} min.`, 4)
       if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) addIssue('Falta el promedio de lectura del controlador.', 4)
       if (!(toNumber(eventForm.expectedFlowTph) > 0)) addIssue('Falta el caudal leido.', 5)
-      if (!(toNumber(eventForm.accumulatedTestMinutes) > 0)) addIssue('Falta el tiempo de prueba.', 5)
+      if (!(accumulatedTestMinutes > 0)) addIssue('Falta el tiempo de prueba.', 5)
+      if (accumulatedTestMinutes > MAX_TEST_MINUTES) addIssue(`El tiempo de prueba no puede superar ${MAX_TEST_MINUTES} min.`, 5)
       if (!(toNumber(eventForm.accumulatedIndicatedTotal) > 0)) addIssue('Falta el acumulado indicado.', 5)
     }
+    materialPasses.forEach((pass) => {
+      const hasAnyWeight = pass.externalWeightKg !== 0 || pass.beltWeightKg !== 0
+      if (pass.externalWeightKg < 0 || pass.beltWeightKg < 0) addIssue(`La pasada ${pass.index} no puede tener pesos negativos.`, 6)
+      if (pass.index > 1 && !hasAnyWeight) addIssue(`Completá o quitá la pasada ${pass.index}.`, 6)
+      if (hasAnyWeight && !(pass.externalWeightKg > 0 && pass.beltWeightKg > 0)) addIssue(`Completá peso certificado y controlador en la pasada ${pass.index}.`, 6)
+      if (pass.factorUsed > MAX_FACTOR_VALUE) addIssue(`El factor usado en la pasada ${pass.index} es demasiado alto.`, 6)
+    })
     if (!finalMaterialPass) addIssue('Falta una pasada completa con material real.', 6)
     if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) addIssue('Falta el factor usado en una verificacion post-ajuste.', 6)
     if (materialAdjustmentApplied && completeMaterialPasses.length < 2) addIssue('Si se ajusta el factor, falta una pasada posterior de verificacion.', 6)
-    if (!(toNumber(eventForm.finalFactor) > 0)) addIssue('Falta el factor de calibracion final.', 7)
+    if (!(finalFactor > 0)) addIssue('Falta el factor de calibracion final.', 7)
+    if (finalFactor > MAX_FACTOR_VALUE) addIssue('El factor de calibracion final es demasiado alto; revisá el valor cargado.', 7)
     return issues
-  }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, requiresFullCalibration, selectedEquipment, suggestedFactor])
+  }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment])
 
   const firstBlockingIssue = eventBlockingIssues[0]
 
@@ -1617,13 +1660,13 @@ function App() {
     )
     return calibrationSteps.map((step, index) => {
       const complete = [
-        Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0),
+        Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0 && toNumber(eventForm.tolerancePercent) <= MAX_TOLERANCE_PERCENT),
         precheckPassed,
         eventForm.zeroCompleted,
         toNumber(eventForm.calibrationFactor) > 0,
-        !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0),
-        !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
-        Boolean(finalMaterialPass),
+        !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.passCount) > 0 && toNumber(eventForm.passCount) <= MAX_TEST_MINUTES && toNumber(eventForm.avgControllerReadingKgM) > 0),
+        !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedTestMinutes) <= MAX_TEST_MINUTES && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
+        Boolean(finalMaterialPass && displayedMaterialPassesComplete),
         eventBlockingIssues.length === 0,
       ][index]
       const skipped = !requiresFullCalibration && (index === 4 || index === 5)
@@ -1631,7 +1674,7 @@ function App() {
       const statusLabel = skipped ? 'No requerido' : complete ? 'Completo' : warning ? 'Requiere atencion' : 'Pendiente'
       return { step, complete, warning, skipped, statusLabel }
     })
-  }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
+  }, [displayedMaterialPassesComplete, eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
   const wizardReadinessPercent = Math.round((calibrationStepStates.filter(({ complete }) => complete).length / calibrationSteps.length) * 100)
   const wizardStepCue = [
@@ -1853,15 +1896,17 @@ function App() {
   }
 
   function saveEventDraft() {
+    const savedAt = new Date().toISOString()
     const draft: EventDraft = {
       eventForm,
       selectedEquipmentId,
       selectedChainId,
       materialPassCount,
-      savedAt: new Date().toISOString(),
+      savedAt,
     }
     localStorage.setItem(CALIBRATION_DRAFT_KEY, JSON.stringify(draft))
     setHasEventDraft(true)
+    setEventDraftSavedAt(savedAt)
     setSyncNotice('Borrador de calibracion guardado en este dispositivo.')
   }
 
@@ -1880,10 +1925,12 @@ function App() {
       setMaterialPassCount(draft.materialPassCount || 1)
       setCalibrationStep(0)
       setScreen('nueva')
+      setEventDraftSavedAt(draft.savedAt || '')
       setSyncNotice(`Borrador recuperado (${formatDateTime(draft.savedAt)}).`)
     } catch {
       localStorage.removeItem(CALIBRATION_DRAFT_KEY)
       setHasEventDraft(false)
+      setEventDraftSavedAt('')
       setSyncNotice('El borrador local estaba dañado y fue descartado.')
     }
   }
@@ -1891,6 +1938,7 @@ function App() {
   function clearEventDraft(showNotice = true) {
     localStorage.removeItem(CALIBRATION_DRAFT_KEY)
     setHasEventDraft(false)
+    setEventDraftSavedAt('')
     if (showNotice) {
       resetEventForm()
       setSyncNotice('Borrador local descartado. Formulario reiniciado.')
@@ -2447,6 +2495,7 @@ function App() {
 
     const record: CalibrationEvent = {
       id: generateEventCode(eventDateValue, events),
+      appVersion: APP_VERSION,
       equipmentId: selectedEquipment.id,
       createdAt: new Date().toISOString(),
       eventDate: eventDateValue,
@@ -2469,6 +2518,7 @@ function App() {
         notes: eventForm.zeroNotes.trim(),
       },
       parameterSnapshot: {
+        appVersion: APP_VERSION,
         calibrationFactor: toNumber(eventForm.calibrationFactor) || 0,
         zeroValue: toNumber(eventForm.zeroValue) || 0,
         spanValue: toNumber(eventForm.spanValue) || 0,
@@ -3436,6 +3486,7 @@ function App() {
                 <div className="row compact-actions">
                   {hasEventDraft && <button className="secondary small" type="button" onClick={loadEventDraft} disabled={eventSaving}><RotateCcw className="action-icon" aria-hidden="true" />Recuperar borrador</button>}
                   <button className="secondary small" type="button" onClick={saveEventDraft} disabled={eventSaving}><Save className="action-icon" aria-hidden="true" />Guardar borrador</button>
+                  {eventDraftSavedAt && <span className="draft-status">Ultimo borrador: {formatDateTime(eventDraftSavedAt)}</span>}
                 </div>
               </div>
               <div className="wizard-progress" aria-hidden="true">

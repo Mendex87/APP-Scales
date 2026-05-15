@@ -39,6 +39,7 @@ export type Chain = {
 }
 
 export type ParameterSnapshot = {
+  appVersion?: string
   calibrationFactor: number
   zeroValue: number
   spanValue: number
@@ -127,6 +128,7 @@ export type Approval = {
 
 export type CalibrationEvent = {
   id: string
+  appVersion?: string
   equipmentId: string
   createdAt: string
   eventDate: string

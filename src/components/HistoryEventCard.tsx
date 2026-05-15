@@ -78,6 +78,7 @@ export function HistoryEventCard({
           <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
           <Metric label="Error material final" value={`${materialSummary.errorPct} %`} />
           <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
+          <Metric label="Version app" value={item.appVersion || item.parameterSnapshot.appVersion || '-'} />
           <Metric label="Pasadas" value={String(materialSummary.passes.length)} />
           <Metric label="Ajuste" value={materialSummary.adjustmentApplied ? 'Si' : 'No'} />
           <Metric label="Accion recomendada" value={statusClass(statusText) === 'danger' ? 'Revisar desvio' : statusClass(statusText) === 'warning' ? 'Cargar control' : 'Seguimiento normal'} />

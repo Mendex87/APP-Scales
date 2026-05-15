@@ -369,8 +369,10 @@ function toChainRow(item: Chain): ChainRow {
 }
 
 function mapEventRow(row: EventRow): CalibrationEvent {
+  const parameterSnapshot = (row.parameter_snapshot || {}) as CalibrationEvent['parameterSnapshot']
   return {
     id: row.id,
+    appVersion: parameterSnapshot.appVersion || '',
     equipmentId: row.equipment_id,
     createdAt: row.created_at,
     eventDate: row.event_date,
@@ -392,7 +394,7 @@ function mapEventRow(row: EventRow): CalibrationEvent {
       adjusted: false,
       notes: '',
     },
-    parameterSnapshot: row.parameter_snapshot,
+    parameterSnapshot,
     chainSpan: {
       chainId: row.chain_span?.chainId || '',
       chainName: row.chain_span?.chainName || '',
@@ -431,7 +433,10 @@ export function toEventRow(item: CalibrationEvent): EventRow {
     tolerance_percent: item.tolerancePercent,
     precheck: item.precheck,
     zero_check: item.zeroCheck,
-    parameter_snapshot: item.parameterSnapshot,
+    parameter_snapshot: {
+      ...item.parameterSnapshot,
+      appVersion: item.appVersion || item.parameterSnapshot.appVersion || '',
+    },
     chain_span: item.chainSpan,
     accumulated_check: item.accumulatedCheck,
     material_validation: item.materialValidation,
