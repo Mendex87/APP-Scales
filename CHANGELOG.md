@@ -1,6 +1,6 @@
 # Changelog
 
-## Preview - Retiro de Google Sheets
+## v3.0.16 - Retiro de Google Sheets
 
 - Se retira Google Sheets del flujo operativo: guardar, eliminar eventos y dar de baja balanzas ya no invocan `sync-sheets-event` ni Apps Script.
 - Se elimina la Edge Function `sync-sheets-event` y la documentacion activa de configuracion de Sheets.

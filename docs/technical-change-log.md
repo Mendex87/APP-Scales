@@ -2,10 +2,10 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
-## 2026-05-15 - preview-remove-google-sheets - Retiro de integracion Sheets
+## 2026-05-15 - v3.0.16 - Retiro de integracion Sheets
 
 - Contexto: Google Sheets ya no se usara como tablero o salida operativa, y mantenerlo agrega fallos potenciales, secrets, Edge Function y documentacion duplicada.
-- Decision: retirar la integracion activa en una preview dedicada, sin tocar `main` hasta validar el flujo.
+- Decision: promover `preview-remove-google-sheets` a `main` como `v3.0.16`.
 - Cambio app: guardar eventos, eliminar eventos y dar de baja balanzas dejan de invocar `sync-sheets-event`; los avisos visibles ya no mencionan planillas.
 - Cambio backend: se elimina `supabase/functions/sync-sheets-event` y se borran `GOOGLE-SHEETS-SETUP.md`, `GOOGLE-SHEETS-DASHBOARD.gs` y `docs/google-sheets-summary-sync.md`.
 - Compatibilidad: se conservan `sync_status`, `sync_message` y `synced_at` por ahora para el estado local/servidor y para evitar una migracion de esquema en la misma preview.

@@ -2,7 +2,7 @@
 
 Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
 
-Version actual: `v3.0.15`.
+Version actual: `v3.0.16`.
 
 ## Incluye
 
