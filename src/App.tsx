@@ -1423,7 +1423,7 @@ function App() {
     [eventForm.chainLinearKgM, eventForm.avgControllerReadingKgM],
   )
 
-  const materialFactorBefore = toNumber(eventForm.provisionalFactor) || toNumber(eventForm.calibrationFactor) || 0
+  const materialFactorBefore = toNumber(eventForm.calibrationFactor) || 0
 
   const materialPasses = useMemo<MaterialPass[]>(() => {
     const rawPasses = [
@@ -1431,7 +1431,7 @@ function App() {
         index: 1,
         externalWeightKg: toNumber(eventForm.materialPass1ExternalWeightKg || eventForm.externalWeightKg) || 0,
         beltWeightKg: toNumber(eventForm.materialPass1BeltWeightKg || eventForm.beltWeightKg) || 0,
-        factorUsed: toNumber(eventForm.materialPass1Factor) || materialFactorBefore,
+        factorUsed: materialFactorBefore,
         notes: eventForm.materialPass1Notes.trim(),
       },
       {
@@ -1589,6 +1589,7 @@ function App() {
     if (!selectedEquipment) addIssue('Seleccioná una balanza.', 0)
     if (!precheckPassed) addIssue('Completá toda la inspeccion previa.', 1)
     if (!eventForm.zeroCompleted) addIssue('Debés registrar el cero antes de calibrar.', 2)
+    if (!(toNumber(eventForm.calibrationFactor) > 0)) addIssue('Falta el factor de calibracion actual del controlador.', 3)
     if (!currentUser?.username.trim()) addIssue('Falta usuario responsable logueado.', 7)
     if (requiresFullCalibration) {
       if (!(toNumber(eventForm.chainLinearKgM) > 0)) addIssue('Falta el peso lineal de cadena.', 4)
@@ -1619,7 +1620,7 @@ function App() {
         Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0),
         precheckPassed,
         eventForm.zeroCompleted,
-        Boolean(toNumber(eventForm.calibrationFactor) || toNumber(eventForm.zeroValue) || eventForm.extraParameters.trim()),
+        toNumber(eventForm.calibrationFactor) > 0,
         !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0),
         !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
         Boolean(finalMaterialPass),
@@ -1637,7 +1638,7 @@ function App() {
     selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}. ${selectedEquipmentMaintenance?.detail || ''}` : 'Selecciona una balanza para iniciar el circuito.',
     precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
     eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
-    eventForm.calibrationFactor || eventForm.zeroValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
+    toNumber(eventForm.calibrationFactor) > 0 ? 'Factor actual del controlador registrado. Ese factor sera la base para material real.' : 'Carga el factor actual con el que esta trabajando la balanza.',
     !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga peso lineal de cadena y promedio del controlador.',
     !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal leido, tiempo y acumulado indicado.',
     finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
@@ -3614,8 +3615,9 @@ function App() {
               {calibrationStep === 3 && <CollapsibleCard title="Paso 4 · Foto de parametros" hint="Datos del controlador al momento de calibrar." defaultOpen>
                 <div className="card-tag">Paso 4</div>
                 <h2>Foto de parametros</h2>
+                <p className="hint">El factor de calibracion actual es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real.</p>
                 <div className="grid two">
-                  <Field label="Factor calibracion" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
+                  <Field label="Factor calibracion actual" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
                   <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
                   <Field label={measureLabel('Puente pesaje', 'lengthM')} type="number" value={measureInput(eventForm.snapshotBridgeLengthM, 'lengthM')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: parseMeasure(value, 'lengthM') }))} />
                   <Field label={measureLabel('Velocidad nominal', 'speedMs')} type="number" value={measureInput(eventForm.snapshotNominalSpeedMs, 'speedMs')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: parseMeasure(value, 'speedMs') }))} />
@@ -3626,6 +3628,7 @@ function App() {
                   </div>
                 </div>
                 <TextArea label="Parametros extra" value={eventForm.extraParameters} onChange={(value) => setEventForm((current) => ({ ...current, extraParameters: value }))} />
+                <div className="result-row"><span>Base para material real</span><strong>{toNumber(eventForm.calibrationFactor) > 0 ? eventForm.calibrationFactor : 'Pendiente'}</strong></div>
               </CollapsibleCard>}
 
               {calibrationStep === 4 && <CollapsibleCard title="Paso 5 · Span con cadena" hint="Lectura promedio contra peso patron." defaultOpen>
@@ -3677,13 +3680,18 @@ function App() {
               {calibrationStep === 6 && <CollapsibleCard title="Paso 7 · Material real" hint="Validacion contra peso externo real." defaultOpen>
                 <div className="card-tag">Paso 7</div>
                 <h2>Validacion con material real</h2>
-                <p className="hint">Registrá la primera pasada como control. Si queda fuera de tolerancia, ajustá el factor en el controlador y agregá una verificacion post-ajuste.</p>
+                <p className="hint">Registrá la primera pasada como control usando el factor actual cargado en el Paso 4. Si queda fuera de tolerancia, ajustá el factor en el controlador y agregá una verificacion post-ajuste.</p>
                 {!requiresFullCalibration && <p className="hint">Esta balanza ya tiene calibracion previa: podés cerrar el evento como control preventivo solo con material real, sin repetir cadena ni acumulado.</p>}
+                <div className="grid three compact-top">
+                  <Metric label="Factor base Paso 4" value={materialFactorBefore > 0 ? String(materialFactorBefore) : 'Pendiente'} />
+                  <Metric label="Tolerancia" value={`${eventForm.tolerancePercent || 1} %`} />
+                  <Metric label="Referencia" value="Peso externo vs controlador" />
+                </div>
                 <div className="material-flow-guide compact-top">
                   <div>
                     <span>1</span>
                     <strong>Control inicial</strong>
-                    <p>Primera comparacion contra peso externo. Si queda dentro de tolerancia y no tocás el factor, esta pasada alcanza.</p>
+                    <p>Primera comparacion contra peso externo con el factor del Paso 4. Si queda dentro de tolerancia y no tocás el factor, esta pasada alcanza.</p>
                   </div>
                   <div>
                     <span>2</span>
@@ -3699,6 +3707,7 @@ function App() {
                 {[1, 2, 3].slice(0, materialPassCount).map((passNumber) => {
                   const prefix = `materialPass${passNumber}` as 'materialPass1' | 'materialPass2' | 'materialPass3'
                   const pass = materialPasses[passNumber - 1]
+                  const passFactorValue = passNumber === 1 ? eventForm.calibrationFactor : eventForm[`${prefix}Factor`]
                   const passComplete = Boolean(pass.externalWeightKg && pass.beltWeightKg)
                   const passWithinTolerance = passComplete && Math.abs(pass.errorPct) <= toNumber(eventForm.tolerancePercent || 1)
                   return (
@@ -3720,7 +3729,14 @@ function App() {
                       <div className="grid two compact-top">
                         <Field label={measureLabel('Peso balanza certificada', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
                         <Field label={measureLabel('Peso indicado controlador', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
-                        <Field label="Factor usado" type="number" value={eventForm[`${prefix}Factor`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Factor`]: value }))} />
+                        <Field
+                          label={passNumber === 1 ? 'Factor usado (Paso 4)' : 'Factor usado post-ajuste'}
+                          type="number"
+                          value={passFactorValue}
+                          onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Factor`]: value }))}
+                          disabled={passNumber === 1}
+                          hint={passNumber === 1 ? 'Se toma del factor actual registrado en Paso 4.' : undefined}
+                        />
                         <TextArea label="Nota de pasada" value={eventForm[`${prefix}Notes`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Notes`]: value }))} />
                       </div>
                     </div>
@@ -3789,7 +3805,7 @@ function App() {
                   </div>
                   <div className="grid four compact-top">
                     <Metric label="Cero" value={eventForm.zeroCompleted ? 'Registrado' : 'Pendiente'} />
-                    <Metric label="Factor" value={eventForm.calibrationFactor ? String(eventForm.calibrationFactor) : '-'} />
+                    <Metric label="Factor Paso 4" value={eventForm.calibrationFactor ? String(eventForm.calibrationFactor) : '-'} />
                     <Metric label="Cadena" value={!requiresFullCalibration ? 'No requerida' : eventForm.chainLinearKgM ? measureText(toNumber(eventForm.chainLinearKgM), 'linearWeightKgM') : '-'} />
                     <Metric label="Caudal" value={!requiresFullCalibration ? 'No requerido' : eventForm.expectedFlowTph ? measureText(toNumber(eventForm.expectedFlowTph), 'flowTph') : '-'} />
                   </div>
