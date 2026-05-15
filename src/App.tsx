@@ -3755,9 +3755,9 @@ function App() {
                   <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
                   <Metric label="Ajuste aplicado" value={materialAdjustmentApplied ? 'Si' : 'No'} />
                 </div>
-                <div className="grid two">
+                <div className="closure-approval-row">
                   <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
-                  <div className="system-field">
+                  <div className="system-field approval-technician-field">
                     <span>Responsable tecnico</span>
                     <strong>{currentUser.username}</strong>
                   </div>
