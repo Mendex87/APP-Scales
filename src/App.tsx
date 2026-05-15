@@ -1458,6 +1458,18 @@ function App() {
     [eventForm],
   )
 
+  function markPrecheckAsPassed() {
+    setEventForm((current) => ({
+      ...current,
+      precheckBeltEmpty: true,
+      precheckBeltClean: true,
+      precheckNoMaterialBuildup: true,
+      precheckIdlersOk: true,
+      precheckStructureOk: true,
+      precheckSpeedSensorOk: true,
+    }))
+  }
+
   const zeroDrift = useMemo(() => {
     const before = toNumber(eventForm.zeroBeforeValue)
     const after = toNumber(eventForm.zeroAfterValue)
@@ -3435,7 +3447,12 @@ function App() {
               {calibrationStep === 1 && <CollapsibleCard title="Paso 2 · Inspeccion previa" hint="Checks obligatorios antes de calibrar." defaultOpen>
                 <div className="card-tag">Paso 2</div>
                 <h2>Inspeccion previa</h2>
-                <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
+                <div className="row wrap compact-top">
+                  <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
+                  <button className="secondary small" type="button" onClick={markPrecheckAsPassed} disabled={precheckPassed}>
+                    <ClipboardCheck className="action-icon" aria-hidden="true" />Marcar todo OK
+                  </button>
+                </div>
                 <div className="grid two">
                   <CheckField label="Banda vacia" checked={eventForm.precheckBeltEmpty} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltEmpty: checked }))} />
                   <CheckField label="Banda limpia" checked={eventForm.precheckBeltClean} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltClean: checked }))} />
