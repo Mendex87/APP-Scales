@@ -2,16 +2,20 @@
 
 Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
 
+Version actual: `v3.0.15`.
+
 ## Incluye
 
 - alta de balanzas
 - eventos de calibracion
+- wizard de 8 pasos con inspeccion previa, cero simplificado, cadena, acumulado, material real y cierre
 - foto de parametros usados
 - `Span con peso patron (cadena)`
 - validacion con material real
 - ajuste final y aprobacion tecnica
 - almacenamiento local o en Supabase
 - historial tecnico de calibraciones
+- reporte imprimible A4 con resumen, pesos de referencia, pasadas completas y firma
 
 ## Desarrollo local
 
@@ -28,9 +32,7 @@ npm run build
 
 ## Google Sheets
 
-La integracion con Google Sheets queda pausada temporalmente.
-
-El objetivo para la proxima etapa es redisenarla para enviar solo datos relevantes de calibracion y estado operativo de balanzas, en lugar del evento tecnico completo.
+Google Sheets funciona como salida operativa resumida. La app mantiene el servidor online como fuente principal y envia eventos/estado mediante la Edge Function `sync-sheets-event` cuando la integracion esta configurada.
 
 Archivos historicos conservados como referencia:
 

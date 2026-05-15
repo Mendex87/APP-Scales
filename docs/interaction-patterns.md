@@ -60,20 +60,16 @@ Rules:
 - Use the state color for the label, side rail and progress bar, with orange hatch details as brand texture.
 - Keep the stack near the top on mobile so it does not fight the bottom navigation.
 
-## Current autoscroll behavior (documented, not changed in v3.0.4)
+## Current autoscroll behavior (updated in v3.0.15)
 
-The app currently has three autoscroll responsibilities:
+The app keeps autoscrolls only where they reduce field friction:
 
-- Screen change scroll: after the first authenticated render, changing screens scrolls to the top. On mobile, it targets the screen banner/shell instead of forcing an absolute top jump.
-- Wizard step scroll: when entering `Nueva calibracion` or changing wizard step, it scrolls to the wizard panel on desktop and to the calibration step anchor on mobile.
-- Equipment edit scroll: when editing an existing scale, the app switches to `Balanzas` and scrolls to the equipment form so the admin lands where the edit happens.
+- Screen change scroll: desktop no longer forces a top jump when changing screens. Mobile still targets the screen banner/shell so the new section starts in view.
+- Wizard step scroll: desktop no longer scrolls on every `Nueva calibracion` step change. Mobile still scrolls to the calibration step anchor to keep the active card reachable.
+- Equipment edit scroll: when editing an existing scale, the app switches to `Balanzas`; on desktop it scrolls only if the form is not already visible and uses non-smooth behavior, while mobile keeps a smooth move to the form.
 
 Purpose:
 
-- Avoid leaving the user halfway down a previous screen.
+- Avoid surprising desktop jumps while preserving mobile guidance.
 - Keep the active wizard step visible on field/mobile screens.
 - Make edit actions land directly on the form being edited.
-
-Known review point:
-
-- These autoscrolls are functional but can feel aggressive in some flows. They should be reviewed in a separate preview before changing behavior.

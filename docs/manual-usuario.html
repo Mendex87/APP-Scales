@@ -519,7 +519,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v3.0.14</strong></div>
+        <div><span>Version documentada</span><strong>v3.0.15</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -596,6 +596,7 @@
       <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior muestra las secciones disponibles para el rol actual: balanzas, nueva calibracion, herramientas, historial y usuarios.</p></div></div>
       <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con servidor online o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
       <div class="callout"><strong>Unidades visibles:</strong> el switch <strong>Metrico / Imperial</strong> de la cabecera cambia formularios, herramientas, historial y reportes. Los datos guardados se conservan internamente en metrico para trazabilidad y se convierten solo al mostrar o cargar valores.</div>
+      <div class="callout"><strong>Decimales:</strong> los campos numericos aceptan coma o punto decimal. Mientras se escribe, la app permite valores intermedios como <code>1.</code>, <code>1,</code> o <code>.5</code> y normaliza el dato al guardar.</div>
       <div class="callout"><strong>Version visible:</strong> la version de la app se muestra en la cabecera. Usarla para confirmar que Vercel ya desplego el ultimo cambio.</div>
     </section>
 
@@ -669,20 +670,20 @@
       <div class="callout warning"><strong>Primera calibracion:</strong> si la balanza no tiene eventos previos, la app exigira datos completos de cadena y acumulado. Si ya tiene historial, podra cerrarse como control preventivo con material.</div>
 
       <h3>Paso 2: Inspeccion previa</h3>
-      <p>Confirmar condiciones mecanicas y operativas antes de calibrar: banda vacia, banda limpia, sin acumulacion, rolos y distancia de puente de pesaje OK, estructura sin vibraciones anormales y sensor de velocidad OK. Si algo no cumple, corregir antes de continuar.</p>
+      <p>Confirmar condiciones mecanicas y operativas antes de calibrar: banda vacia, banda limpia, sin acumulacion, rolos y distancia de puente de pesaje OK, estructura sin vibraciones anormales y sensor de velocidad OK. Si todos los puntos cumplen, usar <strong>Marcar todo OK</strong>; si algo no cumple, corregir antes de continuar.</p>
 
       <h3>Paso 3: Cero</h3>
-      <p>Registrar si el cero fue realizado, si fue ajustado, la unidad visible y valores antes/despues. La app calcula deriva cuando ambos valores son numericos.</p>
+      <p>Registrar si el cero fue realizado, el valor observado si el controlador lo muestra, la unidad o referencia visible y observaciones. Ya no se separan valores antes/despues ni se exige cargar deriva.</p>
 
       <h3>Paso 4: Foto de parametros</h3>
-      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, span, filtro, puente, velocidad nominal, unidades y parametros extra si corresponde.</p>
+      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, puente de pesaje, velocidad nominal, unidades y parametros extra si corresponde.</p>
 
       <h3>Paso 5: Span con cadena</h3>
       <p>Registrar peso lineal de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
       <div class="callout"><strong>Campo editable:</strong> aunque el peso lineal se precarga desde la cadena seleccionada, queda editable para registrar la referencia real usada en campo.</div>
 
       <h3>Paso 6: Acumulado</h3>
-      <p>Controla totalizador y factor de ajuste. Se carga caudal esperado, tiempo de prueba, acumulado indicado y factor antes. La app calcula acumulado esperado, error acumulado y factor sugerido.</p>
+      <p>Controla totalizador y factor de ajuste. Se carga caudal leido, tiempo de prueba, acumulado indicado y factor antes. La app calcula acumulado esperado, error acumulado y factor sugerido.</p>
       <p>Este paso es obligatorio para la primera calibracion/carga de una balanza, pero no para controles preventivos posteriores con material.</p>
 
       <h3>Paso 7: Material real</h3>
@@ -728,7 +729,7 @@
         <li>El borrador queda solo en ese dispositivo/navegador.</li>
       </ol>
       <h3>Recuperar o descartar</h3>
-      <p>Si existe un borrador, aparece <strong>Recuperar borrador</strong>. Tambien se puede descartar manualmente. Al guardar un evento exitosamente, el borrador se limpia automaticamente.</p>
+      <p>Si existe un borrador, aparece <strong>Recuperar borrador</strong>. Tambien se puede descartar manualmente: al descartar, se limpian los campos manuales del evento y se conservan autocompletados de balanza/cinta, cadena/planta, fecha y tolerancia base. Al guardar un evento exitosamente, el borrador se limpia automaticamente.</p>
       <div class="callout warning"><strong>Limitacion:</strong> el borrador local no es una sincronizacion multiusuario. Si se cambia de equipo o navegador, no estara disponible.</div>
     </section>
 
@@ -768,7 +769,7 @@
         <li>Ir a <strong>Historial</strong>.</li>
         <li>Buscar el evento.</li>
         <li>Tocar <strong>Imprimir reporte</strong>.</li>
-        <li>El navegador abre una ventana imprimible con resumen, inspeccion, cero, parametros, cadena, acumulado, pasadas con material y cierre.</li>
+        <li>El navegador abre una ventana imprimible A4 vertical con resumen primero, pesos de referencia destacados, todas las pasadas con material certificado, soporte tecnico compacto y firma del tecnico.</li>
       </ol>
       <div class="callout warning"><strong>Si no abre el reporte:</strong> revisar bloqueador de ventanas emergentes del navegador para el dominio de la app.</div>
     </section>
@@ -826,6 +827,7 @@
           <li>Verificar limpieza, banda vacia y estado mecanico.</li>
           <li>Confirmar que la cadena seleccionada corresponde a la planta o registrar claramente si se usa una cadena de otra planta.</li>
           <li>Realizar cero antes de cualquier comparacion.</li>
+          <li>Usar coma o punto decimal segun sea mas comodo; la app normaliza el dato al guardar.</li>
           <li>Anotar cambios de parametros y motivos.</li>
         </ul>
       </div>
@@ -853,9 +855,9 @@
     <section id="problemas">
       <h2>15. Problemas frecuentes</h2>
       <h3>No puedo guardar como tecnico por permisos</h3>
-      <p>Confirmar que la app este en version <code>v1.1.4</code> o superior. Esa version evita actualizar equipos al cerrar eventos, respetando que la actualizacion de <code>equipments</code> queda para administradores.</p>
+      <p>Confirmar que la app este en la version vigente o superior. El guardado de eventos no debe actualizar datos administrativos de equipos; esa actualizacion queda reservada a administradores.</p>
       <h3>No aparece una cadena para una balanza externa</h3>
-      <p>Desde <code>v1.1.3</code>, si no hay cadenas para la planta de la balanza, se muestran todas las disponibles. Si aun no aparecen, verificar que existan cadenas cargadas y que el navegador tenga la version desplegada.</p>
+      <p>Si no hay cadenas para la planta de la balanza, se muestran todas las disponibles. Si aun no aparecen, verificar que existan cadenas cargadas y que el navegador tenga la version desplegada.</p>
       <h3>La app exige cadena/acumulado en un control preventivo</h3>
       <p>Eso solo deberia ocurrir si la balanza no tiene eventos previos. Para una balanza ya calibrada, la app permite cerrar con material real sin repetir cadena ni acumulado.</p>
       <h3>El reporte no se abre</h3>

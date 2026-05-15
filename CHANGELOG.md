@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.0.15 - Flujo de calibracion y reporte A4
+
+- Los campos numericos del wizard aceptan coma o punto decimal y permiten borradores de entrada como `1.`, `1,` o `.5` sin bloquear la carga.
+- La inspeccion previa agrega `Marcar todo OK`, el cero queda simplificado a `Cero realizado`, `Valor observado` y unidad visible, y el descarte de borrador limpia campos manuales sin perder datos autocompletados de balanza/cinta.
+- La foto de parametros retira `Span` y `Filtro`; el paso de cadena usa `Tiempo de test (min)` y el acumulado usa `Caudal leido`.
+- El reporte imprimible pasa a formato A4 vertical de una pagina con resumen primero, pesos de referencia destacados, todas las pasadas de material, soporte tecnico y firma de tecnico.
+- Se corrige la impresion de fondos del encabezado y se aplica el degrade oscuro a tarjetas principales y encabezados de tabla del reporte.
+- En desktop se reducen los autoscrolls automaticos: ya no se fuerza el salto al cambiar pantalla ni al avanzar pasos del wizard; en mobile se conserva el guiado.
+- Manuales HTML, PDFs publicos/fuente y documentacion tecnica quedan alineados con el flujo `v3.0.15`.
+
 ## v3.0.14 - Cierre automatico de sesion
 
 - La app cierra automaticamente la sesion tras 30 minutos sin actividad de teclado, click, toque, scroll o foco.

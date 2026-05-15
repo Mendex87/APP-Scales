@@ -2,6 +2,18 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-15 - v3.0.15 - Wizard de campo, reporte A4 y autoscroll desktop
+
+- Contexto: la preview `preview-decimal-input` valido mejoras de carga en campo, reporte imprimible y menor friccion visual en navegador desktop.
+- Decision: promover la preview a `main` como `v3.0.15`, manteniendo datos internos compatibles y sin migraciones de esquema.
+- Cambio inputs: los campos numericos aceptan coma o punto decimal y conservan estados intermedios mientras el usuario escribe.
+- Cambio wizard: Paso 2 incorpora `Marcar todo OK`; Paso 3 queda reducido a cero realizado, valor observado, unidad y observaciones; Paso 4 retira `Span`/`Filtro`; Paso 5 etiqueta `Tiempo de test (min)`; Paso 6 etiqueta `Caudal leido`.
+- Cambio borrador: `Descartar borrador` limpia datos manuales del evento y conserva autocompletados derivados de balanza/cinta, cadena/planta y fecha/tolerancia base.
+- Cambio reporte: el PDF/impresion A4 vertical prioriza `Resumen`, `Pesos de referencia`, pasadas completas de `Material certificado`, soporte tecnico compacto y firma; los fondos oscuros usan degrade directo para evitar desbordes en print preview.
+- Cambio interaccion: en desktop se eliminan autoscrolls agresivos al cambiar pantalla y al avanzar pasos del wizard; el guiado automatico se conserva en mobile y la edicion de balanza solo desplaza si el formulario no esta visible.
+- Documentacion: se actualizan `CHANGELOG.md`, `docs/interaction-patterns.md`, manual administrador HTML, manual tecnico fuente y manual tecnico publico. Se regeneran PDFs desde los HTML con Chrome headless: `docs/manual-tecnico-campo.pdf`, `docs/manual-usuario.pdf`, `public/manual-tecnico-campo.pdf` y `public/manual-usuario.pdf`.
+- Verificacion requerida: correr `npm run build`, revisar wizard completo, descartar/recuperar borrador, imprimir reporte con graficos de fondo activos y validar navegacion desktop/mobile.
+
 ## 2026-05-13 - v3.0.14 - Cierre automatico de sesion por inactividad
 
 - Contexto: se requiere que las sesiones no queden abiertas indefinidamente en dispositivos de campo o navegadores compartidos.

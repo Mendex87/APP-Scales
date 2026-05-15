@@ -496,7 +496,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v3.0.14</strong></div>
+        <div><span>Version documentada</span><strong>v3.0.15</strong></div>
         <div><span>Alcance</span><strong>Uso en campo</strong></div>
         <div><span>Usuario</span><strong>Tecnico</strong></div>
       </div>
@@ -533,6 +533,7 @@
       </div>
       <div class="callout"><strong>Servidor online:</strong> cuando la app indica servidor online, los datos se guardan en una base de datos en la nube, protegida con permisos por usuario y respaldo remoto. Esto preserva la trazabilidad de calibraciones, sesiones, balanzas y eventos aunque se cambie de dispositivo. Si no hay conexion, el modo local sirve solo como contingencia temporal hasta recuperar acceso al servidor.</div>
       <div class="callout"><strong>Hora oficial:</strong> las fechas y horas visibles en la app, reportes e historial se interpretan en hora Argentina.</div>
+      <div class="callout"><strong>Decimales:</strong> los campos numericos aceptan coma o punto decimal y permiten completar valores intermedios mientras se escribe.</div>
       <div class="checklist">
         <h3>Preparacion minima</h3>
         <ul>
@@ -565,7 +566,7 @@
 
     <section id="precheck" class="page-break">
       <h2>3. Checklist previo</h2>
-      <p>La condicion mecanica determina si la medicion es confiable. Completar el chequeo antes de calibrar o controlar.</p>
+      <p>La condicion mecanica determina si la medicion es confiable. Completar el chequeo antes de calibrar o controlar. Si todos los puntos cumplen, usar <strong>Marcar todo OK</strong> para acelerar la carga.</p>
       <table>
         <thead><tr><th>Punto</th><th>Condicion esperada</th><th>Riesgo si no cumple</th></tr></thead>
         <tbody>
@@ -585,8 +586,8 @@
       <p>El cero se realiza antes de cualquier prueba. Debe registrarse aunque el controlador no muestre todos los datos.</p>
       <div class="step"><div class="step-number">1</div><div><h4>Preparar la banda</h4><p>Confirmar banda vacia, limpia y sin material acumulado.</p></div></div>
       <div class="step"><div class="step-number">2</div><div><h4>Ejecutar cero</h4><p>Realizar el procedimiento de cero en el controlador segun el equipo.</p></div></div>
-      <div class="step"><div class="step-number">3</div><div><h4>Registrar valores</h4><p>Si el controlador muestra valores antes/despues, anotarlos. Si no son visibles, registrar que el cero fue realizado y usar la opcion correspondiente.</p></div></div>
-      <div class="callout"><strong>Observaciones utiles:</strong> anotar si se ajusto cero, si habia deriva visible o si hubo condicion anormal durante la prueba.</div>
+      <div class="step"><div class="step-number">3</div><div><h4>Registrar valor observado</h4><p>Si el controlador muestra un valor, anotarlo con su unidad o referencia visible. Si no es visible, registrar que el cero fue realizado y usar la opcion correspondiente.</p></div></div>
+      <div class="callout"><strong>Observaciones utiles:</strong> anotar condicion anormal, dificultad de lectura o cualquier intervencion realizada durante el cero.</div>
     </section>
 
     <section id="cadena" class="page-break">
@@ -597,13 +598,13 @@
         <thead><tr><th>Dato</th><th>Descripcion</th><th>Criterio</th></tr></thead>
         <tbody>
           <tr><td>Peso lineal de cadena</td><td>Peso lineal del patron usado, en el sistema de unidades visible.</td><td>Verificar que coincida con la cadena fisica.</td></tr>
-          <tr><td>Tiempo de test</td><td>Tiempo usado para estabilizar la lectura contra el patron.</td><td>Usar tiempo suficiente para una lectura estable.</td></tr>
+          <tr><td>Tiempo de test (min)</td><td>Tiempo usado para estabilizar la lectura contra el patron.</td><td>Usar tiempo suficiente para una lectura estable.</td></tr>
           <tr><td>Promedio controlador</td><td>Lectura promedio en el mismo peso lineal.</td><td>Comparar contra el peso lineal real.</td></tr>
           <tr><td>Factor provisorio</td><td>Factor cargado o calculado durante el ajuste.</td><td>Dejar trazabilidad del cambio.</td></tr>
         </tbody>
       </table>
       <h3>Acumulado</h3>
-      <p>Cuando el trabajo requiere calibracion completa, registrar caudal esperado, tiempo de prueba, acumulado indicado y factor de ajuste antes. El switch Metrico / Imperial cambia solo las unidades visibles; la app conserva los datos internos en metrico. Esto permite evaluar si el instantaneo y el totalizador se comportan de forma coherente.</p>
+      <p>Cuando el trabajo requiere calibracion completa, registrar caudal leido, tiempo de prueba, acumulado indicado y factor de ajuste antes. El switch Metrico / Imperial cambia solo las unidades visibles; la app conserva los datos internos en metrico. Esto permite evaluar si el instantaneo y el totalizador se comportan de forma coherente.</p>
       <div class="callout warning"><strong>No obligatorio en control preventivo:</strong> si la balanza ya tiene calibracion previa y solo se esta verificando con material real, puede no ser necesario repetir cadena y acumulado.</div>
     </section>
 
@@ -684,6 +685,7 @@
           <li>Revisar que el resultado final coincida con la ultima pasada completa.</li>
           <li>Confirmar que el factor final sea el que quedo cargado en el controlador.</li>
           <li>Guardar el evento y revisar el historial.</li>
+          <li>Si se requiere respaldo, imprimir o guardar el reporte A4 desde Historial: debe mostrar resumen, pesos de referencia, pasadas completas y firma.</li>
           <li>Confirmar que la app indique servidor online para asegurar respaldo remoto; si queda en modo local, informar la contingencia.</li>
           <li>Informar si quedo fuera de tolerancia.</li>
         </ul>

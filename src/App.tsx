@@ -114,7 +114,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v3.0.14'
+const APP_VERSION = 'v3.0.15'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -682,6 +682,7 @@ function buildAdminManualHtml(user: AuthUser) {
     <section>
       <h2>7. Calibraciones y controles preventivos</h2>
       <p>El wizard se divide en ocho pasos: eleccion, inspeccion, cero, parametros, cadena, acumulado, material real y cierre. El cierre exige cargar explicitamente el <strong>Factor final</strong> que queda en el controlador.</p>
+      <div class="callout ok">El flujo actual acepta decimales con coma o punto, incluye <strong>Marcar todo OK</strong> en inspeccion, simplifica cero a valor observado y conserva el borrador local solo cuando el usuario decide recuperarlo.</div>
       <table>
         <thead><tr><th>Situacion</th><th>Criterio</th><th>Resultado esperado</th></tr></thead>
         <tbody>
@@ -701,6 +702,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>El dashboard muestra el estado actual del parque segun el ultimo evento de cada balanza.</li>
         <li>Un evento viejo fuera de tolerancia no debe contar como desvio abierto si la balanza luego quedo calibrada.</li>
         <li>El reporte imprimible se abre desde Historial y puede guardarse como PDF desde el navegador.</li>
+        <li>El reporte A4 vertical prioriza resumen, pesos de referencia, pasadas completas con material, soporte tecnico y firma.</li>
       </ul>
     </section>
 

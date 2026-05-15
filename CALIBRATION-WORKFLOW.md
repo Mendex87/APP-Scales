@@ -67,11 +67,10 @@ Datos a capturar:
 - banda vacia confirmada
 - velocidad durante cero
 - duracion o cantidad de vueltas
-- cero inicial
-- cero final
-- deriva de cero
-- cero ajustado si/no
-- valor de cero final
+- cero realizado si/no
+- valor observado, si el controlador lo muestra
+- unidad o referencia visible
+- observaciones de cero
 
 ## 4. Verificacion de velocidad
 
@@ -106,7 +105,7 @@ En tu metodologia, el foco es:
 
 Datos a capturar:
 - kg/m de cadena
-- cantidad de pasadas
+- tiempo de test (min)
 - promedio lectura controlador
 - error promedio
 - factor provisorio
@@ -197,7 +196,7 @@ Esto deberia seguir siendo configurable por balanza o por evento.
 - velocidad por vuelta completa
 - kg/m de cadena
 - carga sobre tren
-- caudal esperado
+- caudal leido / esperado segun prueba
 - error % de cadena
 - error % de material real
 - factor sugerido
@@ -223,12 +222,12 @@ Esto deberia seguir siendo configurable por balanza o por evento.
 ### Dentro de `Nuevo evento`
 1. identificacion del evento
 2. inspeccion previa
-3. foto de parametros
-4. verificacion de velocidad
+3. cero
+4. foto de parametros
 5. span con peso patron
-6. validacion con material real
-7. ajuste final
-8. cierre
+6. acumulado y factor de ajuste
+7. validacion con material real
+8. cierre con factor final
 
 ## Puntos que todavia conviene confirmar con vos
 
