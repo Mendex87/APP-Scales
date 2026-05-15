@@ -519,7 +519,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v4.0.0</strong></div>
+        <div><span>Version documentada</span><strong>v4.0.2</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -592,7 +592,7 @@
 
     <section id="inicio">
       <h2>4. Ingreso y pantalla inicial</h2>
-      <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra el servidor de usuarios y consulta el perfil para conocer el rol.</p></div></div>
+      <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra el servidor de usuarios y consulta el perfil para conocer el rol. Si se olvida la contrasena, usar <strong>Olvidé mi contraseña</strong> para recibir un link de recuperacion en el email registrado.</p></div></div>
       <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior muestra las secciones disponibles para el rol actual: balanzas, nueva calibracion, herramientas, historial y usuarios.</p></div></div>
       <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con servidor online o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
       <div class="callout"><strong>Unidades visibles:</strong> el switch <strong>Metrico / Imperial</strong> de la cabecera cambia formularios, herramientas, historial y reportes. Los datos guardados se conservan internamente en metrico para trazabilidad y se convierten solo al mostrar o cargar valores.</div>
@@ -784,6 +784,8 @@
         <li>Cargar email, nombre visible, contrasena y rol.</li>
         <li>Guardar usuario.</li>
       </ol>
+      <h3>Recuperacion de contraseña</h3>
+      <p>Cada usuario puede iniciar recuperacion desde la pantalla de ingreso con <strong>Olvidé mi contraseña</strong>. El servidor online envia un link al email registrado; al abrirlo, la app pide nueva contraseña y confirmacion. Por seguridad, el reenvio de instrucciones muestra una cuenta regresiva antes de permitir otro email.</p>
       <h3>Recomendaciones de rol</h3>
       <p>Usar <code>tecnico</code> para personal que opera calibraciones. Usar <code>supervisor</code> para revision sin carga. Usar <code>viewer</code> para consulta basica. Reservar <code>admin</code> para personal responsable de datos maestros y usuarios.</p>
     </section>
@@ -856,6 +858,8 @@
       <p>Registrar una pasada posterior al ajuste. La app toma la ultima pasada completa como resultado final.</p>
       <h3>No puedo guardar porque falta Factor final</h3>
       <p>El Paso 8 exige cargar <strong>Factor final de calibracion</strong> con valor mayor a cero. Debe coincidir con el factor que queda en el controlador, incluso si no hubo ajuste.</p>
+      <h3>No llega el email de recuperacion</h3>
+      <p>Revisar spam/correo no deseado y confirmar que el usuario tenga email real cargado. Si la app muestra cuenta regresiva, esperar antes de reenviar. Si el envio sigue fallando, contactar a un administrador para revisar el servicio de emails del servidor online.</p>
       <h3>Veo datos antiguos despues de un deploy</h3>
       <p>Actualizar la pagina, cerrar y abrir sesion o limpiar cache del navegador si Vercel ya termino el despliegue.</p>
     </section>

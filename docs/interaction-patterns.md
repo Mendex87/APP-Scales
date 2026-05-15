@@ -48,6 +48,22 @@ Rules:
 - Skip it when `prefers-reduced-motion: reduce` is active.
 - Do not run it on initial session restore; returning users should not get an entry animation just because an existing session was detected.
 
+## Password recovery flow (updated in v4.0.2)
+
+The public login card supports user-initiated password recovery without exposing whether an email exists:
+
+- `Olvidé mi contraseña` switches the card from login to recovery request.
+- Recovery request messages remain neutral: if the email is registered, instructions are sent.
+- Re-send is throttled locally with a persisted 60-second cooldown so reloads do not immediately bypass the wait.
+- A recovery callback opens the `Nueva contraseña` state instead of revealing the authenticated app.
+- After password update, the temporary recovery session is signed out and the user returns to login.
+
+Purpose:
+
+- Reduce administrator intervention for forgotten passwords.
+- Avoid repeated email sends that can trigger provider rate limits.
+- Keep recovery separate from normal session restore and login transition behavior.
+
 ## Popup messages
 
 Toast notifications are operational status plates, not generic app popups. They should look connected to the diagonal industrial language of the public page, action pulses and login transition.

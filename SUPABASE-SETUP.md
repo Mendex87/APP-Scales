@@ -208,7 +208,86 @@ VITE_SUPABASE_URL=https://qatnjksbzegltidoujms.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhdG5qa3NiemVnbHRpZG91am1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzU1MzEsImV4cCI6MjA5MjgxMTUzMX0.Q6_AxoaJTQNvXlvjx9Kyh925VbHXntDAU8YhWaoU-Dc
 ```
 
-## 7. Estado esperado en la app
+## 7. Recuperacion de contraseña por email
+
+La app usa el flujo nativo de Supabase Auth para recuperar contraseñas. No requiere migracion de tablas ni una Edge Function nueva, pero si requiere configurar URLs permitidas y SMTP.
+
+### URL Configuration
+
+En Supabase Dashboard:
+
+1. `Authentication` > `URL Configuration`.
+2. `Site URL`: usar la URL estable de produccion, por ejemplo `https://mendex87.com`.
+3. `Redirect URLs`: agregar produccion y previews autorizadas.
+
+Ejemplos:
+
+```text
+https://mendex87.com/**
+https://calibracinta.mendex87.com/**
+https://*.vercel.app/**
+```
+
+Para mayor control, reemplazar `https://*.vercel.app/**` por la URL exacta de la preview que se quiera probar.
+
+### SMTP transaccional
+
+Configurar un proveedor externo evita los limites bajos del email interno de Supabase. Proveedores validos: Resend, Brevo, SendGrid, Mailgun o Amazon SES.
+
+Ejemplo con Resend:
+
+```text
+Host: smtp.resend.com
+Port: 465
+Username: resend
+Password: RESEND_API_KEY
+Sender email: no-reply@calibracinta.mendex87.com
+Sender name: CalibraCinta
+```
+
+No versionar API keys ni contraseñas. El dominio remitente debe estar verificado en el proveedor SMTP mediante los registros DNS que indique ese proveedor.
+
+### Template Reset Password
+
+En `Authentication` > `Emails` > `Templates` > `Reset Password`, usar un asunto operativo y conservar siempre `{{ .ConfirmationURL }}` como link dinamico.
+
+Asunto sugerido:
+
+```text
+Recuperá tu contraseña - CalibraCinta
+```
+
+HTML sugerido:
+
+```html
+<div style="margin:0;padding:0;background:#f0efeb;font-family:Arial,sans-serif;color:#0c0b11;">
+  <div style="max-width:620px;margin:0 auto;padding:28px;">
+    <div style="background:#0c0b11;color:#f8f6ef;padding:28px;border-radius:14px 14px 0 0;">
+      <div style="color:#ff5949;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">Acceso protegido</div>
+      <h1 style="margin:10px 0 0;font-size:38px;line-height:.9;text-transform:uppercase;">CalibraCinta</h1>
+      <p style="margin:14px 0 0;color:#d8d2c8;">Solicitud de recuperacion de contrasena.</p>
+    </div>
+    <div style="background:#fffdf8;border:1px solid #d5cfc3;border-top:0;padding:28px;border-radius:0 0 14px 14px;">
+      <h2 style="margin:0 0 12px;font-size:24px;">Restablecer contrasena</h2>
+      <p style="margin:0 0 18px;color:#4d494b;">Recibimos una solicitud para cambiar la contrasena de tu usuario. Si fuiste vos, usa el boton de abajo.</p>
+      <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#ff5949;color:#0c0b11;text-decoration:none;font-weight:800;text-transform:uppercase;padding:14px 18px;border-radius:999px;">Cambiar contrasena</a>
+      <p style="margin:22px 0 0;color:#6f6a68;font-size:13px;">Si no pediste este cambio, ignora este correo. Tu contrasena actual seguira igual.</p>
+      <p style="margin:18px 0 0;color:#6f6a68;font-size:12px;">Si el boton no funciona, abri este enlace:<br><a href="{{ .ConfirmationURL }}" style="color:#d94135;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+    </div>
+  </div>
+</div>
+```
+
+### Validacion operativa
+
+1. Entrar a la app sin sesion.
+2. Usar `Olvidé mi contraseña` con un usuario real.
+3. Abrir el email recibido.
+4. Cargar nueva contrasena de 8 o mas caracteres.
+5. Confirmar que la app vuelve al ingreso y permite iniciar sesion con la clave nueva.
+6. Verificar que el boton de reenvio muestre cuenta regresiva antes de permitir otro email.
+
+## 8. Estado esperado en la app
 
 Cuando Supabase esté bien configurado, en la app vas a ver:
 

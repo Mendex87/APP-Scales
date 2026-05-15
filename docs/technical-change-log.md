@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-15 - v4.0.2 - Recuperacion de contraseña por email
+
+- Contexto: los usuarios necesitaban recuperar acceso sin depender de que un administrador genere una contrasena manual nueva.
+- Decision: promover `preview-password-recovery` a `main` como `v4.0.2`, usando el flujo nativo de recuperacion del servidor online y SMTP transaccional externo.
+- Cambio auth: la pantalla publica agrega `Olvidé mi contraseña`, solicita email y envia un link de recuperacion con `redirectTo` basado en la URL actual.
+- Cambio callback: cuando la app abre un link de recuperacion, muestra `Nueva contraseña`, valida minimo 8 caracteres y confirmacion coincidente, actualiza la clave y cierra la sesion temporal.
+- Cambio proteccion: el reenvio de instrucciones tiene cooldown local persistido por 60 segundos y tambien se activa ante respuestas de rate limit del proveedor.
+- Configuracion externa: Supabase Auth debe tener `Site URL`, `Redirect URLs`, SMTP custom y template `Reset Password` configurados; el dominio remitente se verifica en el proveedor SMTP.
+- Verificacion requerida: correr `npm run build`, pedir recuperacion con usuario real, abrir el link del email, actualizar contrasena, volver a ingresar y confirmar que reenvio muestra cuenta regresiva.
+
 ## 2026-05-15 - v4.0.1 - Validaciones numericas y version por evento
 
 - Contexto: luego del cierre seguro `v4.0.0`, faltaba impedir valores numericos absurdos y dejar trazable con que version de la app se guardo cada evento.

@@ -111,7 +111,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.1'
+const APP_VERSION = 'v4.0.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -689,6 +689,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>Confirmar que la cabecera muestre la version esperada luego de cada deploy.</li>
         <li>Confirmar que el estado de base indique <code>Servidor online</code> para trabajo multi-dispositivo.</li>
         <li>Si se ve <code>Modo local</code>, no asumir sincronizacion remota hasta resolver conectividad/configuracion.</li>
+        <li>Si un usuario olvida su contrasena, usar <strong>Olvide mi contrasena</strong> en el ingreso; el servidor online enviara un link al email registrado.</li>
         <li>Revisar el dashboard: equipos fuera de tolerancia, equipos sin historial y eventos del mes.</li>
       </ol>
     </section>
@@ -702,6 +703,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>Usar <code>tecnico</code> para campo, <code>supervisor</code> para revision y <code>viewer</code> para consulta.</li>
         <li>Reservar <code>admin</code> para responsables reales del sistema.</li>
       </ol>
+      <div class="callout ok">Recuperacion de acceso: cada usuario puede pedir un link desde <strong>Olvide mi contrasena</strong>. El envio depende del email registrado y del servicio SMTP configurado en el servidor online.</div>
       <div class="callout">Si falla una accion de usuarios, revisar primero la Edge Function <code>manage-users</code> y el secret <code>SERVICE_ROLE_KEY</code>.</div>
     </section>
 

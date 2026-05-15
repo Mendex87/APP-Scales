@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.0.2 - Recuperacion de contraseña
+
+- La pantalla de ingreso agrega `Olvidé mi contraseña` para pedir un link de recuperacion por email desde el servidor online.
+- El link de recuperacion abre una pantalla segura para cargar y confirmar nueva contraseña; al finalizar se cierra la sesion temporal y se vuelve al ingreso.
+- El reenvio de emails queda protegido con cooldown local persistido para reducir bloqueos por limite de correo del proveedor.
+- La documentacion cubre URLs permitidas, SMTP transaccional y plantilla de email de recuperacion.
+
 ## v4.0.1 - Validacion y trazabilidad de eventos
 
 - El cierre del wizard bloquea tolerancias, tiempos, factores y pasadas con valores imposibles, negativos, incompletos o fuera de rangos operativos razonables.

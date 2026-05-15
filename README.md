@@ -2,7 +2,7 @@
 
 Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
 
-Version actual: `v4.0.1`.
+Version actual: `v4.0.2`.
 
 ## Incluye
 
@@ -15,6 +15,7 @@ Version actual: `v4.0.1`.
 - revision final con factor de calibracion final y aprobacion tecnica
 - validaciones numericas de cierre para evitar valores imposibles o pasadas incompletas
 - version de app registrada en cada evento para trazabilidad
+- recuperacion de contraseña por email con cooldown local para evitar reenvios repetidos
 - almacenamiento local o en Supabase
 - historial tecnico de calibraciones
 - reporte imprimible A4 con resumen, pesos de referencia, pasadas completas y firma
@@ -35,6 +36,10 @@ npm run build
 ## Exportaciones
 
 La integracion con planillas externas fue retirada del flujo operativo. La trazabilidad vigente queda en el servidor online, el historial interno y los reportes PDF/impresos por evento.
+
+## Recuperacion de contraseña
+
+Los usuarios pueden pedir un link desde `Olvidé mi contraseña` en la pantalla de ingreso. El envio de emails depende del SMTP configurado en Supabase; ver `SUPABASE-SETUP.md` para URLs permitidas, plantilla del correo y configuracion Resend/Brevo/SendGrid/Mailgun/SES.
 
 ## Supabase
 

@@ -29,6 +29,11 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 - Agregar cola de sincronizacion para enviar a Supabase cuando vuelve la conexion.
 - Mostrar conflictos y permitir resolverlos antes de pisar datos.
 
+### Acceso y sesiones
+
+- Completado en `v4.0.2`: recuperacion de contraseña por email desde la pantalla de ingreso, con cooldown local para evitar reenvios repetidos.
+- Mantener SMTP transaccional externo para evitar limites del proveedor interno de autenticacion.
+
 ## Prioridad 2 - Trazabilidad y reportes
 
 ### Reporte tecnico por evento
