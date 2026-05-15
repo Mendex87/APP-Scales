@@ -4026,15 +4026,44 @@ type FieldProps = { label: string; value: string; onChange: (value: string) => v
 
 function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldProps) {
   const id = useId()
-  const inputType = type === 'number' ? 'text' : type
-  const inputMode = type === 'number' ? 'decimal' : type === 'email' ? 'email' : undefined
+  const isNumeric = type === 'number'
+  const inputType = isNumeric ? 'text' : type
+  const inputMode = isNumeric ? 'decimal' : type === 'email' ? 'email' : undefined
+  const [draftValue, setDraftValue] = useState(value)
+  const [isEditing, setIsEditing] = useState(false)
+
+  useEffect(() => {
+    if (!isEditing) setDraftValue(value)
+  }, [isEditing, value])
+
   const handleChange = (rawValue: string) => {
-    onChange(type === 'number' ? normalizeDecimalInput(rawValue) : rawValue)
+    if (!isNumeric) {
+      onChange(rawValue)
+      return
+    }
+
+    const normalizedValue = normalizeDecimalInput(rawValue)
+    setDraftValue(normalizedValue)
+    onChange(normalizedValue)
   }
+
+  const handleFocus = () => {
+    if (!isNumeric) return
+    setIsEditing(true)
+    setDraftValue(normalizeDecimalInput(value))
+  }
+
+  const handleBlur = () => {
+    if (!isNumeric) return
+    setIsEditing(false)
+  }
+
+  const inputValue = isNumeric && isEditing ? draftValue : value
+
   return (
     <div className="field-shell">
       <label className="label" htmlFor={id}>{label}</label>
-      <input id={id} className="input" type={inputType} inputMode={inputMode} value={value} onChange={(event) => handleChange(event.target.value)} disabled={disabled} />
+      <input id={id} className="input" type={inputType} inputMode={inputMode} value={inputValue} onChange={(event) => handleChange(event.target.value)} onFocus={handleFocus} onBlur={handleBlur} disabled={disabled} />
       {hint && <p className="hint compact-top">{hint}</p>}
     </div>
   )
