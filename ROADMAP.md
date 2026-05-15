@@ -39,8 +39,8 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 
 ### Exportacion util
 
-- Redisenar Google Sheets para enviar solo campos relevantes: equipo, fecha, tecnico, errores, factores, estado, observaciones y link al detalle.
 - Agregar exportacion CSV para historial filtrado.
+- Agregar exportacion PDF/CSV por filtros de historial sin depender de planillas externas.
 - Agregar filtros por planta, linea, estado, tecnico, rango de fechas y fuera de tolerancia.
 
 ### Auditoria
@@ -124,4 +124,4 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 2. Agregar reporte imprimible/PDF por evento.
 3. Agregar borradores de calibracion para no perder carga en campo.
 4. Agregar tabla de auditoria para ediciones/eliminaciones.
-5. Redisenar Google Sheets como exportacion resumida, no espejo completo de la base.
+5. Agregar exportacion CSV del historial filtrado.

@@ -221,13 +221,6 @@ export const formatArgentinaClock = (value: string | Date = new Date()) => {
   return `${pad(parts.day)}/${pad(parts.month)}/${String(parts.year).slice(-2)} · ${pad(parts.hour)}:${pad(parts.minute)}`
 }
 
-export const formatSheetsDateTime = (value: string | Date) => {
-  const date = toValidDate(value)
-  if (!date) return ''
-  const parts = getArgentinaDateParts(date)
-  return `${pad(parts.day)}/${pad(parts.month)}/${parts.year} ${pad(parts.hour)}:${pad(parts.minute)}`
-}
-
 export const generateId = () => crypto.randomUUID()
 
 export const normalizeDecimalInput = (value: string) => value.replace(/,/g, '.')

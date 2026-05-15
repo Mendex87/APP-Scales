@@ -186,17 +186,11 @@ using (true)
 with check (true);
 ```
 
-## 5. Relacion con Google Sheets
+## 5. Exportaciones
 
-Supabase queda como base principal.
+Supabase queda como base principal. La integracion con planillas externas fue retirada del flujo operativo.
 
-Google Sheets queda como:
-
-1. tablero operativo
-2. trazabilidad exportada
-3. vista para supervisión
-
-La app sigue pudiendo sincronizar eventos hacia Sheets.
+La exportacion vigente se realiza desde la app mediante reportes PDF/imprimibles por evento. Si se necesita una exportacion masiva, agregarla como CSV del historial filtrado en una preview separada.
 
 ## 6. Deploy en Vercel
 

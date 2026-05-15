@@ -1,5 +1,12 @@
 # Changelog
 
+## Preview - Retiro de Google Sheets
+
+- Se retira Google Sheets del flujo operativo: guardar, eliminar eventos y dar de baja balanzas ya no invocan `sync-sheets-event` ni Apps Script.
+- Se elimina la Edge Function `sync-sheets-event` y la documentacion activa de configuracion de Sheets.
+- Los estados `sync_status`, `sync_message` y `synced_at` se conservan por compatibilidad como estado interno de sincronizacion local/servidor, no como estado de planillas.
+- Manuales, README, roadmap y guia interna se actualizan para dejar servidor online, historial y PDF como fuentes vigentes de consulta.
+
 ## v3.0.15 - Flujo de calibracion y reporte A4
 
 - Los campos numericos del wizard aceptan coma o punto decimal y permiten borradores de entrada como `1.`, `1,` o `.5` sin bloquear la carga.

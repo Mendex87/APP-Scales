@@ -217,7 +217,7 @@ Esto deberia seguir siendo configurable por balanza o por evento.
 2. `Herramientas`
 3. `Nuevo evento`
 4. `Historial`
-5. `Sheets`
+5. `Reportes PDF`
 
 ### Dentro de `Nuevo evento`
 1. identificacion del evento

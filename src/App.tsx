@@ -23,8 +23,6 @@ import { EquipmentPhoto } from './components/EquipmentPhoto'
 import { HistoryPager } from './components/HistoryPager'
 import { Metric } from './components/Metric'
 import {
-  buildDeleteEquipmentSheetsPayload,
-  buildDeleteEventSheetsPayload,
   deleteCalibrationEventRecord,
   deleteChainRecord,
   deleteEquipmentRecord,
@@ -32,11 +30,9 @@ import {
   saveCalibrationEventRecord,
   saveChainRecord,
   saveEquipmentRecord,
-  syncCalibrationEventToSheets,
   toEventRow,
   updateCalibrationEventSync,
 } from './repository'
-import type { SheetsEventPayload } from './repository'
 import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
@@ -713,8 +709,8 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>No usar credenciales administrativas en el navegador.</li>
         <li>Si aparece un error de permisos, revisar tabla, accion y rol antes de cambiar configuraciones.</li>
         <li>La funcion interna de usuarios usa credenciales administrativas del servidor.</li>
-        <li>Google Sheets es salida operativa: <code>Eventos</code>, <code>Equipos</code>, <code>Dashboard</code>, <code>Alertas</code> y <code>Configuracion</code> se actualizan via Apps Script.</li>
-        <li>Los borrados de eventos/equipos se notifican a Sheets mediante <code>sync-sheets-event</code>; si Sheets falla, el servidor online conserva la fuente principal y la app informa el error.</li>
+        <li>El servidor online, el historial interno y los reportes PDF quedan como fuentes de consulta operativa.</li>
+        <li>Los borrados de eventos/equipos se aplican solo sobre el servidor online y el cache local del navegador.</li>
         <li>El guardado de eventos no debe actualizar <code>equipments</code>, porque eso rompio previamente al rol tecnico.</li>
       </ul>
     </section>
@@ -735,7 +731,7 @@ function buildAdminManualHtml(user: AuthUser) {
       <p>Eliminar balanzas, cadenas o eventos es una accion administrativa. Confirmar siempre impacto operativo antes de avanzar.</p>
       <ul>
         <li>Eliminar una balanza puede afectar eventos asociados en el servidor online.</li>
-        <li>Eliminar una balanza o evento tambien intenta limpiar Google Sheets y reconstruir su dashboard externo.</li>
+        <li>Si hace falta respaldo externo de una balanza o evento, guardar PDF antes de borrar.</li>
         <li>Eliminar una cadena no modifica los datos historicos ya guardados en eventos.</li>
         <li>Eliminar eventos reduce la trazabilidad y debe quedar justificado por procedimiento interno.</li>
       </ul>
@@ -749,7 +745,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>Balanzas nuevas tienen planta, linea, cinta, nombre y foto si corresponde.</li>
         <li>Cadenas tienen peso lineal verificado.</li>
         <li>Eventos recientes tienen Factor final confirmado y guardado.</li>
-        <li>Sheets muestra codigos cortos de equipo, dashboard y alertas actualizadas.</li>
+        <li>Historial y dashboard interno muestran eventos, estados y alertas actualizadas.</li>
         <li>Eventos fuera de tolerancia tienen seguimiento.</li>
         <li>Reportes importantes fueron impresos o guardados.</li>
         <li>No hay material admin publicado en rutas publicas.</li>
@@ -965,12 +961,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   </main>
 </body>
 </html>`
-}
-
-function buildSheetsEventPayload(item: CalibrationEvent): SheetsEventPayload {
-  return {
-    eventId: item.id,
-  }
 }
 
 function App() {
@@ -1244,8 +1234,6 @@ function App() {
             setEvents((current) =>
               current.map((item) => (item.id === event.id ? { ...item, ...syncValues } : item)),
             )
-            const sheetsPayload = { eventId: event.id }
-            await syncCalibrationEventToSheets(sheetsPayload)
           }
         } catch {
           // Se mantiene pendiente para siguiente intento
@@ -2557,45 +2545,34 @@ function App() {
 
     try {
       const result = await saveCalibrationEventRecord(record)
-      setEvents((current) => [record, ...current.filter((item) => item.id !== record.id)])
+      let savedRecord = record
+      let notice =
+        result.source === 'supabase'
+          ? `Evento ${record.id} guardado en servidor online.`
+          : `Evento ${record.id} guardado solo localmente.`
+
+      if (result.source === 'supabase') {
+        const syncValues = {
+          syncStatus: 'sincronizado' as const,
+          syncMessage: 'Guardado en servidor online.',
+          syncedAt: new Date().toISOString(),
+        }
+
+        try {
+          await updateCalibrationEventSync(record.id, syncValues)
+          savedRecord = { ...record, ...syncValues }
+        } catch (syncError) {
+          const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo actualizar el estado interno.'
+          notice = `Evento ${record.id} guardado en servidor online. Aviso: ${syncMessage}`
+        }
+      }
+
+      setEvents((current) => [savedRecord, ...current.filter((item) => item.id !== record.id)])
       clearEventDraft(false)
       resetEventForm()
       setScreen('historial')
       setDataSource(result.source)
-      setSyncNotice(
-        result.source === 'supabase'
-          ? `Evento ${record.id} guardado en servidor online.`
-          : `Evento ${record.id} guardado solo localmente.`,
-      )
-
-      if (result.source === 'supabase') {
-        try {
-          const payload = buildSheetsEventPayload(record)
-          const sheetsResult = await syncCalibrationEventToSheets(payload)
-          const syncValues = {
-            syncStatus: 'sincronizado' as const,
-            syncMessage: sheetsResult.message,
-            syncedAt: new Date().toISOString(),
-          }
-          await updateCalibrationEventSync(record.id, syncValues)
-          setEvents((current) => current.map((item) => (item.id === record.id ? { ...item, ...syncValues } : item)))
-          setSyncNotice(`Evento ${record.id} guardado y exportado a Google Sheets.`)
-        } catch (syncError) {
-          const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo exportar a Google Sheets.'
-          const syncValues = {
-            syncStatus: 'error' as const,
-            syncMessage,
-            syncedAt: new Date().toISOString(),
-          }
-          try {
-            await updateCalibrationEventSync(record.id, syncValues)
-          } catch {
-            // El evento ya quedo guardado; si falla el marcado de sync, se informa el error original de Sheets.
-          }
-          setEvents((current) => current.map((item) => (item.id === record.id ? { ...item, ...syncValues } : item)))
-          setSyncNotice(`Evento ${record.id} guardado. Error al exportar a Sheets: ${syncMessage}`)
-        }
-      }
+      setSyncNotice(notice)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar el evento.'
       setSyncNotice(`Error al guardar evento: ${message}`)
@@ -2605,7 +2582,6 @@ function App() {
   }
 
   async function handleDeleteEvent(eventId: string) {
-    const targetEvent = events.find((item) => item.id === eventId)
     setConfirmDialog({
       title: 'Eliminar evento',
       message: `Eliminar definitivamente el evento ${eventId}?`,
@@ -2616,17 +2592,7 @@ function App() {
           const result = await deleteCalibrationEventRecord(eventId)
           setEvents((current) => current.filter((item) => item.id !== eventId))
           setDataSource(result.source)
-          if (result.source === 'supabase' && targetEvent) {
-            try {
-              await syncCalibrationEventToSheets(buildDeleteEventSheetsPayload(eventId, targetEvent.equipmentId))
-              setSyncNotice(`Evento ${eventId} eliminado y actualizado en Google Sheets.`)
-            } catch (syncError) {
-              const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo actualizar Google Sheets.'
-              setSyncNotice(`Evento ${eventId} eliminado. Error al actualizar Sheets: ${syncMessage}`)
-            }
-          } else {
-            setSyncNotice(`Evento ${eventId} eliminado.`)
-          }
+          setSyncNotice(`Evento ${eventId} eliminado.`)
         } catch (error) {
           const message = error instanceof Error ? error.message : 'No se pudo eliminar el evento.'
           setSyncNotice(`Error al eliminar evento: ${message}`)
@@ -2651,17 +2617,7 @@ function App() {
             setSelectedEquipmentId('')
           }
           setDataSource(result.source)
-          if (result.source === 'supabase') {
-            try {
-              await syncCalibrationEventToSheets(buildDeleteEquipmentSheetsPayload(item.id))
-              setSyncNotice(`Balanza ${item.scaleName} dada de baja y actualizada en Google Sheets.`)
-            } catch (syncError) {
-              const syncMessage = syncError instanceof Error ? syncError.message : 'No se pudo actualizar Google Sheets.'
-              setSyncNotice(`Balanza ${item.scaleName} dada de baja. Error al actualizar Sheets: ${syncMessage}`)
-            }
-          } else {
-            setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
-          }
+          setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
         } catch (error) {
           const message = error instanceof Error ? error.message : 'No se pudo dar de baja la balanza.'
           setSyncNotice(`Error al dar de baja balanza: ${message}`)

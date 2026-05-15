@@ -30,14 +30,9 @@ npm run dev
 npm run build
 ```
 
-## Google Sheets
+## Exportaciones
 
-Google Sheets funciona como salida operativa resumida. La app mantiene el servidor online como fuente principal y envia eventos/estado mediante la Edge Function `sync-sheets-event` cuando la integracion esta configurada.
-
-Archivos historicos conservados como referencia:
-
-- `GOOGLE-SHEETS-SETUP.md`
-- `GOOGLE-SHEETS-DASHBOARD.gs`
+La integracion con planillas externas fue retirada del flujo operativo. La trazabilidad vigente queda en el servidor online, el historial interno y los reportes PDF/impresos por evento.
 
 ## Supabase
 

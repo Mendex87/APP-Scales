@@ -556,7 +556,7 @@
         <div class="metric"><span>Equipo</span><strong>Balanzas dinamicas</strong></div>
         <div class="metric"><span>Patron</span><strong>Cadenas calibradas</strong></div>
         <div class="metric"><span>Prueba final</span><strong>Material real pesado</strong></div>
-        <div class="metric"><span>Salida</span><strong>Historial + PDF + Sheets</strong></div>
+        <div class="metric"><span>Salida</span><strong>Historial + PDF</strong></div>
       </div>
       <p>La aplicacion no reemplaza el criterio tecnico. Su funcion es ordenar el procedimiento, evitar omisiones, conservar trazabilidad y mostrar con claridad si un evento fue una calibracion con ajuste, un control preventivo conforme o una condicion fuera de tolerancia.</p>
       <div class="callout success"><strong>Objetivo operativo:</strong> que cualquier evento quede registrado con responsable, fecha, equipo, prechequeos, cero, parametros relevantes, prueba con cadena cuando corresponde, pasadas con material real y resultado final.</div>
@@ -626,7 +626,7 @@
         <li>Guardar balanza.</li>
       </ol>
       <h3>Edicion y baja</h3>
-      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en el servidor online. Cuando Google Sheets esta configurado, la baja tambien elimina la fila del equipo y sus eventos asociados en la planilla externa. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
+      <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en el servidor online. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
     </section>
 
     <section id="cadenas">
@@ -751,7 +751,7 @@
 
     <section id="historial">
       <h2>11. Historial y reportes</h2>
-      <p>El historial muestra eventos guardados, ordenados por fecha descendente. Permite filtrar por balanza, revisar detalle, imprimir reporte y, para administradores, eliminar eventos. Si Google Sheets esta configurado, la eliminacion de un evento tambien se replica en la planilla y reconstruye el estado del equipo, alertas y dashboard externo.</p>
+      <p>El historial muestra eventos guardados, ordenados por fecha descendente. Permite filtrar por balanza, revisar detalle, imprimir reporte y, para administradores, eliminar eventos. La trazabilidad vigente queda en el servidor online, el historial interno y los reportes PDF.</p>
       <h3>Lectura de tarjetas</h3>
       <table>
         <thead><tr><th>Elemento</th><th>Descripcion</th></tr></thead>
@@ -802,19 +802,9 @@
       </ul>
       <h3>Seguridad por permisos</h3>
       <p>Los permisos del servidor online limitan acciones segun rol. Por ejemplo, el tecnico puede insertar eventos, pero la actualizacion administrativa de equipos queda reservada a administradores.</p>
-      <h3>Google Sheets operativo</h3>
-      <p>Google Sheets funciona como salida operativa, no como fuente principal. La app envia resumenes mediante la Edge Function <code>sync-sheets-event</code> hacia Apps Script. El servidor online sigue siendo la fuente principal de datos.</p>
-      <table>
-        <thead><tr><th>Hoja</th><th>Uso</th></tr></thead>
-        <tbody>
-          <tr><td><code>Eventos</code></td><td>Registro resumido por calibracion/control, con <code>Codigo equipo</code> corto.</td></tr>
-          <tr><td><code>Equipos</code></td><td>Estado actual por equipo; el ID interno del servidor online queda oculto.</td></tr>
-          <tr><td><code>Dashboard</code></td><td>KPIs operativos y alertas principales configurables desde Sheets.</td></tr>
-          <tr><td><code>Alertas</code></td><td>Alertas por fuera de tolerancia, error absoluto y equipos sin control reciente.</td></tr>
-          <tr><td><code>Configuracion</code></td><td>Reglas editables: tolerancia, dias sin control, colores y textos.</td></tr>
-        </tbody>
-      </table>
-      <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, la app notifica a Sheets para remover filas y reconstruir <code>Dashboard</code> y <code>Alertas</code>. Si Sheets falla, el servidor online queda actualizado y la app muestra aviso.</div>
+      <h3>Reportes y respaldo operativo</h3>
+      <p>Para compartir o archivar una calibracion, usar el reporte PDF/imprimible generado desde Historial. El servidor online sigue siendo la fuente principal de datos.</p>
+      <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, el cambio se aplica sobre el servidor online y el cache local del navegador. Si se requiere respaldo externo, guardar el PDF antes de borrar.</div>
       <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de permisos, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
     </section>
 
@@ -866,8 +856,6 @@
       <p>Registrar una pasada posterior al ajuste. La app toma la ultima pasada completa como resultado final.</p>
       <h3>No puedo guardar porque falta Factor final</h3>
       <p>El Paso 8 exige cargar <strong>Factor final</strong> con valor mayor a cero. Debe coincidir con el factor que queda en el controlador, incluso si no hubo ajuste.</p>
-      <h3>Google Sheets no refleja un borrado</h3>
-      <p>Confirmar que la Edge Function <code>sync-sheets-event</code> este desplegada, que el Web App de Apps Script tenga el script actualizado y que los secrets <code>GOOGLE_SHEETS_WEBHOOK_URL</code> y <code>GOOGLE_SHEETS_TOKEN</code> sean correctos.</p>
       <h3>Veo datos antiguos despues de un deploy</h3>
       <p>Actualizar la pagina, cerrar y abrir sesion o limpiar cache del navegador si Vercel ya termino el despliegue.</p>
     </section>

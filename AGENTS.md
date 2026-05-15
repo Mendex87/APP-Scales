@@ -28,7 +28,7 @@
 - Vercel deploy expects build command `npm run build` and output directory `dist`.
 - `vercel.json` rewrites public manual routes and redirects admin manual URLs to `/manual/tecnico/`; keep SPA behavior untouched unless intentionally adding routing.
 - For relevant app changes, update all version locations together: `APP_VERSION` in `src/App.tsx`, `package.json`, `package-lock.json`, and `CHANGELOG.md`.
-- Google Sheets sync exports one summarized calibration event through `supabase/functions/sync-sheets-event`; Sheets remains output-only and Supabase remains the source of truth.
+- External spreadsheet sync was retired from the operational flow; do not reintroduce it unless explicitly approved in a new preview.
 - Workflow rule: do all new work on a dedicated preview branch first. Merge/push to `main` only after Ezequiel explicitly approves that preview. Never use `main` for exploratory work.
 
 ## Manuals
