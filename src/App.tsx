@@ -3488,9 +3488,13 @@ function App() {
               {calibrationStep === 0 && <div className="card operational-context-card">
                 <div className="card-tag">Paso 1</div>
                 <h2>Contexto operativo</h2>
-                <p className="hint compact-top">Elegí la balanza, confirmá la cadena disponible y dejá fecha/tolerancia listas antes de iniciar los controles.</p>
-                <div className="grid two">
-                  <div>
+                <p className="hint compact-top">Confirmá el equipo, la fecha y la tolerancia antes de iniciar los controles.</p>
+                <div className="context-selector-grid compact-top">
+                  <div className={`context-select-card ${selectedEquipment ? 'selected' : ''}`}>
+                    <div className="context-select-heading">
+                      <span>Equipo</span>
+                      <strong>{selectedEquipment ? `${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}` : 'Seleccionar balanza'}</strong>
+                    </div>
                     <label className="label">Balanza</label>
                     <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)} disabled={eventSaving}>
                       <option value="">Seleccionar balanza</option>
@@ -3498,8 +3502,13 @@ function App() {
                         <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
                       ))}
                     </select>
+                    <small>{selectedEquipment ? `${selectedEquipment.plant} / ${selectedEquipment.line}` : 'Base del evento'}</small>
                   </div>
-                  <div>
+                  <div className={`context-select-card ${selectedChain ? 'selected' : ''}`}>
+                    <div className="context-select-heading">
+                      <span>Patron</span>
+                      <strong>{selectedChain ? selectedChain.name : 'Seleccionar cadena'}</strong>
+                    </div>
                     <label className="label">Cadena usada</label>
                     <select
                       className="input"
@@ -3521,9 +3530,10 @@ function App() {
                         <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
                       ))}
                     </select>
-                    {!requiresFullCalibration && <p className="hint compact-top">En control preventivo no es obligatoria para cerrar, pero queda disponible como referencia.</p>}
-                    {usingAllChainsFallback && <p className="hint compact-top">No hay cadenas para esta planta. Se muestran todas las disponibles.</p>}
+                    <small>{selectedChain ? measureText(selectedChain.totalWeightKg, 'weightKg') : usingAllChainsFallback ? 'Mostrando todas las plantas' : 'Patron disponible'}</small>
                   </div>
+                </div>
+                <div className="grid two compact-top">
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role !== 'admin' ? 'Fecha automatica al guardar' : undefined} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
@@ -3750,25 +3760,24 @@ function App() {
                 <div className="card-tag">Paso 8</div>
                 <h2>Revision final y aprobacion</h2>
                 <p className="hint compact-top">Antes de guardar, revisa que el resultado, las pasadas y el factor final coincidan con lo que queda cargado en el controlador.</p>
+                <div className={`final-factor-panel compact-top ${eventBlockingIssues.length === 0 ? 'ready' : ''}`}>
+                  <div className="final-factor-copy">
+                    <span className="section-kicker">Cierre del controlador</span>
+                    <h3>Factor final de calibracion</h3>
+                    <p>Este es el valor que debe quedar cargado en el controlador al cerrar el evento.</p>
+                  </div>
+                  <div className="final-factor-entry">
+                    <Field label="Valor final cargado" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
+                    <div className="final-factor-meta">
+                      <span>{eventBlockingIssues.length === 0 ? 'Listo para guardar' : `${eventBlockingIssues.length} bloqueo(s)`}</span>
+                      <span>Responsable: {currentUser.username}</span>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid three compact-top">
                   <Metric label="Resultado material" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
                   <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
                   <Metric label="Ajuste aplicado" value={materialAdjustmentApplied ? 'Si' : 'No'} />
-                </div>
-                <div className="closure-approval-row">
-                  <Field label="Factor final" type="number" value={eventForm.finalFactor} onChange={(value) => setEventForm((current) => ({ ...current, finalFactor: value }))} />
-                  <div className="system-field approval-technician-field">
-                    <span>Responsable tecnico</span>
-                    <strong>{currentUser.username}</strong>
-                  </div>
-                </div>
-                <div className={`closure-callout compact-top ${eventBlockingIssues.length === 0 ? 'ready' : ''}`}>
-                  <div>
-                    <span className="section-kicker">Factor que queda en controlador</span>
-                    <strong>{eventForm.finalFactor || 'Pendiente'}</strong>
-                    <p>Confirmalo contra la pantalla del controlador antes de cerrar el evento.</p>
-                  </div>
-                  <span>{eventBlockingIssues.length === 0 ? 'Listo para guardar' : `${eventBlockingIssues.length} bloqueo(s)`}</span>
                 </div>
                 <div className="closure-review compact-top">
                   <span className="section-kicker">Revision de cierre</span>
