@@ -806,16 +806,23 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     h1 { font-size: 34px; line-height: 0.82; letter-spacing: -0.04em; }
     h2 { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 2px solid #ff5949; font-size: 16px; line-height: 0.9; letter-spacing: -0.015em; }
     .no-print { margin: 0 0 10px; min-height: 36px; padding: 0 14px; border: 1px solid #d94135; border-radius: 999px; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
-    .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
-    .header { display: grid; grid-template-columns: minmax(0, 1fr) 62mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: linear-gradient(135deg, #0c0b11 0%, #19171d 76%, #2c2527 100%); }
+    .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.05) 0 18%, transparent 18% 100%), repeating-linear-gradient(135deg, transparent 0 16px, rgba(12, 11, 17, 0.025) 16px 17px, transparent 17px 34px), #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
+    .header { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 62mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: linear-gradient(135deg, #0c0b11 0%, #19171d 72%, #2c2527 100%); }
+    .header::after { content: ''; position: absolute; inset: 0; opacity: 0.3; pointer-events: none; background: linear-gradient(115deg, transparent 0 54%, rgba(255, 89, 73, 0.65) 54% 57%, transparent 57% 100%), repeating-linear-gradient(115deg, transparent 0 12px, rgba(248, 246, 239, 0.08) 12px 13px, transparent 13px 28px); }
+    .header > * { position: relative; z-index: 1; }
+    .header h1,
+    .header span,
+    .header strong { color: #f8f6ef; }
     .header p { margin-top: 4px; color: rgba(248, 246, 239, 0.78); font-size: 10px; }
+    .equipment-title { max-width: 18ch; margin-top: 7px; color: #f8f6ef; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 23px; font-weight: 700; line-height: 0.88; letter-spacing: -0.025em; text-transform: uppercase; }
     .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; background: #ff5949; color: #0c0b11; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; }
+    .header .badge { color: #0c0b11; }
     .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
     .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .wide,
     .full { grid-column: 1 / -1; }
-    .panel { padding: 6px; border: 1px solid #d5cfc3; border-radius: 7px; background: #fffdf8; break-inside: avoid; }
-    .summary-strip { margin-bottom: 7px; padding: 7px; border: 1px solid #d5cfc3; border-radius: 7px; background: #fffdf8; }
+    .panel { padding: 6px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(135deg, rgba(255, 89, 73, 0.035), transparent 38%), #fffdf8; break-inside: avoid; }
+    .summary-strip { margin-bottom: 7px; padding: 7px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.08), transparent 46%), #fffdf8; }
     .summary-grid { display: grid; grid-template-columns: 1.2fr repeat(3, minmax(0, 0.8fr)); gap: 4px; }
     .summary-grid > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
@@ -855,7 +862,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       <div>
         <span>Reporte de calibracion</span>
         <h1>${reportValue(item.id)}</h1>
-        <p>${reportValue(equipmentLabel)}</p>
+        <p>Equipo / cinta</p>
+        <div class="equipment-title">${reportValue(equipmentLabel)}</div>
       </div>
       <div class="header-meta">
         <div><span>Resultado</span><strong>${reportValue(status)}</strong></div>
@@ -917,10 +925,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       <div class="panel">
         <h2>Inspeccion y cero</h2>
         <div class="checks">${inspectionChecks}</div>
-        <div class="grid compact">
-          ${reportRow('Valor cero', item.zeroCheck.beforeValue || '-')}
-          ${reportRow('Unidad', item.zeroCheck.displayUnit || '-')}
-        </div>
       </div>
 
       <div class="panel">
