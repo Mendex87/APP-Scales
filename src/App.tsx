@@ -829,8 +829,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     ${reportRow('Estructura OK', item.precheck.structureOk ? 'Si' : 'No')}
     ${reportRow('Sensor velocidad OK', item.precheck.speedSensorOk ? 'Si' : 'No')}
     ${reportRow('Cero realizado', item.zeroCheck.completed ? 'Si' : 'No')}
+    ${reportRow('Valor observado', item.zeroCheck.beforeValue || '-')}
     ${reportRow('Unidad cero', item.zeroCheck.displayUnit)}
-    ${reportRow('Cero ajustado', item.zeroCheck.adjusted ? 'Si' : 'No')}
   </div>
   <h2>Parametros y span</h2>
   <div class="grid">
@@ -1458,12 +1458,17 @@ function App() {
     [eventForm],
   )
 
-  const zeroDrift = useMemo(() => {
-    const before = toNumber(eventForm.zeroBeforeValue)
-    const after = toNumber(eventForm.zeroAfterValue)
-    if (!Number.isFinite(before) || !Number.isFinite(after)) return null
-    return after - before
-  }, [eventForm.zeroBeforeValue, eventForm.zeroAfterValue])
+  function markPrecheckAsPassed() {
+    setEventForm((current) => ({
+      ...current,
+      precheckBeltEmpty: true,
+      precheckBeltClean: true,
+      precheckNoMaterialBuildup: true,
+      precheckIdlersOk: true,
+      precheckStructureOk: true,
+      precheckSpeedSensorOk: true,
+    }))
+  }
 
   const equipmentBlockingIssues = useMemo(() => {
     const issues: string[] = []
@@ -2323,8 +2328,8 @@ function App() {
         completed: eventForm.zeroCompleted,
         displayUnit: eventForm.zeroDisplayUnit.trim(),
         beforeValue: eventForm.zeroBeforeValue.trim(),
-        afterValue: eventForm.zeroAfterValue.trim(),
-        adjusted: eventForm.zeroAdjusted,
+        afterValue: eventForm.zeroBeforeValue.trim(),
+        adjusted: false,
         notes: eventForm.zeroNotes.trim(),
       },
       parameterSnapshot: {
@@ -3435,7 +3440,12 @@ function App() {
               {calibrationStep === 1 && <CollapsibleCard title="Paso 2 · Inspeccion previa" hint="Checks obligatorios antes de calibrar." defaultOpen>
                 <div className="card-tag">Paso 2</div>
                 <h2>Inspeccion previa</h2>
-                <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
+                <div className="row wrap compact-top">
+                  <p className="hint">Obligatoria antes de calibrar. Si algo no cumple, primero hay que corregirlo.</p>
+                  <button className="secondary small" type="button" onClick={markPrecheckAsPassed} disabled={precheckPassed}>
+                    <ClipboardCheck className="action-icon" aria-hidden="true" />Marcar todo OK
+                  </button>
+                </div>
                 <div className="grid two">
                   <CheckField label="Banda vacia" checked={eventForm.precheckBeltEmpty} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltEmpty: checked }))} />
                   <CheckField label="Banda limpia" checked={eventForm.precheckBeltClean} onChange={(checked) => setEventForm((current) => ({ ...current, precheckBeltClean: checked }))} />
@@ -3448,13 +3458,13 @@ function App() {
                 <div className="result-row"><span>Estado inspeccion</span><strong>{precheckPassed ? 'Completa' : 'Incompleta'}</strong></div>
               </CollapsibleCard>}
 
-              {calibrationStep === 2 && <CollapsibleCard title="Paso 3 · Cero" hint="Registro de cero y deriva visible." defaultOpen>
+              {calibrationStep === 2 && <CollapsibleCard title="Paso 3 · Cero" hint="Registro del cero observado." defaultOpen>
                 <div className="card-tag">Paso 3</div>
                 <h2>Cero</h2>
-                <p className="hint">Siempre se realiza antes de calibrar. Si el controlador no muestra valor, registralo igual como completado y elegí la opcion correspondiente.</p>
+                <p className="hint">Siempre se realiza antes de calibrar. Marca cero realizado para poder avanzar y registra el valor observado con su unidad.</p>
                 <div className="grid two">
                   <CheckField label="Cero realizado" checked={eventForm.zeroCompleted} onChange={(checked) => setEventForm((current) => ({ ...current, zeroCompleted: checked }))} />
-                  <CheckField label="Cero ajustado" checked={eventForm.zeroAdjusted} onChange={(checked) => setEventForm((current) => ({ ...current, zeroAdjusted: checked }))} />
+                  <Field label="Valor observado" type="number" value={eventForm.zeroBeforeValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroBeforeValue: value }))} />
                   <div>
                     <label className="label">Unidad / referencia visible</label>
                     <select className="input" value={eventForm.zeroDisplayUnit} onChange={(e) => setEventForm((current) => ({ ...current, zeroDisplayUnit: e.target.value }))}>
@@ -3465,12 +3475,10 @@ function App() {
                       <option value="otro">Otro</option>
                     </select>
                   </div>
-                  <Field label="Valor antes del cero" value={eventForm.zeroBeforeValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroBeforeValue: value }))} />
-                  <Field label="Valor despues del cero" value={eventForm.zeroAfterValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroAfterValue: value }))} />
                 </div>
                 <div className="grid three compact-top">
+                  <Metric label="Valor observado" value={eventForm.zeroBeforeValue || '-'} />
                   <Metric label="Unidad" value={eventForm.zeroDisplayUnit || '-'} />
-                  <Metric label="Deriva" value={zeroDrift === null ? '-' : String(round(zeroDrift, 6))} />
                   <Metric label="Realizado" value={eventForm.zeroCompleted ? 'Si' : 'No'} />
                 </div>
                 <TextArea label="Observaciones de cero" value={eventForm.zeroNotes} onChange={(value) => setEventForm((current) => ({ ...current, zeroNotes: value }))} />
