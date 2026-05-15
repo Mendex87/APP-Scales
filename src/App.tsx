@@ -798,8 +798,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
     @page { size: A4 portrait; margin: 8mm; }
-    :root { color: #0c0b11; font-family: Inter, Arial, sans-serif; }
-    * { box-sizing: border-box; }
+    :root { color: #0c0b11; font-family: Inter, Arial, sans-serif; --report-dark-gradient: linear-gradient(115deg, transparent 0 54%, rgba(255, 89, 73, 0.65) 54% 57%, transparent 57% 100%), repeating-linear-gradient(115deg, transparent 0 12px, rgba(248, 246, 239, 0.08) 12px 13px, transparent 13px 28px), linear-gradient(135deg, #0c0b11 0%, #19171d 72%, #2c2527 100%); }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { margin: 0; padding: 14px; background: #ece9e1; }
     h1, h2, p { margin: 0; }
     h1, h2, .badge, span, strong, th { font-family: "Barlow Condensed", Inter, sans-serif; text-transform: uppercase; }
@@ -807,9 +807,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     h2 { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 2px solid #ff5949; font-size: 16px; line-height: 0.9; letter-spacing: -0.015em; }
     .no-print { margin: 0 0 10px; min-height: 36px; padding: 0 14px; border: 1px solid #d94135; border-radius: 999px; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
     .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.05) 0 18%, transparent 18% 100%), repeating-linear-gradient(135deg, transparent 0 16px, rgba(12, 11, 17, 0.025) 16px 17px, transparent 17px 34px), #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
-    .header { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 62mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: linear-gradient(135deg, #0c0b11 0%, #19171d 72%, #2c2527 100%); }
-    .header::after { content: ''; position: absolute; inset: 0; opacity: 0.3; pointer-events: none; background: linear-gradient(115deg, transparent 0 54%, rgba(255, 89, 73, 0.65) 54% 57%, transparent 57% 100%), repeating-linear-gradient(115deg, transparent 0 12px, rgba(248, 246, 239, 0.08) 12px 13px, transparent 13px 28px); }
-    .header > * { position: relative; z-index: 1; }
+    .header { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 62mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: var(--report-dark-gradient); background-clip: padding-box; }
     .header h1,
     .header span,
     .header strong { color: #f8f6ef; }
@@ -835,7 +833,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .weight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
     .weight-card { min-height: 56px; padding: 8px; border: 1px solid #d5cfc3; border-left: 6px solid #ff5949; border-radius: 7px; background: #faf8f2; }
     .weight-card strong { font-size: 24px; line-height: 0.88; letter-spacing: -0.035em; }
-    .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: #0c0b11; }
+    .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: var(--report-dark-gradient); background-clip: padding-box; }
     .weight-card.main span,
     .weight-card.main strong { color: #f8f6ef; }
     .weight-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
@@ -846,7 +844,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .check.alert { border-color: rgba(196, 59, 48, 0.35); background: rgba(196, 59, 48, 0.1); }
     table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 6px; background: #fffdf8; }
     th, td { padding: 4px 5px; border: 1px solid #d8d2c8; text-align: left; font-size: 9.6px; vertical-align: top; }
-    th { background: #0c0b11; color: #f8f6ef; font-size: 8.5px; letter-spacing: 0.05em; }
+    th { background: var(--report-dark-gradient); color: #f8f6ef; font-size: 8.5px; letter-spacing: 0.05em; }
     .notes-grid { display: grid; grid-template-columns: 1fr 0.72fr; gap: 6px; align-items: stretch; }
     .notes { min-height: 46px; padding: 6px; border: 1px solid #d8d2c8; border-left: 4px solid #ff5949; border-radius: 6px; background: #fffdf8; font-size: 9px; line-height: 1.14; white-space: pre-wrap; overflow-wrap: anywhere; }
     .signature { display: grid; align-content: end; min-height: 58px; padding: 7px; border: 1px solid #0c0b11; border-radius: 6px; background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(255, 89, 73, 0.08) 9px 10px), #fffdf8; }
@@ -1332,26 +1330,24 @@ function App() {
       didMountScrollRef.current = true
       return
     }
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const isMobile = window.matchMedia('(max-width: 640px)').matches
-    window.requestAnimationFrame(() => {
-      if (isMobile && screen !== 'nueva') {
-        const target = document.querySelector('#main-content .screen-banner') || document.querySelector('#main-content .screen-shell')
-        target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
-        return
-      }
+    if (!isMobile || screen === 'nueva') return
 
-      window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.requestAnimationFrame(() => {
+      const target = document.querySelector('#main-content .screen-banner') || document.querySelector('#main-content .screen-shell')
+      target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
     })
   }, [screen, currentUser])
 
   useEffect(() => {
     if (screen !== 'nueva') return
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const isMobile = window.matchMedia('(max-width: 640px)').matches
+    if (!isMobile) return
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.requestAnimationFrame(() => {
-      const target = isMobile ? calibrationStepAnchorRef.current : document.querySelector('.wizard-panel')
-      target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
+      calibrationStepAnchorRef.current?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
     })
   }, [screen, calibrationStep])
 
@@ -2220,7 +2216,18 @@ function App() {
       notes: item.notes,
     })
     setScreen('balanzas')
-    window.setTimeout(() => equipmentFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+    window.setTimeout(() => {
+      const target = equipmentFormRef.current
+      if (!target) return
+
+      const isMobile = window.matchMedia('(max-width: 640px)').matches
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const rect = target.getBoundingClientRect()
+      const isVisible = rect.top >= 80 && rect.bottom <= window.innerHeight
+      if (!isMobile && isVisible) return
+
+      target.scrollIntoView({ behavior: reduceMotion || !isMobile ? 'auto' : 'smooth', block: isMobile ? 'start' : 'nearest' })
+    }, 0)
   }
 
   function resetEquipmentForm() {
