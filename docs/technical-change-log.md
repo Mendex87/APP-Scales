@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-13 - v3.0.14 - Cierre automatico de sesion por inactividad
+
+- Contexto: se requiere que las sesiones no queden abiertas indefinidamente en dispositivos de campo o navegadores compartidos.
+- Decision: cerrar la sesion autenticada tras 30 minutos sin actividad local de teclado, click, toque, scroll o foco.
+- Cambio app: se agrega `calibracinta:session-last-activity` en `localStorage` para persistir la ultima actividad y evitar que un refresh reinicie artificialmente el plazo.
+- Auditoria: el vencimiento reutiliza `handleLogout`, por lo que actualiza `logout_at`, limpia claves locales y vuelve al login con un aviso de cierre automatico.
+- Verificacion requerida: correr `npm run build`, iniciar sesion, forzar `calibracinta:session-last-activity` a mas de 30 minutos y confirmar logout + cierre en `Usuarios > Sesiones`.
+
 ## 2026-05-11 - v3.0.13 - Selector metrico/imperial de interfaz
 
 - Contexto: algunos equipos trabajan referencias en imperial, pero los datos existentes y el esquema ya estan modelados como metricos (`mm`, `m`, `kg`, `kg/m`, `t/h`, `m/s`).
