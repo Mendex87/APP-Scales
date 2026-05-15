@@ -2432,7 +2432,10 @@ function App() {
     if (eventSaveInFlightRef.current) return
 
     setEventSubmitAttempted(true)
-    if (eventBlockingIssues.length > 0) return
+    if (eventBlockingIssues.length > 0) {
+      goToCalibrationStep(eventBlockingIssues[0].step)
+      return
+    }
     if (!selectedEquipment) return
 
     const factorBeforeAdjustment = materialFactorBefore
@@ -3481,75 +3484,74 @@ function App() {
             </div>
             <div ref={calibrationStepAnchorRef} className="calibration-step-anchor" aria-hidden="true" />
 
-            {calibrationStep === 0 && <>
-            <div className="card">
-              <label className="label">Balanza</label>
-              <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)}>
-                <option value="">Seleccionar balanza</option>
-                {equipment.map((item) => (
-                  <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
-                ))}
-              </select>
-              {selectedEquipment && (
-                <div className="selected-equipment-visual compact-top">
-                  <EquipmentPhoto
-                    photoUrl={getEquipmentPhotoUrl(selectedEquipment.photoPath)}
-                    label={selectedEquipment.scaleName}
-                    status={selectedEquipmentMaintenance?.label || selectedEquipmentStatus}
-                    onOpen={() => openEquipmentPhoto(selectedEquipment)}
-                  />
-                  <div className="grid four">
-                    <Metric label="Puente" value={measureText(selectedEquipment.bridgeLengthM, 'lengthM')} />
-                    <Metric label="Velocidad" value={measureText(selectedEquipment.nominalSpeedMs, 'speedMs')} />
-                    <Metric label="Capacidad" value={measureText(selectedEquipment.nominalCapacityTph, 'flowTph')} />
-                    <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
-                    <Metric label="Frecuencia control" value={`${selectedEquipment.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
-                    <Metric label="Dias restantes" value={selectedEquipmentMaintenance?.daysText || '-'} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="card">
-              <label className="label">Cadena usada</label>
-              <select
-                className="input"
-                value={selectedChainId}
-                onChange={(e) => {
-                  const nextId = e.target.value
-                  setSelectedChainId(nextId)
-                  const chain = chains.find((item) => item.id === nextId)
-                  if (!chain) {
-                    setEventForm((current) => ({ ...current, chainId: '', chainName: '', chainLinearKgM: '' }))
-                    return
-                  }
-                  applySelectedChainToEvent(chain)
-                }}
-              >
-                <option value="">Seleccionar cadena</option>
-                {availableChains.map((item) => (
-                  <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
-                ))}
-              </select>
-              {usingAllChainsFallback && <p className="hint compact-top">No hay cadenas para esta planta. Se muestran todas las disponibles.</p>}
-              {selectedChain && (
-                <div className="grid three compact-top">
-                  <Metric label="Cadena" value={selectedChain.name} />
-                  <Metric label={measureUnit('linearWeightKgM')} value={measureNumber(selectedChain.linearWeightKgM, 'linearWeightKgM', 6)} />
-                  <Metric label="Peso total" value={measureText(selectedChain.totalWeightKg, 'weightKg')} />
-                </div>
-              )}
-            </div>
-            </>}
-
             <form className="stack" onSubmit={handleEventSubmit} aria-busy={eventSaving}>
-              {calibrationStep === 0 && <div className="card">
+              {calibrationStep === 0 && <div className="card operational-context-card">
                 <div className="card-tag">Paso 1</div>
-                <h2>Eleccion de balanza/cinta</h2>
+                <h2>Contexto operativo</h2>
+                <p className="hint compact-top">Elegí la balanza, confirmá la cadena disponible y dejá fecha/tolerancia listas antes de iniciar los controles.</p>
                 <div className="grid two">
+                  <div>
+                    <label className="label">Balanza</label>
+                    <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)} disabled={eventSaving}>
+                      <option value="">Seleccionar balanza</option>
+                      {equipment.map((item) => (
+                        <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Cadena usada</label>
+                    <select
+                      className="input"
+                      value={selectedChainId}
+                      onChange={(e) => {
+                        const nextId = e.target.value
+                        setSelectedChainId(nextId)
+                        const chain = chains.find((item) => item.id === nextId)
+                        if (!chain) {
+                          setEventForm((current) => ({ ...current, chainId: '', chainName: '', chainLinearKgM: '' }))
+                          return
+                        }
+                        applySelectedChainToEvent(chain)
+                      }}
+                      disabled={eventSaving}
+                    >
+                      <option value="">Seleccionar cadena</option>
+                      {availableChains.map((item) => (
+                        <option key={item.id} value={item.id}>{item.plant} / {item.name}</option>
+                      ))}
+                    </select>
+                    {!requiresFullCalibration && <p className="hint compact-top">En control preventivo no es obligatoria para cerrar, pero queda disponible como referencia.</p>}
+                    {usingAllChainsFallback && <p className="hint compact-top">No hay cadenas para esta planta. Se muestran todas las disponibles.</p>}
+                  </div>
                   <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role !== 'admin' ? 'Fecha automatica al guardar' : undefined} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
+                {selectedEquipment && (
+                  <div className="selected-equipment-visual compact-top">
+                    <EquipmentPhoto
+                      photoUrl={getEquipmentPhotoUrl(selectedEquipment.photoPath)}
+                      label={selectedEquipment.scaleName}
+                      status={selectedEquipmentMaintenance?.label || selectedEquipmentStatus}
+                      onOpen={() => openEquipmentPhoto(selectedEquipment)}
+                    />
+                    <div className="grid four">
+                      <Metric label="Puente" value={measureText(selectedEquipment.bridgeLengthM, 'lengthM')} />
+                      <Metric label="Velocidad" value={measureText(selectedEquipment.nominalSpeedMs, 'speedMs')} />
+                      <Metric label="Capacidad" value={measureText(selectedEquipment.nominalCapacityTph, 'flowTph')} />
+                      <Metric label="Origen velocidad" value={selectedEquipment.speedSource} />
+                      <Metric label="Frecuencia control" value={`${selectedEquipment.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
+                      <Metric label="Dias restantes" value={selectedEquipmentMaintenance?.daysText || '-'} />
+                    </div>
+                  </div>
+                )}
+                {selectedChain && (
+                  <div className="grid three compact-top">
+                    <Metric label="Cadena" value={selectedChain.name} />
+                    <Metric label={measureUnit('linearWeightKgM')} value={measureNumber(selectedChain.linearWeightKgM, 'linearWeightKgM', 6)} />
+                    <Metric label="Peso total" value={measureText(selectedChain.totalWeightKg, 'weightKg')} />
+                  </div>
+                )}
               </div>}
 
               {calibrationStep === 1 && <CollapsibleCard title="Paso 2 · Inspeccion previa" hint="Checks obligatorios antes de calibrar." defaultOpen>
@@ -3667,9 +3669,28 @@ function App() {
                 <h2>Validacion con material real</h2>
                 <p className="hint">Registrá la primera pasada como control. Si queda fuera de tolerancia, ajustá el factor en el controlador y agregá una verificacion post-ajuste.</p>
                 {!requiresFullCalibration && <p className="hint">Esta balanza ya tiene calibracion previa: podés cerrar el evento como control preventivo solo con material real, sin repetir cadena ni acumulado.</p>}
+                <div className="material-flow-guide compact-top">
+                  <div>
+                    <span>1</span>
+                    <strong>Control inicial</strong>
+                    <p>Primera comparacion contra peso externo. Si queda dentro de tolerancia y no tocás el factor, esta pasada alcanza.</p>
+                  </div>
+                  <div>
+                    <span>2</span>
+                    <strong>Ajuste</strong>
+                    <p>Si corregís el factor del controlador, cargá ese factor como final y prepará una pasada posterior.</p>
+                  </div>
+                  <div>
+                    <span>3</span>
+                    <strong>Verificacion</strong>
+                    <p>La pasada post-ajuste confirma que el cambio quedó dentro de tolerancia antes de guardar.</p>
+                  </div>
+                </div>
                 {[1, 2, 3].slice(0, materialPassCount).map((passNumber) => {
                   const prefix = `materialPass${passNumber}` as 'materialPass1' | 'materialPass2' | 'materialPass3'
                   const pass = materialPasses[passNumber - 1]
+                  const passComplete = Boolean(pass.externalWeightKg && pass.beltWeightKg)
+                  const passWithinTolerance = passComplete && Math.abs(pass.errorPct) <= toNumber(eventForm.tolerancePercent || 1)
                   return (
                     <div className="material-pass-card" key={passNumber}>
                       <div className="row wrap">
@@ -3677,10 +3698,15 @@ function App() {
                           <span className="section-kicker">{passNumber === 1 ? 'Control inicial' : 'Verificacion post-ajuste'}</span>
                           <h3>Pasada {passNumber}</h3>
                         </div>
-                        <strong className={Math.abs(pass.errorPct) <= toNumber(eventForm.tolerancePercent || 1) && pass.externalWeightKg && pass.beltWeightKg ? 'status-pill success' : 'status-pill'}>
+                        <strong className={passWithinTolerance ? 'status-pill success' : 'status-pill'}>
                           {pass.externalWeightKg && pass.beltWeightKg ? `${round(pass.errorPct)} %` : 'Pendiente'}
                         </strong>
                       </div>
+                      <p className="hint compact-top">
+                        {passNumber === 1
+                          ? 'Usala como referencia inicial. Si no hay ajuste y el error cumple tolerancia, no hace falta agregar otra pasada.'
+                          : 'Usala despues de modificar el factor del controlador; registrá el factor realmente usado en esta verificacion.'}
+                      </p>
                       <div className="grid two compact-top">
                         <Field label={measureLabel('Peso balanza certificada', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
                         <Field label={measureLabel('Peso indicado controlador', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
@@ -3690,6 +3716,24 @@ function App() {
                     </div>
                   )
                 })}
+                {finalMaterialPass && Math.abs(materialErrorPct) <= toNumber(eventForm.tolerancePercent || 1) && !materialAdjustmentApplied && (
+                  <div className="material-next-step success compact-top">
+                    <strong>Una pasada alcanza</strong>
+                    <p>El control inicial queda dentro de tolerancia y no se registró ajuste de factor. Podés pasar al cierre sin agregar verificacion post-ajuste.</p>
+                  </div>
+                )}
+                {finalMaterialPass && Math.abs(materialErrorPct) > toNumber(eventForm.tolerancePercent || 1) && (
+                  <div className="material-next-step warning compact-top">
+                    <strong>Fuera de tolerancia</strong>
+                    <p>Si vas a corregir el factor, agregá una verificacion post-ajuste. Si no se corrige, el evento cerrará como fuera de tolerancia.</p>
+                  </div>
+                )}
+                {materialAdjustmentApplied && completeMaterialPasses.length < 2 && (
+                  <div className="material-next-step warning compact-top">
+                    <strong>Falta verificar el ajuste</strong>
+                    <p>Hay un cambio de factor registrado. Agregá una pasada post-ajuste para confirmar el resultado antes de cerrar.</p>
+                  </div>
+                )}
                 <div className="row wrap compact-top">
                   {materialPassCount < 3 && <button className="secondary" type="button" onClick={() => setMaterialPassCount((current) => Math.min(current + 1, 3))}>Agregar verificacion post-ajuste</button>}
                   {materialPassCount > 1 && <button className="secondary danger" type="button" onClick={() => setMaterialPassCount((current) => Math.max(current - 1, 1))}>Quitar ultima pasada</button>}

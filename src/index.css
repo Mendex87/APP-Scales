@@ -766,6 +766,65 @@ body::before {
   min-width: 12rem;
 }
 
+.material-flow-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.material-flow-guide > div,
+.material-next-step {
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.material-flow-guide span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  margin-bottom: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-weight: 700;
+}
+
+.material-flow-guide strong,
+.material-next-step strong {
+  display: block;
+  color: var(--color-grey-500);
+}
+
+.material-flow-guide p,
+.material-next-step p {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+}
+
+.material-next-step.success {
+  border-color: rgba(31, 143, 95, 0.38);
+  background: var(--state-success-bg);
+}
+
+.material-next-step.success strong,
+.material-next-step.success p {
+  color: var(--state-success-text);
+}
+
+.material-next-step.warning {
+  border-color: rgba(201, 133, 0, 0.35);
+  background: var(--state-warning-bg);
+}
+
+.material-next-step.warning strong,
+.material-next-step.warning p {
+  color: var(--state-warning-text);
+}
+
 .material-pass-card {
   margin-top: 0.85rem;
   padding: 0.95rem;
@@ -3202,6 +3261,10 @@ body::before {
 
   .wizard-context,
   .history-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .material-flow-guide {
     grid-template-columns: 1fr;
   }
 
