@@ -331,6 +331,11 @@ type EventDraft = {
   savedAt: string
 }
 
+type EventBlockingIssue = {
+  message: string
+  step: number
+}
+
 function outcomeLabel(outcome?: MaterialOutcome) {
   if (outcome === 'control_conforme') return 'Control conforme'
   if (outcome === 'calibrada_ajustada') return 'Calibrada'
@@ -1579,24 +1584,27 @@ function App() {
   }, [chainForm])
 
   const eventBlockingIssues = useMemo(() => {
-    const issues: string[] = []
-    if (!selectedEquipment) issues.push('Seleccioná una balanza.')
-    if (!precheckPassed) issues.push('Completá toda la inspeccion previa.')
-    if (!eventForm.zeroCompleted) issues.push('Debés registrar el cero antes de calibrar.')
-    if (!currentUser?.username.trim()) issues.push('Falta usuario responsable logueado.')
+    const issues: EventBlockingIssue[] = []
+    const addIssue = (message: string, step: number) => issues.push({ message, step })
+    if (!selectedEquipment) addIssue('Seleccioná una balanza.', 0)
+    if (!precheckPassed) addIssue('Completá toda la inspeccion previa.', 1)
+    if (!eventForm.zeroCompleted) addIssue('Debés registrar el cero antes de calibrar.', 2)
+    if (!currentUser?.username.trim()) addIssue('Falta usuario responsable logueado.', 7)
     if (requiresFullCalibration) {
-      if (!(toNumber(eventForm.chainLinearKgM) > 0)) issues.push('Falta el peso lineal de cadena.')
-      if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
-      if (!(toNumber(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal leido.')
-      if (!(toNumber(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
-      if (!(toNumber(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
+      if (!(toNumber(eventForm.chainLinearKgM) > 0)) addIssue('Falta el peso lineal de cadena.', 4)
+      if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) addIssue('Falta el promedio de lectura del controlador.', 4)
+      if (!(toNumber(eventForm.expectedFlowTph) > 0)) addIssue('Falta el caudal leido.', 5)
+      if (!(toNumber(eventForm.accumulatedTestMinutes) > 0)) addIssue('Falta el tiempo de prueba.', 5)
+      if (!(toNumber(eventForm.accumulatedIndicatedTotal) > 0)) addIssue('Falta el acumulado indicado.', 5)
     }
-    if (!finalMaterialPass) issues.push('Falta una pasada completa con material real.')
-    if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) issues.push('Falta el factor usado en una verificacion post-ajuste.')
-    if (materialAdjustmentApplied && completeMaterialPasses.length < 2) issues.push('Si se ajusta el factor, falta una pasada posterior de verificacion.')
-    if (!(toNumber(eventForm.finalFactor) > 0)) issues.push('Falta el factor de calibracion final.')
+    if (!finalMaterialPass) addIssue('Falta una pasada completa con material real.', 6)
+    if (completeMaterialPasses.some((pass) => pass.index > 1 && !(pass.factorUsed > 0))) addIssue('Falta el factor usado en una verificacion post-ajuste.', 6)
+    if (materialAdjustmentApplied && completeMaterialPasses.length < 2) addIssue('Si se ajusta el factor, falta una pasada posterior de verificacion.', 6)
+    if (!(toNumber(eventForm.finalFactor) > 0)) addIssue('Falta el factor de calibracion final.', 7)
     return issues
   }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialFactorBefore, precheckPassed, requiresFullCalibration, selectedEquipment, suggestedFactor])
+
+  const firstBlockingIssue = eventBlockingIssues[0]
 
   const calibrationStepStates = useMemo(() => {
     const fullCalibrationReady = !requiresFullCalibration || (
@@ -1617,8 +1625,10 @@ function App() {
         Boolean(finalMaterialPass),
         eventBlockingIssues.length === 0,
       ][index]
+      const skipped = !requiresFullCalibration && (index === 4 || index === 5)
       const warning = index === 4 || index === 5 ? requiresFullCalibration && !fullCalibrationReady : false
-      return { step, complete, warning }
+      const statusLabel = skipped ? 'No requerido' : complete ? 'Completo' : warning ? 'Requiere atencion' : 'Pendiente'
+      return { step, complete, warning, skipped, statusLabel }
     })
   }, [eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
@@ -1631,7 +1641,7 @@ function App() {
     !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga peso lineal de cadena y promedio del controlador.',
     !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal leido, tiempo y acumulado indicado.',
     finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
-    eventBlockingIssues.length === 0 ? 'Evento listo para guardar con factor final confirmado.' : eventBlockingIssues[0],
+    eventBlockingIssues.length === 0 ? 'Evento listo para guardar con factor final confirmado.' : eventBlockingIssues[0]?.message,
   ][calibrationStep]
 
   const rpmToolResult = useMemo(() => {
@@ -1884,6 +1894,10 @@ function App() {
       resetEventForm()
       setSyncNotice('Borrador local descartado. Formulario reiniciado.')
     }
+  }
+
+  function goToCalibrationStep(step: number) {
+    setCalibrationStep(Math.min(Math.max(step, 0), calibrationSteps.length - 1))
   }
 
   function goToPreviousCalibrationStep() {
@@ -3424,19 +3438,19 @@ function App() {
                 <span style={{ width: `${((calibrationStep + 1) / calibrationSteps.length) * 100}%` }} />
               </div>
               <div className="wizard-steps" aria-label="Progreso de calibracion">
-                {calibrationStepStates.map(({ step, complete, warning }, index) => (
+                {calibrationStepStates.map(({ step, complete, warning, skipped, statusLabel }, index) => (
                   <button
-                    className={`wizard-step ${index === calibrationStep ? 'active' : complete ? 'complete' : warning ? 'warning' : ''}`}
+                    className={`wizard-step ${index === calibrationStep ? 'active' : skipped ? 'skipped' : complete ? 'complete' : warning ? 'warning' : ''}`}
                     key={step}
                     type="button"
-                    onClick={() => setCalibrationStep(index)}
+                    onClick={() => goToCalibrationStep(index)}
                     disabled={eventSaving}
                     aria-current={index === calibrationStep ? 'step' : undefined}
-                    title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
+                    title={statusLabel}
                   >
                     <span>{index + 1}</span>
                     {step}
-                    <small>{complete ? 'Completo' : warning ? 'Advertencia' : 'Pendiente'}</small>
+                    <small>{statusLabel}</small>
                   </button>
                 ))}
               </div>
@@ -3458,6 +3472,11 @@ function App() {
                   <span style={{ width: `${wizardReadinessPercent}%` }} />
                 </div>
                 <small>{eventBlockingIssues.length === 0 ? 'Sin bloqueos de cierre.' : `${eventBlockingIssues.length} bloqueo(s) antes de cerrar.`}</small>
+                {firstBlockingIssue && (
+                  <button className="secondary small guidance-jump" type="button" onClick={() => goToCalibrationStep(firstBlockingIssue.step)} disabled={eventSaving}>
+                    Ir al primer bloqueo · Paso {firstBlockingIssue.step + 1}
+                  </button>
+                )}
               </div>
             </div>
             <div ref={calibrationStepAnchorRef} className="calibration-step-anchor" aria-hidden="true" />
@@ -3685,7 +3704,8 @@ function App() {
 
               {calibrationStep === 7 && <div className="card">
                 <div className="card-tag">Paso 8</div>
-                <h2>Ajuste final y aprobacion</h2>
+                <h2>Revision final y aprobacion</h2>
+                <p className="hint compact-top">Antes de guardar, revisa que el resultado, las pasadas y el factor final coincidan con lo que queda cargado en el controlador.</p>
                 <div className="grid three compact-top">
                   <Metric label="Resultado material" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
                   <Metric label="Error final" value={finalMaterialPass ? `${round(materialErrorPct)} %` : '-'} />
@@ -3698,9 +3718,16 @@ function App() {
                     <strong>{currentUser.username}</strong>
                   </div>
                 </div>
-                <p className="hint compact-top">El factor final es obligatorio: debe coincidir con el factor que queda cargado en el controlador al cerrar el evento.</p>
-                <div className="pre-report compact-top">
-                  <span className="section-kicker">Pre-reporte</span>
+                <div className={`closure-callout compact-top ${eventBlockingIssues.length === 0 ? 'ready' : ''}`}>
+                  <div>
+                    <span className="section-kicker">Factor que queda en controlador</span>
+                    <strong>{eventForm.finalFactor || 'Pendiente'}</strong>
+                    <p>Confirmalo contra la pantalla del controlador antes de cerrar el evento.</p>
+                  </div>
+                  <span>{eventBlockingIssues.length === 0 ? 'Listo para guardar' : `${eventBlockingIssues.length} bloqueo(s)`}</span>
+                </div>
+                <div className="closure-review compact-top">
+                  <span className="section-kicker">Revision de cierre</span>
                   <div className="grid four compact-top">
                     <Metric label="Equipo" value={selectedEquipment ? `${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}` : '-'} />
                     <Metric label="Resultado" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
@@ -3710,12 +3737,12 @@ function App() {
                   <div className="grid four compact-top">
                     <Metric label="Cero" value={eventForm.zeroCompleted ? 'Registrado' : 'Pendiente'} />
                     <Metric label="Factor" value={eventForm.calibrationFactor ? String(eventForm.calibrationFactor) : '-'} />
-                    <Metric label="Cadena" value={eventForm.chainLinearKgM ? measureText(toNumber(eventForm.chainLinearKgM), 'linearWeightKgM') : '-'} />
-                    <Metric label="Caudal" value={eventForm.expectedFlowTph ? measureText(toNumber(eventForm.expectedFlowTph), 'flowTph') : '-'} />
+                    <Metric label="Cadena" value={!requiresFullCalibration ? 'No requerida' : eventForm.chainLinearKgM ? measureText(toNumber(eventForm.chainLinearKgM), 'linearWeightKgM') : '-'} />
+                    <Metric label="Caudal" value={!requiresFullCalibration ? 'No requerido' : eventForm.expectedFlowTph ? measureText(toNumber(eventForm.expectedFlowTph), 'flowTph') : '-'} />
                   </div>
                   <div className="grid four compact-top">
-                    <Metric label="Acum. tiempo" value={eventForm.accumulatedTestMinutes ? `${eventForm.accumulatedTestMinutes} min` : '-'} />
-                    <Metric label="Acum. indicado" value={eventForm.accumulatedIndicatedTotal ? measureText(toNumber(eventForm.accumulatedIndicatedTotal), 'massT') : '-'} />
+                    <Metric label="Acum. tiempo" value={!requiresFullCalibration ? 'No requerido' : eventForm.accumulatedTestMinutes ? `${eventForm.accumulatedTestMinutes} min` : '-'} />
+                    <Metric label="Acum. indicado" value={!requiresFullCalibration ? 'No requerido' : eventForm.accumulatedIndicatedTotal ? measureText(toNumber(eventForm.accumulatedIndicatedTotal), 'massT') : '-'} />
                     <Metric label="Factor final" value={eventForm.finalFactor ? String(eventForm.finalFactor) : '-'} />
                     <Metric label="Responsable" value={currentUser.username} />
                   </div>
@@ -3725,7 +3752,7 @@ function App() {
                         <Metric
                           key={pass.index}
                           label={`Pasada ${i + 1}`}
-                          value={pass.factorUsed ? `Ext: ${measureText(pass.externalWeightKg, 'weightKg')} | Factor: ${pass.factorUsed}` : '-'}
+                          value={pass.factorUsed ? `Ext: ${measureText(pass.externalWeightKg, 'weightKg')} | Ctrl: ${measureText(pass.beltWeightKg, 'weightKg')} | Error: ${round(pass.errorPct)} % | Factor: ${pass.factorUsed}` : '-'}
                         />
                       ))}
                     </div>
@@ -3747,7 +3774,7 @@ function App() {
                     <strong>Faltan datos obligatorios para cerrar el evento</strong>
                     <ul>
                       {eventBlockingIssues.map((issue) => (
-                        <li key={issue}>{issue}</li>
+                        <li key={issue.message}>{issue.message}</li>
                       ))}
                     </ul>
                   </div>
