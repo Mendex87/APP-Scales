@@ -777,6 +777,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       </tr>`,
     )
     .join('')
+  const finalExternalWeight = materialSummary.finalPass?.externalWeightKg ?? item.materialValidation.externalWeightKg
+  const finalBeltWeight = materialSummary.finalPass?.beltWeightKg ?? item.materialValidation.beltWeightKg
+  const finalWeightDiff = finalBeltWeight - finalExternalWeight
   const inspectionChecks = [
     reportCheck('Banda vacia', item.precheck.beltEmpty),
     reportCheck('Banda limpia', item.precheck.beltClean),
@@ -794,42 +797,51 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   <title>Reporte ${reportValue(item.id)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
-    @page { size: A4 landscape; margin: 7mm; }
+    @page { size: A4 portrait; margin: 8mm; }
     :root { color: #0c0b11; font-family: Inter, Arial, sans-serif; }
     * { box-sizing: border-box; }
     body { margin: 0; padding: 14px; background: #ece9e1; }
     h1, h2, p { margin: 0; }
     h1, h2, .badge, span, strong, th { font-family: "Barlow Condensed", Inter, sans-serif; text-transform: uppercase; }
-    h1 { font-size: 42px; line-height: 0.82; letter-spacing: -0.04em; }
-    h2 { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #ff5949; font-size: 17px; line-height: 0.9; letter-spacing: -0.015em; }
+    h1 { font-size: 34px; line-height: 0.82; letter-spacing: -0.04em; }
+    h2 { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 2px solid #ff5949; font-size: 16px; line-height: 0.9; letter-spacing: -0.015em; }
     .no-print { margin: 0 0 10px; min-height: 36px; padding: 0 14px; border: 1px solid #d94135; border-radius: 999px; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
-    .sheet { width: min(100%, 282mm); min-height: 195mm; margin: 0 auto; padding: 9mm; border: 1px solid #c9c3b8; border-radius: 8px; background: #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
-    .header { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(250px, 0.9fr); gap: 12px; margin-bottom: 10px; padding: 14px; color: #f8f6ef; border-radius: 7px; background: linear-gradient(135deg, #0c0b11 0%, #19171d 76%, #2c2527 100%); }
-    .header p { margin-top: 5px; color: rgba(248, 246, 239, 0.78); font-size: 11px; }
-    .badge { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: 999px; background: #ff5949; color: #0c0b11; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; }
-    .header-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; align-content: start; }
-    .layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .wide { grid-column: span 2; }
+    .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
+    .header { display: grid; grid-template-columns: minmax(0, 1fr) 62mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: linear-gradient(135deg, #0c0b11 0%, #19171d 76%, #2c2527 100%); }
+    .header p { margin-top: 4px; color: rgba(248, 246, 239, 0.78); font-size: 10px; }
+    .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; background: #ff5949; color: #0c0b11; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; }
+    .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
+    .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .wide,
     .full { grid-column: 1 / -1; }
-    .panel { padding: 8px; border: 1px solid #d5cfc3; border-radius: 7px; background: #fffdf8; break-inside: avoid; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+    .panel { padding: 6px; border: 1px solid #d5cfc3; border-radius: 7px; background: #fffdf8; break-inside: avoid; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .grid div, .tile { min-height: 36px; padding: 6px 7px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
-    span { display: block; color: #6f6a68; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
-    strong { display: block; margin-top: 2px; color: #0c0b11; font-size: 15px; line-height: 0.94; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .grid div, .tile { min-height: 31px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
+    span { display: block; color: #6f6a68; font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; }
+    strong { display: block; margin-top: 1px; color: #0c0b11; font-size: 13.5px; line-height: 0.94; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+    .weight-focus { margin-bottom: 7px; padding: 8px; border: 2px solid #0c0b11; border-radius: 8px; background: linear-gradient(120deg, rgba(255, 89, 73, 0.12), transparent 42%), #fffdf8; }
+    .weight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .weight-card { min-height: 56px; padding: 8px; border: 1px solid #d5cfc3; border-left: 6px solid #ff5949; border-radius: 7px; background: #faf8f2; }
+    .weight-card strong { font-size: 24px; line-height: 0.88; letter-spacing: -0.035em; }
+    .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: #0c0b11; }
+    .weight-card.main span,
+    .weight-card.main strong { color: #f8f6ef; }
+    .weight-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
+    .weight-strip > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
     .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-    .check { min-height: 22px; padding: 5px 6px; border: 1px solid #dfd9ce; border-radius: 999px; background: #f7f4ed; color: #252226; font-size: 9.5px; line-height: 1; }
+    .check { min-height: 20px; padding: 4px 5px; border: 1px solid #dfd9ce; border-radius: 999px; background: #f7f4ed; color: #252226; font-size: 8.5px; line-height: 1; }
     .check.ok { border-color: rgba(31, 143, 95, 0.38); background: rgba(31, 143, 95, 0.1); }
     .check.alert { border-color: rgba(196, 59, 48, 0.35); background: rgba(196, 59, 48, 0.1); }
     table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 6px; background: #fffdf8; }
-    th, td { padding: 5px 6px; border: 1px solid #d8d2c8; text-align: left; font-size: 10.5px; vertical-align: top; }
-    th { background: #0c0b11; color: #f8f6ef; font-size: 9px; letter-spacing: 0.05em; }
-    .notes-grid { display: grid; grid-template-columns: 1fr 1fr 0.9fr; gap: 8px; align-items: stretch; }
-    .notes { min-height: 58px; padding: 7px; border: 1px solid #d8d2c8; border-left: 4px solid #ff5949; border-radius: 6px; background: #fffdf8; font-size: 10px; line-height: 1.18; white-space: pre-wrap; overflow-wrap: anywhere; }
-    .signature { display: grid; align-content: end; min-height: 72px; padding: 8px; border: 1px solid #0c0b11; border-radius: 6px; background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(255, 89, 73, 0.08) 9px 10px), #fffdf8; }
-    .signature-line { height: 1px; margin-top: 28px; background: #0c0b11; }
-    .signature strong { font-size: 14px; }
+    th, td { padding: 4px 5px; border: 1px solid #d8d2c8; text-align: left; font-size: 9.6px; vertical-align: top; }
+    th { background: #0c0b11; color: #f8f6ef; font-size: 8.5px; letter-spacing: 0.05em; }
+    .notes-grid { display: grid; grid-template-columns: 1fr 0.72fr; gap: 6px; align-items: stretch; }
+    .notes { min-height: 46px; padding: 6px; border: 1px solid #d8d2c8; border-left: 4px solid #ff5949; border-radius: 6px; background: #fffdf8; font-size: 9px; line-height: 1.14; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .signature { display: grid; align-content: end; min-height: 58px; padding: 7px; border: 1px solid #0c0b11; border-radius: 6px; background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(255, 89, 73, 0.08) 9px 10px), #fffdf8; }
+    .signature-line { height: 1px; margin-top: 22px; background: #0c0b11; }
+    .signature strong { font-size: 13px; }
     @media print { body { padding: 0; background: #fff; } .no-print { display: none; } .sheet { width: auto; min-height: auto; margin: 0; padding: 0; border: 0; box-shadow: none; } }
   </style>
 </head>
@@ -850,16 +862,38 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       </div>
     </section>
 
+    <section class="weight-focus">
+      <h2>Pesos de referencia</h2>
+      <div class="weight-grid">
+        <div class="weight-card main"><span>Peso certificado final</span><strong>${reportValue(measure(finalExternalWeight, 'weightKg'))}</strong></div>
+        <div class="weight-card main"><span>Peso controlador final</span><strong>${reportValue(measure(finalBeltWeight, 'weightKg'))}</strong></div>
+        <div class="weight-card"><span>Diferencia controlador-certificado</span><strong>${reportValue(measure(finalWeightDiff, 'weightKg'))}</strong></div>
+        <div class="weight-card"><span>Error material final</span><strong>${reportValue(`${materialSummary.errorPct} %`)}</strong></div>
+      </div>
+      <div class="weight-strip">
+        ${reportRow('Total esperado', measure(item.accumulatedCheck.expectedTotal, 'massT'))}
+        ${reportRow('Total indicado', measure(item.accumulatedCheck.indicatedTotal, 'massT'))}
+        ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
+        ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
+      </div>
+    </section>
+
     <section class="layout">
+      <div class="panel full">
+        <h2>Material certificado</h2>
+        <table>
+          <thead><tr><th>#</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th></tr></thead>
+          <tbody>${materialPassRows}</tbody>
+        </table>
+      </div>
+
       <div class="panel">
         <h2>Resumen</h2>
-        <div class="grid three">
+        <div class="grid">
           ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
           ${reportRow('Error cadena', `${item.chainSpan.avgErrorPct} %`)}
           ${reportRow('Error acumulado', `${item.accumulatedCheck.errorPct || 0} %`)}
-          ${reportRow('Error final', `${materialSummary.errorPct} %`)}
           ${reportRow('Pasadas', materialSummary.passes.length)}
-          ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
         </div>
       </div>
 
@@ -907,34 +941,28 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <div class="grid">
           ${reportRow('Caudal leido', measure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
           ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
-          ${reportRow('Total esperado', measure(item.accumulatedCheck.expectedTotal, 'massT'))}
-          ${reportRow('Total indicado', measure(item.accumulatedCheck.indicatedTotal, 'massT'))}
+          ${reportRow('Factor ajuste ant.', item.accumulatedCheck.adjustmentFactorBefore)}
+          ${reportRow('Factor ajuste sug.', item.accumulatedCheck.adjustmentFactorSuggested)}
         </div>
-      </div>
-
-      <div class="panel wide">
-        <h2>Material certificado</h2>
-        <table>
-          <thead><tr><th>#</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th></tr></thead>
-          <tbody>${materialPassRows}</tbody>
-        </table>
       </div>
 
       <div class="panel">
         <h2>Cierre</h2>
         <div class="grid">
-          ${reportRow('Peso externo final', measure(materialSummary.finalPass?.externalWeightKg ?? item.materialValidation.externalWeightKg, 'weightKg'))}
-          ${reportRow('Peso balanza final', measure(materialSummary.finalPass?.beltWeightKg ?? item.materialValidation.beltWeightKg, 'weightKg'))}
-          ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
-          ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
+          ${reportRow('Resultado', materialSummary.status)}
+          ${reportRow('Ajuste aplicado', materialSummary.adjustmentApplied ? 'Si' : 'No')}
+          ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
+          ${reportRow('Tecnico', item.approval.technician)}
         </div>
       </div>
 
       <div class="panel full">
         <h2>Notas y firma</h2>
         <div class="notes-grid">
-          <div class="notes"><span>Diagnostico</span>${reportValue(item.diagnosis || '-')}</div>
-          <div class="notes"><span>Observaciones</span>${reportValue(item.notes || '-')}</div>
+          <div>
+            <div class="notes"><span>Diagnostico</span>${reportValue(item.diagnosis || '-')}</div>
+            <div class="notes"><span>Observaciones</span>${reportValue(item.notes || '-')}</div>
+          </div>
           <div class="signature">
             <span>Firma tecnico</span>
             <div class="signature-line"></div>
