@@ -117,8 +117,10 @@ const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
 const SESSION_LOG_ID_KEY = 'calibracinta:session-log-id'
 const SESSION_LAST_ACTIVITY_KEY = 'calibracinta:session-last-activity'
+const PASSWORD_RESET_COOLDOWN_KEY = 'calibracinta:password-reset-cooldown-until'
 const SESSION_TIMEOUT_MINUTES = 30
 const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000
+const PASSWORD_RESET_COOLDOWN_MS = 60 * 1000
 const HISTORY_PAGE_SIZE = 25
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 
@@ -168,6 +170,11 @@ function getPasswordRecoveryRedirectTo() {
   url.hash = ''
   url.search = ''
   return url.toString()
+}
+
+function getStoredPasswordResetCooldownUntil() {
+  const stored = Number(localStorage.getItem(PASSWORD_RESET_COOLDOWN_KEY))
+  return Number.isFinite(stored) && stored > Date.now() ? stored : 0
 }
 
 function getSessionDevice(userAgent: string | null) {
@@ -1114,6 +1121,8 @@ function App() {
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
   const [authActionLoading, setAuthActionLoading] = useState(false)
+  const [passwordResetCooldownUntil, setPasswordResetCooldownUntil] = useState(getStoredPasswordResetCooldownUntil)
+  const [passwordResetCooldownNow, setPasswordResetCooldownNow] = useState(Date.now)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([])
@@ -1121,6 +1130,26 @@ function App() {
   const [userManagementLoading, setUserManagementLoading] = useState(false)
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([])
   const [sessionsTab, setSessionsTab] = useState(false)
+
+  useEffect(() => {
+    if (!passwordResetCooldownUntil) return undefined
+
+    const updateCooldown = () => {
+      const now = Date.now()
+      setPasswordResetCooldownNow(now)
+      if (passwordResetCooldownUntil <= now) {
+        localStorage.removeItem(PASSWORD_RESET_COOLDOWN_KEY)
+        setPasswordResetCooldownUntil(0)
+      }
+    }
+
+    updateCooldown()
+    const intervalId = window.setInterval(updateCooldown, 1000)
+    return () => window.clearInterval(intervalId)
+  }, [passwordResetCooldownUntil])
+
+  const passwordResetCooldownSeconds = Math.max(0, Math.ceil((passwordResetCooldownUntil - passwordResetCooldownNow) / 1000))
+  const isPasswordResetCoolingDown = passwordResetCooldownSeconds > 0
 
   useEffect(() => {
     if (!currentUser) return undefined
@@ -2184,6 +2213,13 @@ function App() {
     setAuthPanelMode('recover-password')
   }
 
+  function startPasswordResetCooldown() {
+    const cooldownUntil = Date.now() + PASSWORD_RESET_COOLDOWN_MS
+    localStorage.setItem(PASSWORD_RESET_COOLDOWN_KEY, String(cooldownUntil))
+    setPasswordResetCooldownNow(Date.now())
+    setPasswordResetCooldownUntil(cooldownUntil)
+  }
+
   async function handlePasswordResetRequest(event: FormEvent) {
     event.preventDefault()
     if (!supabase) {
@@ -2197,6 +2233,14 @@ function App() {
       return
     }
 
+    const cooldownMs = passwordResetCooldownUntil - Date.now()
+    if (cooldownMs > 0) {
+      const seconds = Math.ceil(cooldownMs / 1000)
+      setPasswordResetCooldownNow(Date.now())
+      setSyncNotice(`Esperá ${seconds} segundos antes de pedir otro email de recuperacion.`)
+      return
+    }
+
     setAuthActionLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -2207,10 +2251,15 @@ function App() {
 
       setLoginEmail(email)
       setPasswordResetEmail(email)
-      setAuthPanelMode('login')
+      startPasswordResetCooldown()
       setSyncNotice('Si el email esta registrado, enviamos instrucciones para cambiar la contraseña.')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo enviar la recuperacion.'
+      if (/rate limit|too many|exceeded/i.test(message)) {
+        startPasswordResetCooldown()
+        setSyncNotice(`Demasiados intentos de recuperacion. Esperá ${PASSWORD_RESET_COOLDOWN_MS / 1000} segundos antes de reenviar.`)
+        return
+      }
       setSyncNotice(`No se pudo enviar la recuperacion: ${message}`)
     } finally {
       setAuthActionLoading(false)
@@ -3154,8 +3203,9 @@ function App() {
                 <p>Ingresá el email asignado a tu usuario. Si existe en el sistema, vas a recibir un link para cargar una nueva contraseña.</p>
                 <form className="stack" onSubmit={handlePasswordResetRequest}>
                   <Field label="Email" type="email" value={passwordResetEmail} onChange={setPasswordResetEmail} disabled={authActionLoading} />
-                  <button className="primary" type="submit" disabled={authActionLoading}>{authActionLoading ? 'Enviando...' : 'Enviar instrucciones'}</button>
+                  <button className="primary" type="submit" disabled={authActionLoading || isPasswordResetCoolingDown}>{authActionLoading ? 'Enviando...' : isPasswordResetCoolingDown ? `Reenviar en ${passwordResetCooldownSeconds}s` : 'Enviar instrucciones'}</button>
                 </form>
+                {isPasswordResetCoolingDown && <p className="auth-cooldown">Para evitar bloqueos del servidor online, podés pedir otro email en {passwordResetCooldownSeconds} segundos.</p>}
                 <div className="auth-form-actions">
                   <button className="auth-text-button" type="button" onClick={() => setAuthPanelMode('login')} disabled={authActionLoading}>Volver al ingreso</button>
                 </div>

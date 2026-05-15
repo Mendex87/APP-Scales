@@ -663,6 +663,13 @@ body::before {
   cursor: not-allowed;
 }
 
+.auth-cooldown {
+  margin: 0.25rem 0 0;
+  color: var(--color-grey-500);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .topbar,
 .row,
 .topbar-actions {
