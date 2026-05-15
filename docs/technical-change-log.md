@@ -10,6 +10,14 @@ Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y 
 - Auditoria: el vencimiento reutiliza `handleLogout`, por lo que actualiza `logout_at`, limpia claves locales y vuelve al login con un aviso de cierre automatico.
 - Verificacion requerida: correr `npm run build`, iniciar sesion, forzar `calibracinta:session-last-activity` a mas de 30 minutos y confirmar logout + cierre en `Usuarios > Sesiones`.
 
+## 2026-05-14 - v3.0.14 - Restyle de manuales HTML
+
+- Contexto: produccion habia quedado con los manuales HTML de la estetica anterior mientras la app ya estaba en `v3.0.14`.
+- Decision: promover `preview-manual-restyle` a `main` para alinear manual tecnico publico, landing publica de manuales y fuentes HTML con la identidad industrial actual.
+- Alcance: se actualizan `docs/manual-usuario.html`, `docs/manual-tecnico-campo.html`, `public/manual/index.html` y `public/manual/tecnico/index.html`.
+- Compatibilidad: no se regeneran PDFs ni se cambia logica de app; es un cambio visual/documental de HTML.
+- Verificacion requerida: correr `npm run build` y revisar `/manual` y `/manual/tecnico/` en produccion.
+
 ## 2026-05-11 - v3.0.13 - Selector metrico/imperial de interfaz
 
 - Contexto: algunos equipos trabajan referencias en imperial, pero los datos existentes y el esquema ya estan modelados como metricos (`mm`, `m`, `kg`, `kg/m`, `t/h`, `m/s`).
