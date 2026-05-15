@@ -851,7 +851,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   </table>
   <h2>Acumulado, material real y cierre</h2>
   <div class="grid">
-    ${reportRow('Caudal esperado', measure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
+    ${reportRow('Caudal leido', measure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
     ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
     ${reportRow('Total esperado', measure(item.accumulatedCheck.expectedTotal, 'massT'))}
     ${reportRow('Total indicado', measure(item.accumulatedCheck.indicatedTotal, 'massT'))}
@@ -1500,7 +1500,7 @@ function App() {
     if (requiresFullCalibration) {
       if (!(toNumber(eventForm.chainLinearKgM) > 0)) issues.push('Falta el peso lineal de cadena.')
       if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) issues.push('Falta el promedio de lectura del controlador.')
-      if (!(toNumber(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal esperado.')
+      if (!(toNumber(eventForm.expectedFlowTph) > 0)) issues.push('Falta el caudal leido.')
       if (!(toNumber(eventForm.accumulatedTestMinutes) > 0)) issues.push('Falta el tiempo de prueba.')
       if (!(toNumber(eventForm.accumulatedIndicatedTotal) > 0)) issues.push('Falta el acumulado indicado.')
     }
@@ -1524,7 +1524,7 @@ function App() {
         Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0),
         precheckPassed,
         eventForm.zeroCompleted,
-        Boolean(toNumber(eventForm.calibrationFactor) || toNumber(eventForm.zeroValue) || toNumber(eventForm.spanValue) || eventForm.extraParameters.trim()),
+        Boolean(toNumber(eventForm.calibrationFactor) || toNumber(eventForm.zeroValue) || eventForm.extraParameters.trim()),
         !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0),
         !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
         Boolean(finalMaterialPass),
@@ -1540,9 +1540,9 @@ function App() {
     selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}. ${selectedEquipmentMaintenance?.detail || ''}` : 'Selecciona una balanza para iniciar el circuito.',
     precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
     eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
-    eventForm.calibrationFactor || eventForm.zeroValue || eventForm.spanValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
+    eventForm.calibrationFactor || eventForm.zeroValue || eventForm.extraParameters ? 'Parametros capturados para trazabilidad.' : 'Deja una foto tecnica de los parametros visibles.',
     !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga peso lineal de cadena y promedio del controlador.',
-    !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal, tiempo y acumulado indicado.',
+    !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal leido, tiempo y acumulado indicado.',
     finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
     eventBlockingIssues.length === 0 ? 'Evento listo para guardar con factor final confirmado.' : eventBlockingIssues[0],
   ][calibrationStep]
@@ -1733,7 +1733,22 @@ function App() {
   }, [historyTotalPages])
 
   function resetEventForm() {
-    setEventForm({ ...defaultEventForm, eventDate: nowLocalValue(), units: measureUnit('weightKg') })
+    const plantChain = selectedEquipment
+      ? chains.find((chain) => chain.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
+      : undefined
+    const chainForEvent = selectedChain || plantChain
+
+    if (!selectedChain && plantChain) setSelectedChainId(plantChain.id)
+    setEventForm({
+      ...defaultEventForm,
+      eventDate: nowLocalValue(),
+      units: measureUnit('weightKg'),
+      snapshotBridgeLengthM: selectedEquipment ? String(selectedEquipment.bridgeLengthM || '') : '',
+      snapshotNominalSpeedMs: selectedEquipment ? String(selectedEquipment.nominalSpeedMs || '') : '',
+      chainId: chainForEvent?.id || '',
+      chainName: chainForEvent?.name || '',
+      chainLinearKgM: chainForEvent ? String(chainForEvent.linearWeightKgM || '') : '',
+    })
     setCalibrationStep(0)
     setMaterialPassCount(1)
     setEventSubmitAttempted(false)
@@ -1778,7 +1793,10 @@ function App() {
   function clearEventDraft(showNotice = true) {
     localStorage.removeItem(CALIBRATION_DRAFT_KEY)
     setHasEventDraft(false)
-    if (showNotice) setSyncNotice('Borrador local descartado.')
+    if (showNotice) {
+      resetEventForm()
+      setSyncNotice('Borrador local descartado. Formulario reiniciado.')
+    }
   }
 
   function goToPreviousCalibrationStep() {
@@ -3490,8 +3508,6 @@ function App() {
                 <div className="grid two">
                   <Field label="Factor calibracion" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
                   <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
-                  <Field label="Span" type="number" value={eventForm.spanValue} onChange={(value) => setEventForm((current) => ({ ...current, spanValue: value }))} />
-                  <Field label="Filtro" value={eventForm.filterValue} onChange={(value) => setEventForm((current) => ({ ...current, filterValue: value }))} />
                   <Field label={measureLabel('Puente pesaje', 'lengthM')} type="number" value={measureInput(eventForm.snapshotBridgeLengthM, 'lengthM')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: parseMeasure(value, 'lengthM') }))} />
                   <Field label={measureLabel('Velocidad nominal', 'speedMs')} type="number" value={measureInput(eventForm.snapshotNominalSpeedMs, 'speedMs')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: parseMeasure(value, 'speedMs') }))} />
                   <Field label="Unidades" value={eventForm.units} onChange={(value) => setEventForm((current) => ({ ...current, units: value }))} />
@@ -3508,7 +3524,7 @@ function App() {
                 <h2>Span con peso patron (cadena)</h2>
                 <div className="grid two">
                   <Field label={measureLabel('Peso lineal de cadena', 'linearWeightKgM')} type="number" value={measureInput(eventForm.chainLinearKgM, 'linearWeightKgM')} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: parseMeasure(value, 'linearWeightKgM') }))} />
-                  <Field label="Tiempo de test" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
+                  <Field label="Tiempo de test (min)" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
                   <Field label={measureLabel('Promedio lectura controlador', 'linearWeightKgM')} type="number" value={measureInput(eventForm.avgControllerReadingKgM, 'linearWeightKgM')} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: parseMeasure(value, 'linearWeightKgM') }))} />
                   <Field label="Factor provisorio" type="number" value={eventForm.provisionalFactor} onChange={(value) => setEventForm((current) => ({ ...current, provisionalFactor: value }))} />
                 </div>
@@ -3523,7 +3539,7 @@ function App() {
                 <div className="card-tag">Paso 6</div>
                 <h2>Acumulado y factor de ajuste</h2>
                 <div className="grid two">
-                  <Field label={measureLabel('Caudal esperado', 'flowTph')} type="number" value={measureInput(eventForm.expectedFlowTph, 'flowTph')} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: parseMeasure(value, 'flowTph') }))} />
+                  <Field label={measureLabel('Caudal leido', 'flowTph')} type="number" value={measureInput(eventForm.expectedFlowTph, 'flowTph')} onChange={(value) => setEventForm((current) => ({ ...current, expectedFlowTph: parseMeasure(value, 'flowTph') }))} />
                   <Field label="Tiempo de prueba (min)" type="number" value={eventForm.accumulatedTestMinutes} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedTestMinutes: value }))} />
                   <Field label={measureLabel('Acumulado indicado', 'massT')} type="number" value={measureInput(eventForm.accumulatedIndicatedTotal, 'massT')} onChange={(value) => setEventForm((current) => ({ ...current, accumulatedIndicatedTotal: parseMeasure(value, 'massT') }))} />
                   <Field label="Factor ajuste antes" type="number" value={eventForm.adjustmentFactorBefore} onChange={(value) => setEventForm((current) => ({ ...current, adjustmentFactorBefore: value }))} />
