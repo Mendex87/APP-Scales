@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-15 - v4.0.1 - Validaciones numericas y version por evento
+
+- Contexto: luego del cierre seguro `v4.0.0`, faltaba impedir valores numericos absurdos y dejar trazable con que version de la app se guardo cada evento.
+- Decision: promover `preview-event-validation-traceability` a `main` como `v4.0.1`, sin migracion de esquema.
+- Cambio validacion: el wizard bloquea tolerancias fuera de rango, tiempos de prueba imposibles, factores no positivos o exagerados, pesos negativos, pasadas incompletas y verificaciones post-ajuste vacias.
+- Cambio trazabilidad: cada evento guarda `appVersion` en `parameter_snapshot` y lo expone tambien como propiedad derivada para historial y reporte.
+- Cambio borrador: el encabezado del wizard muestra la fecha/hora del ultimo borrador guardado o autoguardado.
+- Compatibilidad: eventos anteriores sin `appVersion` siguen cargando con `-` en la UI.
+- Verificacion requerida: correr `npm run build`, guardar un evento valido, bloquear casos numericos invalidos y revisar `Version app` en historial/reporte.
+
 ## 2026-05-15 - v4.0.0 - Wizard de cierre seguro y factor base obligatorio
 
 - Contexto: la revision final del evento necesitaba reducir ambiguedad operativa, especialmente cuando habia cambios de factor entre cadena, material real y cierre.

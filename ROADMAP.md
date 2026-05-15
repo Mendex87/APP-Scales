@@ -13,8 +13,8 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 ### Cierre de evento mas seguro
 
 - Completado en `v4.0.0`: pantalla final de revision antes de guardar, con factor final destacado, resumen de datos criticos y advertencias.
-- Bloquear guardado si hay valores numericos absurdos o signos incompatibles.
-- Registrar version de app en cada evento para trazabilidad.
+- Completado en `v4.0.1`: bloquear guardado si hay valores numericos absurdos o signos incompatibles.
+- Completado en `v4.0.1`: registrar version de app en cada evento para trazabilidad.
 - Registrar `created_by`, `updated_by` y timestamps reales de creacion/edicion.
 
 ### Edicion controlada

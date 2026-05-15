@@ -2,7 +2,7 @@
 
 Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
 
-Version actual: `v4.0.0`.
+Version actual: `v4.0.1`.
 
 ## Incluye
 
@@ -13,6 +13,8 @@ Version actual: `v4.0.0`.
 - `Span con peso patron (cadena)`
 - validacion con material real usando como base el factor actual del controlador
 - revision final con factor de calibracion final y aprobacion tecnica
+- validaciones numericas de cierre para evitar valores imposibles o pasadas incompletas
+- version de app registrada en cada evento para trazabilidad
 - almacenamiento local o en Supabase
 - historial tecnico de calibraciones
 - reporte imprimible A4 con resumen, pesos de referencia, pasadas completas y firma

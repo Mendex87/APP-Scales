@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.0.1 - Validacion y trazabilidad de eventos
+
+- El cierre del wizard bloquea tolerancias, tiempos, factores y pasadas con valores imposibles, negativos, incompletos o fuera de rangos operativos razonables.
+- Cada evento registra la version de app dentro de `parameter_snapshot.appVersion`, evitando una migracion de esquema y manteniendo compatibilidad con datos existentes.
+- Historial y reporte imprimible muestran `Version app` para facilitar auditoria de eventos.
+- El borrador local muestra la fecha/hora del ultimo guardado o autoguardado para que el tecnico sepa que recupera.
+
 ## v4.0.0 - Wizard de cierre seguro
 
 - El wizard refuerza el cierre del evento: bloqueos con salto al paso correspondiente, boton `Ir al primer bloqueo`, pasos 5 y 6 marcados como `No requerido` en controles preventivos y Paso 8 convertido en revision final.
