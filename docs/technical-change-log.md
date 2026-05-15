@@ -2,6 +2,18 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-15 - v4.0.0 - Wizard de cierre seguro y factor base obligatorio
+
+- Contexto: la revision final del evento necesitaba reducir ambiguedad operativa, especialmente cuando habia cambios de factor entre cadena, material real y cierre.
+- Decision: promover `preview-wizard-closure-polish` a `main` como `v4.0.0`, separando factor base, factor provisorio y factor final.
+- Cambio wizard: Paso 1 se unifica como `Contexto operativo`; Paso 5 y Paso 6 muestran `No requerido` en controles preventivos; los bloqueos tienen paso destino y `Guardar evento` salta al primer bloqueo.
+- Cambio factor base: Paso 4 exige `Factor calibracion actual`; ese valor es el factor cargado en el controlador antes de validar con material real y pasa a ser la base obligatoria de la primera pasada.
+- Cambio material real: la primera pasada usa siempre el factor del Paso 4; los campos de factor post-ajuste se usan solo en pasadas posteriores, despues de modificar el controlador.
+- Cambio cierre: Paso 8 prioriza el `Factor final de calibracion` como valor que queda en el controlador, con estado de bloqueos y responsable tecnico visibles.
+- Compatibilidad: el `Factor provisorio` del span con cadena se conserva como dato tecnico de Paso 5, pero ya no define la base de material real.
+- Documentacion: se actualizan `CHANGELOG.md`, `README.md`, manual administrador HTML, manual tecnico fuente/publico y PDFs de manuales generados con Chrome headless.
+- Verificacion requerida: correr `npm run build`, probar primera calibracion completa, control preventivo, cierre con factor Paso 4 vacio, pasada inicial dentro/fuera de tolerancia, ajuste con verificacion posterior y doble click en `Guardar evento`.
+
 ## 2026-05-15 - v3.0.16 - Retiro de integracion Sheets
 
 - Contexto: Google Sheets ya no se usara como tablero o salida operativa, y mantenerlo agrega fallos potenciales, secrets, Edge Function y documentacion duplicada.

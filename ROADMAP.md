@@ -12,7 +12,7 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 
 ### Cierre de evento mas seguro
 
-- Agregar pantalla final de revision antes de guardar, con resumen de datos criticos y advertencias.
+- Completado en `v4.0.0`: pantalla final de revision antes de guardar, con factor final destacado, resumen de datos criticos y advertencias.
 - Bloquear guardado si hay valores numericos absurdos o signos incompatibles.
 - Registrar version de app en cada evento para trazabilidad.
 - Registrar `created_by`, `updated_by` y timestamps reales de creacion/edicion.
@@ -59,12 +59,12 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 
 ### Asistente de calibracion
 
-- Reordenar `Nueva calibracion` para que el contexto sea el primer bloque: balanza, cadena, fecha, tolerancia y estado rapido del equipo.
+- Completado en `v4.0.0`: reordenar `Nueva calibracion` para que el contexto sea el primer bloque: balanza, cadena, fecha, tolerancia y estado rapido del equipo.
 - Precargar datos de cadena al seleccionarla, manteniendo `Kg/m de cadena` editable para correcciones justificadas en campo.
 - Convertir el formulario largo en un flujo paso a paso con progreso visible.
 - Permitir guardar borrador de evento y retomarlo.
-- Marcar cada paso como `Completo`, `Pendiente` o `Con advertencia`.
-- Dejar el cierre del evento como ultimo paso con resumen final, diagnostico automatico y boton unico de guardado.
+- Completado en `v4.0.0`: marcar cada paso como `Completo`, `Pendiente`, `Requiere atencion` o `No requerido`.
+- Completado en `v4.0.0`: dejar el cierre del evento como ultimo paso con resumen final, diagnostico automatico, factor final destacado y boton unico de guardado.
 
 ### Gestion de patrones
 

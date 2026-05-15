@@ -519,7 +519,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v3.0.16</strong></div>
+        <div><span>Version documentada</span><strong>v4.0.0</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -612,7 +612,7 @@
           <tr><td>Controlador</td><td>Modelo y numero de serie.</td><td>Trazabilidad del equipo intervenido.</td></tr>
           <tr><td>Puente de pesaje</td><td>Distancia efectiva de pesaje.</td><td>Referencia tecnica para parametros y calculos.</td></tr>
           <tr><td>Velocidad nominal</td><td>Velocidad esperada de la cinta.</td><td>Comparacion con calculos por RPM o vuelta completa.</td></tr>
-          <tr><td>Factor calibracion actual</td><td>Factor usado por el controlador antes del evento.</td><td>Base para sugerencias de ajuste.</td></tr>
+          <tr><td>Factor calibracion actual</td><td>Factor usado por el controlador antes del evento.</td><td>Base obligatoria para la primera pasada con material real.</td></tr>
           <tr><td>Factor ajuste actual</td><td>Factor del totalizador/acumulado.</td><td>Base para control de acumulado.</td></tr>
           <tr><td>Foto</td><td>Imagen del equipo.</td><td>Ayuda visual para identificar la balanza en campo.</td></tr>
         </tbody>
@@ -655,7 +655,7 @@
       <h2>7. Nueva calibracion paso a paso</h2>
       <p>El flujo esta organizado como wizard de 8 pasos. La navegacion permite avanzar, retroceder o tocar directamente un paso. El evento se guarda solo desde el cierre.</p>
       <div class="grid four">
-        <div class="metric"><span>Paso 1</span><strong>Eleccion de balanza/cinta</strong></div>
+        <div class="metric"><span>Paso 1</span><strong>Contexto operativo</strong></div>
         <div class="metric"><span>Paso 2</span><strong>Inspeccion</strong></div>
         <div class="metric"><span>Paso 3</span><strong>Cero</strong></div>
         <div class="metric"><span>Paso 4</span><strong>Parametros</strong></div>
@@ -665,8 +665,8 @@
         <div class="metric"><span>Paso 8</span><strong>Cierre</strong></div>
       </div>
 
-      <h3>Paso 1: Eleccion de balanza/cinta</h3>
-      <p>Seleccionar la balanza, seleccionar la cadena si corresponde, definir fecha/hora y tolerancia. La app interpreta y muestra todas las horas en hora Argentina. Si la balanza tiene cadenas de la misma planta, solo se listan esas cadenas. Si no tiene, se habilitan todas.</p>
+      <h3>Paso 1: Contexto operativo</h3>
+      <p>Seleccionar la balanza/cinta y la cadena patron desde las tarjetas de contexto, definir fecha/hora y tolerancia. La app interpreta y muestra todas las horas en hora Argentina. Si la balanza tiene cadenas de la misma planta, solo se listan esas cadenas; si no tiene, se habilitan todas.</p>
       <div class="callout warning"><strong>Primera calibracion:</strong> si la balanza no tiene eventos previos, la app exigira datos completos de cadena y acumulado. Si ya tiene historial, podra cerrarse como control preventivo con material.</div>
 
       <h3>Paso 2: Inspeccion previa</h3>
@@ -676,10 +676,10 @@
       <p>Registrar si el cero fue realizado, el valor observado si el controlador lo muestra, la unidad o referencia visible y observaciones. Ya no se separan valores antes/despues ni se exige cargar deriva.</p>
 
       <h3>Paso 4: Foto de parametros</h3>
-      <p>Cargar los parametros visibles del controlador al momento de intervenir: factor de calibracion, cero, puente de pesaje, velocidad nominal, unidades y parametros extra si corresponde.</p>
+      <p>Cargar los parametros visibles del controlador al momento de intervenir. El <strong>Factor calibracion actual</strong> es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real. Cero, puente de pesaje, velocidad nominal, unidades y parametros extra quedan como trazabilidad adicional.</p>
 
       <h3>Paso 5: Span con cadena</h3>
-      <p>Registrar peso lineal de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron.</p>
+      <p>Registrar peso lineal de cadena, tiempo de test, promedio de lectura del controlador y factor provisorio. La app calcula el error promedio contra el patron. El factor provisorio queda documentado para el span con cadena, pero no reemplaza el factor actual del Paso 4 como base de material real.</p>
       <div class="callout"><strong>Campo editable:</strong> aunque el peso lineal se precarga desde la cadena seleccionada, queda editable para registrar la referencia real usada en campo.</div>
 
       <h3>Paso 6: Acumulado</h3>
@@ -687,19 +687,19 @@
       <p>Este paso es obligatorio para la primera calibracion/carga de una balanza, pero no para controles preventivos posteriores con material.</p>
 
       <h3>Paso 7: Material real</h3>
-      <p>Registrar una o mas pasadas con material pesado en balanza certificada. La primera pasada puede cerrar el evento si queda dentro de tolerancia y no se ajusta el factor. Si se ajusta, agregar una verificacion post-ajuste.</p>
+      <p>Registrar una o mas pasadas con material pesado en balanza certificada. La primera pasada usa siempre el factor actual cargado en el Paso 4. Puede cerrar el evento si queda dentro de tolerancia y no se ajusta el factor. Si se ajusta, agregar una verificacion post-ajuste.</p>
       <table>
         <thead><tr><th>Campo</th><th>Que registrar</th><th>Uso</th></tr></thead>
         <tbody>
           <tr><td>Peso balanza certificada</td><td>Peso real obtenido antes/despues en balanza de piso o camionera certificada.</td><td>Referencia del calculo de error.</td></tr>
           <tr><td>Peso indicado controlador</td><td>Peso totalizado o indicado por la balanza dinamica.</td><td>Valor comparado contra el patron real.</td></tr>
-          <tr><td>Factor usado</td><td>Factor cargado en el controlador durante esa pasada.</td><td>Permite demostrar si hubo ajuste.</td></tr>
+          <tr><td>Factor usado</td><td>En la primera pasada lo toma del Paso 4; en verificaciones post-ajuste se carga el nuevo factor usado.</td><td>Permite demostrar si hubo ajuste y con que factor se verifico.</td></tr>
           <tr><td>Nota de pasada</td><td>Observaciones de campo.</td><td>Contexto para supervision e historial.</td></tr>
         </tbody>
       </table>
 
       <h3>Paso 8: Cierre</h3>
-      <p>Revisar resultado final, error final, si hubo ajuste y completar obligatoriamente <strong>Factor final</strong>. Este campo debe reflejar el factor que queda cargado en el controlador al cerrar el evento. Si queda vacio o en cero, la app bloquea el guardado.</p>
+      <p>Revisar resultado final, error final, si hubo ajuste y completar obligatoriamente <strong>Factor final de calibracion</strong>. Este campo debe reflejar el factor que queda cargado en el controlador al cerrar el evento. Si queda vacio o en cero, la app bloquea el guardado.</p>
       <div class="callout warning"><strong>Regla obligatoria:</strong> el factor final no se infiere automaticamente desde el factor usado, sugerido o anterior. Debe confirmarse en el cierre, incluso en controles conformes sin ajuste.</div>
     </section>
 
@@ -855,7 +855,7 @@
       <h3>El evento queda fuera de tolerancia aunque ajuste factor</h3>
       <p>Registrar una pasada posterior al ajuste. La app toma la ultima pasada completa como resultado final.</p>
       <h3>No puedo guardar porque falta Factor final</h3>
-      <p>El Paso 8 exige cargar <strong>Factor final</strong> con valor mayor a cero. Debe coincidir con el factor que queda en el controlador, incluso si no hubo ajuste.</p>
+      <p>El Paso 8 exige cargar <strong>Factor final de calibracion</strong> con valor mayor a cero. Debe coincidir con el factor que queda en el controlador, incluso si no hubo ajuste.</p>
       <h3>Veo datos antiguos despues de un deploy</h3>
       <p>Actualizar la pagina, cerrar y abrir sesion o limpiar cache del navegador si Vercel ya termino el despliegue.</p>
     </section>

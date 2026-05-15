@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.0.0 - Wizard de cierre seguro
+
+- El wizard refuerza el cierre del evento: bloqueos con salto al paso correspondiente, boton `Ir al primer bloqueo`, pasos 5 y 6 marcados como `No requerido` en controles preventivos y Paso 8 convertido en revision final.
+- Paso 1 se reorganiza como `Contexto operativo`, con selectores visuales para balanza/cinta y cadena patron, mas fecha y tolerancia en una sola entrada de trabajo.
+- Paso 4 hace obligatorio `Factor calibracion actual`; este valor representa el factor cargado en el controlador antes de validar con material real.
+- Paso 7 usa siempre el factor del Paso 4 como factor base de la primera pasada con material real; los factores post-ajuste quedan reservados para verificaciones posteriores.
+- Paso 8 destaca el `Factor final de calibracion` como valor de cierre del controlador, junto con estado de bloqueos y responsable tecnico.
+- Manuales HTML fuente/publicos, PDFs, README y documentacion tecnica quedan alineados con el flujo `v4.0.0`.
+
 ## v3.0.17 - Bloqueo de guardado duplicado
 
 - Se evita que un doble click o submit repetido en `Guardar evento` cree calibraciones duplicadas.

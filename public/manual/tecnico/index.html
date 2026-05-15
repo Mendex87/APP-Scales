@@ -496,7 +496,7 @@
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v3.0.16</strong></div>
+        <div><span>Version documentada</span><strong>v4.0.0</strong></div>
         <div><span>Alcance</span><strong>Uso en campo</strong></div>
         <div><span>Usuario</span><strong>Tecnico</strong></div>
       </div>
@@ -542,7 +542,7 @@
           <li>Verificar que la cadena patron este disponible cuando el trabajo la requiera.</li>
           <li>Verificar que el material real pueda pesarse en balanza certificada.</li>
           <li>Confirmar que se puede leer el peso indicado por el controlador.</li>
-          <li>Tener a mano el factor actual si se espera ajustar.</li>
+          <li>Tener a mano el factor actual cargado en el controlador: sera obligatorio en el Paso 4 y base de la primera pasada con material.</li>
         </ul>
       </div>
       <div class="callout warning"><strong>No continuar:</strong> si no se puede identificar con seguridad la balanza o si el peso real no proviene de una referencia confiable.</div>
@@ -600,7 +600,7 @@
           <tr><td>Peso lineal de cadena</td><td>Peso lineal del patron usado, en el sistema de unidades visible.</td><td>Verificar que coincida con la cadena fisica.</td></tr>
           <tr><td>Tiempo de test (min)</td><td>Tiempo usado para estabilizar la lectura contra el patron.</td><td>Usar tiempo suficiente para una lectura estable.</td></tr>
           <tr><td>Promedio controlador</td><td>Lectura promedio en el mismo peso lineal.</td><td>Comparar contra el peso lineal real.</td></tr>
-          <tr><td>Factor provisorio</td><td>Factor cargado o calculado durante el ajuste.</td><td>Dejar trazabilidad del cambio.</td></tr>
+          <tr><td>Factor provisorio</td><td>Factor cargado o calculado durante el span con cadena.</td><td>Dejar trazabilidad del cambio; no reemplaza el factor actual obligatorio del Paso 4.</td></tr>
         </tbody>
       </table>
       <h3>Acumulado</h3>
@@ -610,7 +610,7 @@
 
     <section id="preventivo">
       <h2>6. Control preventivo con material</h2>
-      <p>El control preventivo sirve para confirmar que una balanza ya calibrada sigue dentro de tolerancia. En este caso, la prueba principal es la comparacion con material real pesado en balanza certificada.</p>
+      <p>El control preventivo sirve para confirmar que una balanza ya calibrada sigue dentro de tolerancia. En este caso, la prueba principal es la comparacion con material real pesado en balanza certificada, usando como base el factor actual registrado en el Paso 4.</p>
       <h3>Cuando alcanza una sola pasada</h3>
       <p>Si la primera pasada con material queda dentro de tolerancia y no se cambia el factor, se puede cerrar como <strong>Control conforme</strong>.</p>
       <h3>Cuando hay que repetir</h3>
@@ -620,19 +620,20 @@
 
     <section id="material" class="page-break">
       <h2>7. Pasadas con material real</h2>
-      <p>Una pasada compara el peso real certificado contra el peso indicado por el controlador.</p>
+      <p>Una pasada compara el peso real certificado contra el peso indicado por el controlador. La primera pasada usa el factor actual cargado en el Paso 4; si se ajusta el controlador, la pasada posterior debe registrar el factor nuevo.</p>
       <table>
         <thead><tr><th>Campo</th><th>Que cargar</th><th>Recomendacion</th></tr></thead>
         <tbody>
           <tr><td>Peso balanza certificada</td><td>Peso real del material.</td><td>Usar el peso final neto validado por balanza certificada.</td></tr>
           <tr><td>Peso indicado controlador</td><td>Total o lectura equivalente del controlador.</td><td>Tomar el dato al cierre de la misma corrida.</td></tr>
-          <tr><td>Factor usado</td><td>Factor que estaba cargado durante esa pasada.</td><td>Si hubo ajuste, registrar el factor nuevo en la pasada posterior.</td></tr>
+          <tr><td>Factor usado</td><td>Primera pasada: factor actual del Paso 4. Post-ajuste: factor nuevo cargado en el controlador.</td><td>Si hubo ajuste, registrar el factor nuevo en la pasada posterior.</td></tr>
           <tr><td>Nota</td><td>Condiciones relevantes.</td><td>Anotar paradas, derrames, cambios de flujo o dudas.</td></tr>
         </tbody>
       </table>
       <h3>Secuencia recomendada</h3>
       <ol>
         <li>Pesar material antes o despues segun el procedimiento de planta.</li>
+        <li>Confirmar que el Paso 4 tenga cargado el factor actual del controlador.</li>
         <li>Registrar el peso certificado.</li>
         <li>Registrar el peso indicado por el controlador.</li>
         <li>Revisar el error calculado.</li>
@@ -655,6 +656,7 @@
       </table>
       <div class="callout warning"><strong>Regla obligatoria:</strong> si se cambia el factor, debe existir una pasada posterior completa para demostrar que quedo dentro de tolerancia.</div>
       <div class="callout"><strong>Factor final obligatorio:</strong> antes de guardar, cargar el factor que queda efectivamente en el controlador. La app no infiere este valor desde el factor usado, sugerido o anterior.</div>
+      <div class="callout"><strong>Factor base obligatorio:</strong> si falta el factor actual del Paso 4, la app bloquea el cierre y vuelve a ese paso. Ese dato representa el factor con el que trabaja la balanza al iniciar la prueba con material.</div>
     </section>
 
     <section id="resultado">
@@ -703,7 +705,7 @@
       <h3>No puedo cerrar porque falta factor usado</h3>
       <p>En verificaciones post-ajuste, cargar el factor usado en esa pasada.</p>
       <h3>No puedo guardar porque falta Factor final</h3>
-      <p>En el Paso 8, cargar el factor que queda en el controlador al cerrar el evento. Debe ser mayor a cero, incluso si fue un control conforme sin ajuste.</p>
+      <p>En el Paso 8, cargar el factor que queda en el controlador al cerrar el evento. Debe ser mayor a cero, incluso si fue un control conforme sin ajuste. Si falta el factor actual del Paso 4, completar primero ese dato.</p>
       <h3>No estoy seguro del peso real</h3>
       <p>No cerrar el evento como conforme. Repetir el pesaje o registrar la condicion en observaciones.</p>
     </section>

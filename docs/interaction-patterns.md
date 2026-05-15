@@ -73,3 +73,19 @@ Purpose:
 - Avoid surprising desktop jumps while preserving mobile guidance.
 - Keep the active wizard step visible on field/mobile screens.
 - Make edit actions land directly on the form being edited.
+
+## Wizard closure behavior (updated in v4.0.0)
+
+The calibration wizard uses explicit blocking states instead of allowing ambiguous closure:
+
+- Blocking issues include a target step. The guidance panel can jump to the first blocking step, and `Guardar evento` also moves the user there when closure is attempted with missing data.
+- Step 5 `Cadena` and Step 6 `Acumulado` show `No requerido` for preventive controls on equipment with previous calibration history.
+- Step 4 requires `Factor calibracion actual`. This is the controller factor active before material validation and is the base for the first material pass.
+- Step 7 displays the Step 4 factor as the base factor. The first material pass uses it automatically; post-adjustment passes require the factor actually used after the controller change.
+- Step 8 presents `Factor final de calibracion` as the controller value that remains loaded when the event is saved.
+
+Purpose:
+
+- Prevent saving events with missing current/final factor data.
+- Separate chain-span provisional factor from material-validation factor.
+- Make preventive controls shorter without hiding why chain/acumulated checks are skipped.
