@@ -632,6 +632,37 @@ body::before {
   border-top: 1px solid rgba(12, 11, 17, 0.1);
 }
 
+.auth-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-start;
+  margin-top: 0.65rem;
+}
+
+.auth-text-button {
+  border: 0;
+  background: transparent;
+  color: var(--color-orange-dark);
+  cursor: pointer;
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0;
+  text-transform: uppercase;
+}
+
+.auth-text-button:hover,
+.auth-text-button:focus-visible {
+  color: var(--color-orange);
+}
+
+.auth-text-button:disabled {
+  color: var(--color-grey-400);
+  cursor: not-allowed;
+}
+
 .topbar,
 .row,
 .topbar-actions {

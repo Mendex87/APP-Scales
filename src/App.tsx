@@ -68,6 +68,7 @@ type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' 
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 type AppTheme = 'light' | 'dark'
 type LoginTransitionPhase = 'idle' | 'cover' | 'reveal'
+type AuthPanelMode = 'login' | 'recover-password' | 'update-password'
 type ViewTransitionDocument = Document & {
   startViewTransition?: (updateCallback: () => void) => { finished: Promise<void> }
 }
@@ -139,6 +140,34 @@ function clearAccessHash() {
   if (window.location.hash !== '#acceso') return
 
   window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+}
+
+function getAuthCallbackParams() {
+  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash
+  return {
+    hashParams: new URLSearchParams(hash),
+    searchParams: new URLSearchParams(window.location.search),
+  }
+}
+
+function isPasswordRecoveryUrl() {
+  const { hashParams, searchParams } = getAuthCallbackParams()
+  return hashParams.get('type') === 'recovery' || searchParams.get('type') === 'recovery' || searchParams.has('code')
+}
+
+function clearAuthCallbackUrl() {
+  const url = new URL(window.location.href)
+  const authParams = ['code', 'type', 'error', 'error_code', 'error_description']
+  authParams.forEach((param) => url.searchParams.delete(param))
+  url.hash = ''
+  window.history.replaceState(null, '', `${url.pathname}${url.search}`)
+}
+
+function getPasswordRecoveryRedirectTo() {
+  const url = new URL(window.location.href)
+  url.hash = ''
+  url.search = ''
+  return url.toString()
 }
 
 function getSessionDevice(userAgent: string | null) {
@@ -1032,6 +1061,7 @@ function App() {
   const loginTransitionTimeoutRef = useRef<number | null>(null)
   const loginTransitionStartedAtRef = useRef(0)
   const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
+  const passwordRecoveryActiveRef = useRef(isPasswordRecoveryUrl())
   const dataLoadStartRef = useRef(typeof performance !== 'undefined' ? performance.now() : Date.now())
   const dataLoadLoggedRef = useRef(false)
 
@@ -1079,6 +1109,11 @@ function App() {
 
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [authPanelMode, setAuthPanelMode] = useState<AuthPanelMode>(() => (isPasswordRecoveryUrl() ? 'update-password' : 'login'))
+  const [passwordResetEmail, setPasswordResetEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('')
+  const [authActionLoading, setAuthActionLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>([])
@@ -1158,8 +1193,20 @@ function App() {
         return
       }
 
+      const recoveringPassword = isPasswordRecoveryUrl()
+      if (recoveringPassword) {
+        passwordRecoveryActiveRef.current = true
+        setAuthPanelMode('update-password')
+      }
+
       const { data } = await supabase.auth.getSession()
       if (!cancelled) {
+        if (recoveringPassword) {
+          setCurrentUser(null)
+          setAuthLoading(false)
+          return
+        }
+
         await loadAuthenticatedUser(data.session)
         setAuthLoading(false)
       }
@@ -1167,7 +1214,15 @@ function App() {
 
     void initializeAuth()
 
-    const { data } = supabase?.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase?.auth.onAuthStateChange((authEvent, session) => {
+      if (authEvent === 'PASSWORD_RECOVERY' || isPasswordRecoveryUrl() || passwordRecoveryActiveRef.current) {
+        passwordRecoveryActiveRef.current = true
+        setAuthPanelMode('update-password')
+        setCurrentUser(null)
+        setAuthLoading(false)
+        return
+      }
+
       void loadAuthenticatedUser(session)
     }) || { data: null }
 
@@ -2123,6 +2178,99 @@ function App() {
     if (shouldRevealLoginTransition) revealLoginTransition()
   }
 
+  function showPasswordRecoveryRequest() {
+    setPasswordResetEmail(loginEmail.trim())
+    setLoginPassword('')
+    setAuthPanelMode('recover-password')
+  }
+
+  async function handlePasswordResetRequest(event: FormEvent) {
+    event.preventDefault()
+    if (!supabase) {
+      setSyncNotice('Recuperacion online no configurada.')
+      return
+    }
+
+    const email = (passwordResetEmail || loginEmail).trim().toLowerCase()
+    if (!email) {
+      setSyncNotice('Ingresá el email del usuario para recuperar la contraseña.')
+      return
+    }
+
+    setAuthActionLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getPasswordRecoveryRedirectTo(),
+      })
+
+      if (error) throw error
+
+      setLoginEmail(email)
+      setPasswordResetEmail(email)
+      setAuthPanelMode('login')
+      setSyncNotice('Si el email esta registrado, enviamos instrucciones para cambiar la contraseña.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo enviar la recuperacion.'
+      setSyncNotice(`No se pudo enviar la recuperacion: ${message}`)
+    } finally {
+      setAuthActionLoading(false)
+    }
+  }
+
+  async function handlePasswordUpdate(event: FormEvent) {
+    event.preventDefault()
+    if (!supabase) {
+      setSyncNotice('Recuperacion online no configurada.')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setSyncNotice('La nueva contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
+    if (newPassword !== newPasswordConfirm) {
+      setSyncNotice('Las contraseñas no coinciden.')
+      return
+    }
+
+    setAuthActionLoading(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) {
+        setSyncNotice('El link de recuperacion expiro. Solicitá uno nuevo.')
+        return
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+
+      passwordRecoveryActiveRef.current = false
+      clearAuthCallbackUrl()
+      setNewPassword('')
+      setNewPasswordConfirm('')
+      setLoginPassword('')
+      setAuthPanelMode('login')
+      await supabase.auth.signOut()
+      setCurrentUser(null)
+      setSyncNotice('Contraseña actualizada. Ingresá nuevamente.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo actualizar la contraseña.'
+      setSyncNotice(`No se pudo actualizar la contraseña: ${message}`)
+    } finally {
+      setAuthActionLoading(false)
+    }
+  }
+
+  async function cancelPasswordUpdate() {
+    passwordRecoveryActiveRef.current = false
+    clearAuthCallbackUrl()
+    setNewPassword('')
+    setNewPasswordConfirm('')
+    setAuthPanelMode('login')
+    if (supabase) await supabase.auth.signOut()
+  }
+
   useEffect(() => {
     if (!currentUser) return undefined
 
@@ -2985,14 +3133,50 @@ function App() {
           <div id="acceso" className="auth-card public-login">
             <div className="login-status"><span></span> Servidor online</div>
             <div className="brand-kicker">Acceso protegido</div>
-            <h2>Ingresar</h2>
-            <p>Operadores habilitados pueden cargar controles, revisar historial y emitir reportes de campo.</p>
-            <form className="stack" onSubmit={handleLogin}>
-              <Field label="Email" type="email" value={loginEmail} onChange={setLoginEmail} />
-              <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
-              <button className="primary" type="submit">Ingresar</button>
-            </form>
-            <div className="login-footnote">Roles: admin, tecnico, supervisor y consulta.</div>
+            {authPanelMode === 'login' && (
+              <>
+                <h2>Ingresar</h2>
+                <p>Operadores habilitados pueden cargar controles, revisar historial y emitir reportes de campo.</p>
+                <form className="stack" onSubmit={handleLogin}>
+                  <Field label="Email" type="email" value={loginEmail} onChange={setLoginEmail} />
+                  <Field label="Contraseña" type="password" value={loginPassword} onChange={setLoginPassword} />
+                  <button className="primary" type="submit">Ingresar</button>
+                </form>
+                <div className="auth-form-actions">
+                  <button className="auth-text-button" type="button" onClick={showPasswordRecoveryRequest}>Olvidé mi contraseña</button>
+                </div>
+                <div className="login-footnote">Roles: admin, tecnico, supervisor y consulta.</div>
+              </>
+            )}
+            {authPanelMode === 'recover-password' && (
+              <>
+                <h2>Recuperar contraseña</h2>
+                <p>Ingresá el email asignado a tu usuario. Si existe en el sistema, vas a recibir un link para cargar una nueva contraseña.</p>
+                <form className="stack" onSubmit={handlePasswordResetRequest}>
+                  <Field label="Email" type="email" value={passwordResetEmail} onChange={setPasswordResetEmail} disabled={authActionLoading} />
+                  <button className="primary" type="submit" disabled={authActionLoading}>{authActionLoading ? 'Enviando...' : 'Enviar instrucciones'}</button>
+                </form>
+                <div className="auth-form-actions">
+                  <button className="auth-text-button" type="button" onClick={() => setAuthPanelMode('login')} disabled={authActionLoading}>Volver al ingreso</button>
+                </div>
+                <div className="login-footnote">El link de recuperacion llega al email registrado por el administrador.</div>
+              </>
+            )}
+            {authPanelMode === 'update-password' && (
+              <>
+                <h2>Nueva contraseña</h2>
+                <p>El link de recuperacion fue recibido. Cargá una contraseña nueva para volver a ingresar de forma segura.</p>
+                <form className="stack" onSubmit={handlePasswordUpdate}>
+                  <Field label="Nueva contraseña" type="password" value={newPassword} onChange={setNewPassword} disabled={authActionLoading} />
+                  <Field label="Confirmar contraseña" type="password" value={newPasswordConfirm} onChange={setNewPasswordConfirm} disabled={authActionLoading} />
+                  <button className="primary" type="submit" disabled={authActionLoading}>{authActionLoading ? 'Actualizando...' : 'Actualizar contraseña'}</button>
+                </form>
+                <div className="auth-form-actions">
+                  <button className="auth-text-button" type="button" onClick={() => void cancelPasswordUpdate()} disabled={authActionLoading}>Cancelar y volver</button>
+                </div>
+                <div className="login-footnote">La contraseña debe tener al menos 8 caracteres. Después de actualizarla, se vuelve al ingreso.</div>
+              </>
+            )}
           </div>
         </section>
 
