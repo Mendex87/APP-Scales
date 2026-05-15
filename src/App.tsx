@@ -979,6 +979,7 @@ function App() {
   const [equipmentSubmitAttempted, setEquipmentSubmitAttempted] = useState(false)
   const [chainSubmitAttempted, setChainSubmitAttempted] = useState(false)
   const [eventSubmitAttempted, setEventSubmitAttempted] = useState(false)
+  const [eventSaving, setEventSaving] = useState(false)
   const [editingEquipmentId, setEditingEquipmentId] = useState('')
   const [equipmentPhotoFile, setEquipmentPhotoFile] = useState<File | null>(null)
   const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState('')
@@ -1002,6 +1003,7 @@ function App() {
   const [navPulseScreen, setNavPulseScreen] = useState<Screen | null>(null)
   const [loginTransitionPhase, setLoginTransitionPhase] = useState<LoginTransitionPhase>('idle')
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
+  const eventSaveInFlightRef = useRef(false)
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
   const loginTransitionTimeoutRef = useRef<number | null>(null)
@@ -2413,6 +2415,8 @@ function App() {
 
   async function handleEventSubmit(event: FormEvent) {
     event.preventDefault()
+    if (eventSaveInFlightRef.current) return
+
     setEventSubmitAttempted(true)
     if (eventBlockingIssues.length > 0) return
     if (!selectedEquipment) return
@@ -2543,6 +2547,9 @@ function App() {
       return
     }
 
+    eventSaveInFlightRef.current = true
+    setEventSaving(true)
+
     try {
       const result = await saveCalibrationEventRecord(record)
       let savedRecord = record
@@ -2573,7 +2580,13 @@ function App() {
       setScreen('historial')
       setDataSource(result.source)
       setSyncNotice(notice)
+      window.setTimeout(() => {
+        eventSaveInFlightRef.current = false
+        setEventSaving(false)
+      }, 0)
     } catch (error) {
+      eventSaveInFlightRef.current = false
+      setEventSaving(false)
       const message = error instanceof Error ? error.message : 'No se pudo guardar el evento.'
       setSyncNotice(`Error al guardar evento: ${message}`)
       return
@@ -3403,8 +3416,8 @@ function App() {
                   <h2>{calibrationSteps[calibrationStep]}</h2>
                 </div>
                 <div className="row compact-actions">
-                  {hasEventDraft && <button className="secondary small" type="button" onClick={loadEventDraft}><RotateCcw className="action-icon" aria-hidden="true" />Recuperar borrador</button>}
-                  <button className="secondary small" type="button" onClick={saveEventDraft}><Save className="action-icon" aria-hidden="true" />Guardar borrador</button>
+                  {hasEventDraft && <button className="secondary small" type="button" onClick={loadEventDraft} disabled={eventSaving}><RotateCcw className="action-icon" aria-hidden="true" />Recuperar borrador</button>}
+                  <button className="secondary small" type="button" onClick={saveEventDraft} disabled={eventSaving}><Save className="action-icon" aria-hidden="true" />Guardar borrador</button>
                 </div>
               </div>
               <div className="wizard-progress" aria-hidden="true">
@@ -3417,6 +3430,7 @@ function App() {
                     key={step}
                     type="button"
                     onClick={() => setCalibrationStep(index)}
+                    disabled={eventSaving}
                     aria-current={index === calibrationStep ? 'step' : undefined}
                     title={complete ? 'Completo' : warning ? 'Con advertencia' : 'Pendiente'}
                   >
@@ -3509,7 +3523,7 @@ function App() {
             </div>
             </>}
 
-            <form className="stack" onSubmit={handleEventSubmit}>
+            <form className="stack" onSubmit={handleEventSubmit} aria-busy={eventSaving}>
               {calibrationStep === 0 && <div className="card">
                 <div className="card-tag">Paso 1</div>
                 <h2>Eleccion de balanza/cinta</h2>
@@ -3738,13 +3752,13 @@ function App() {
                     </ul>
                   </div>
                 )}
-                <button className="primary" type="submit"><Save className="action-icon" aria-hidden="true" />Guardar evento</button>
+                <button className="primary" type="submit" disabled={eventSaving}><Save className="action-icon" aria-hidden="true" />{eventSaving ? 'Guardando...' : 'Guardar evento'}</button>
               </div>}
             </form>
             <div className="wizard-actions card">
-              <button className="secondary" type="button" onClick={goToPreviousCalibrationStep} disabled={calibrationStep === 0}>Anterior</button>
-              {hasEventDraft && <button className="secondary danger" type="button" onClick={() => clearEventDraft()}><Trash2 className="action-icon" aria-hidden="true" />Descartar borrador</button>}
-              {calibrationStep < calibrationSteps.length - 1 && <button className="primary" type="button" onClick={goToNextCalibrationStep}>Siguiente</button>}
+              <button className="secondary" type="button" onClick={goToPreviousCalibrationStep} disabled={eventSaving || calibrationStep === 0}>Anterior</button>
+              {hasEventDraft && <button className="secondary danger" type="button" onClick={() => clearEventDraft()} disabled={eventSaving}><Trash2 className="action-icon" aria-hidden="true" />Descartar borrador</button>}
+              {calibrationStep < calibrationSteps.length - 1 && <button className="primary" type="button" onClick={goToNextCalibrationStep} disabled={eventSaving}>Siguiente</button>}
             </div>
           </section>
         )}
