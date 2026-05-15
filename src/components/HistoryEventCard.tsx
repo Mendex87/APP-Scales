@@ -39,6 +39,7 @@ export function HistoryEventCard({
   formatWeight,
 }: HistoryEventCardProps) {
   const statusText = materialSummary.status
+  const finalErrorText = `${materialSummary.errorPct} %`
 
   return (
     <div className={`card stack history-card status-${statusClass(statusText)}`}>
@@ -71,6 +72,25 @@ export function HistoryEventCard({
         </div>
       </div>
       <p className="hint">{formatDateTime(item.eventDate)} | {item.approval.technician}</p>
+      <div className="history-snapshot" aria-label="Resumen rapido del evento">
+        <Metric label="Resultado" value={statusText} />
+        <Metric label="Error final" value={finalErrorText} />
+        <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />
+        <Metric label="Pasadas" value={String(materialSummary.passes.length)} />
+      </div>
+      {materialSummary.passes.length > 0 && (
+        <div className="pass-rail" aria-label="Secuencia de pasadas con material real">
+          {materialSummary.passes.map((pass) => {
+            const passOk = Math.abs(pass.errorPct) <= item.tolerancePercent
+            const isFinal = materialSummary.finalPass?.index === pass.index
+            return (
+              <span className={`pass-chip ${passOk ? 'pass-chip-ok' : 'pass-chip-alert'} ${isFinal ? 'pass-chip-final' : ''}`} key={`${item.id}-rail-${pass.index}`}>
+                Pasada {pass.index} · {pass.errorPct} %{isFinal ? ' · final' : ''}
+              </span>
+            )
+          })}
+        </div>
+      )}
       <details className="inline-details">
         <summary>Ver detalle</summary>
         <div className="grid four compact-top">

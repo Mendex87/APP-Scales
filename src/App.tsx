@@ -780,36 +780,57 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   <meta charset="utf-8" />
   <title>Reporte ${reportValue(item.id)}</title>
   <style>
-    :root { font-family: Arial, sans-serif; color: #0c0b11; }
-    body { margin: 0; padding: 28px; background: #f7f5ef; }
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root { font-family: Inter, system-ui, sans-serif; color: #0c0b11; background: #f0efeb; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px;
+      background:
+        linear-gradient(rgba(12, 11, 17, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(12, 11, 17, 0.04) 1px, transparent 1px),
+        radial-gradient(circle at 12% 0%, rgba(255, 89, 73, 0.16), transparent 28rem),
+        #f0efeb;
+      background-size: 28px 28px, 28px 28px, auto, auto;
+    }
     h1, h2, p { margin: 0; }
-    h1 { font-size: 30px; text-transform: uppercase; letter-spacing: -0.02em; }
-    h2 { margin-top: 22px; padding-bottom: 6px; border-bottom: 2px solid #ff5949; font-size: 18px; }
-    .header { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 18px; border-bottom: 3px solid #0c0b11; }
-    .badge { display: inline-block; padding: 7px 10px; background: #ff5949; color: #0c0b11; font-weight: 700; text-transform: uppercase; }
+    h1, h2, .badge, span { font-family: "Barlow Condensed", Inter, sans-serif; text-transform: uppercase; }
+    h1 { max-width: 12ch; font-size: clamp(42px, 9vw, 72px); line-height: 0.82; letter-spacing: -0.045em; }
+    h2 { margin-top: 24px; padding-bottom: 8px; border-bottom: 1px solid rgba(12, 11, 17, 0.2); font-size: 28px; line-height: 0.94; letter-spacing: -0.025em; }
+    .report-actions { margin-bottom: 14px; }
+    button { min-height: 42px; padding: 0 16px; border: 1px solid #d94135; border-radius: 6px; background: #ff5949; color: #0c0b11; font-family: "Barlow Condensed", Inter, sans-serif; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; cursor: pointer; }
+    .sheet { max-width: 1120px; margin: 0 auto; }
+    .header { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; padding: clamp(22px, 4vw, 34px); color: #faf9f6; background: linear-gradient(135deg, #0c0b11, #19171a 76%, #2e2930); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; }
+    .header::after { content: ''; position: absolute; inset: 0; opacity: 0.22; pointer-events: none; background: repeating-linear-gradient(115deg, transparent 0 16px, rgba(240, 239, 235, 0.08) 16px 17px, transparent 17px 34px); }
+    .header > * { position: relative; z-index: 1; }
+    .header p { max-width: 72ch; margin-top: 10px; color: rgba(240, 239, 235, 0.74); }
+    .badge { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid #d94135; border-radius: 999px; background: #ff5949; color: #0c0b11; font-weight: 700; letter-spacing: 0.08em; }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-    .grid div { min-height: 54px; padding: 10px; border: 1px solid #d4d0c6; background: #fff; }
-    table { width: 100%; margin-top: 12px; border-collapse: collapse; background: #fff; }
-    th, td { padding: 9px; border: 1px solid #d4d0c6; text-align: left; font-size: 13px; }
-    th { background: #0c0b11; color: #f7f5ef; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
-    span { display: block; color: #5c575c; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-    strong { display: block; margin-top: 4px; font-size: 14px; }
-    .notes { margin-top: 12px; padding: 12px; border: 1px solid #d4d0c6; background: #fff; white-space: pre-wrap; }
-    @media print { body { padding: 0; background: #fff; } .no-print { display: none; } }
+    .grid div { min-height: 66px; padding: 12px; border: 1px solid rgba(12, 11, 17, 0.16); border-top: 3px solid #ff5949; border-radius: 6px; background: rgba(250, 249, 246, 0.92); }
+    table { width: 100%; margin-top: 12px; border-collapse: collapse; overflow: hidden; border-radius: 6px; background: #faf9f6; }
+    th, td { padding: 10px; border: 1px solid rgba(12, 11, 17, 0.16); text-align: left; font-size: 13px; vertical-align: top; }
+    th { background: linear-gradient(105deg, #0c0b11 0 86%, rgba(255, 89, 73, 0.82) 86% 100%); color: #faf9f6; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+    span { display: block; color: #737074; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; }
+    strong { display: block; margin-top: 4px; color: #0c0b11; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 19px; line-height: 0.98; text-transform: uppercase; }
+    .notes { margin-top: 12px; padding: 14px; border: 1px solid rgba(12, 11, 17, 0.16); border-left: 5px solid #ff5949; border-radius: 6px; background: #fffaf5; white-space: pre-wrap; }
+    @media (max-width: 760px) { body { padding: 14px; } .header, .grid { grid-template-columns: 1fr; } }
+    @media print { body { padding: 0; background: #fff; } .no-print { display: none; } .header, .grid div, table, .notes { break-inside: avoid; } }
   </style>
 </head>
 <body>
-  <button class="no-print" onclick="window.print()">Imprimir</button>
-  <section class="header">
-    <div>
-      <span>Reporte de calibracion</span>
-      <h1>${reportValue(item.id)}</h1>
-      <p>${reportValue(equipmentLabel)}</p>
-    </div>
-    <div><span class="badge">${reportValue(status)}</span></div>
-  </section>
-  <h2>Resumen</h2>
-  <div class="grid">
+  <main class="sheet">
+    <div class="report-actions no-print"><button onclick="window.print()">Imprimir o guardar PDF</button></div>
+    <section class="header">
+      <div>
+        <span>Reporte de calibracion</span>
+        <h1>${reportValue(item.id)}</h1>
+        <p>${reportValue(equipmentLabel)}</p>
+      </div>
+      <div><span class="badge">${reportValue(status)}</span></div>
+    </section>
+    <h2>Resumen</h2>
+    <div class="grid">
     ${reportRow('Fecha evento', formatDateTime(item.eventDate))}
     ${reportRow('Tecnico', item.approval.technician)}
     ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
@@ -819,9 +840,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     ${reportRow('Resultado', materialSummary.status)}
     ${reportRow('Ajuste aplicado', materialSummary.adjustmentApplied ? 'Si' : 'No')}
     ${reportRow('Pasadas', materialSummary.passes.length)}
-  </div>
-  <h2>Inspeccion y cero</h2>
-  <div class="grid">
+    </div>
+    <h2>Inspeccion y cero</h2>
+    <div class="grid">
     ${reportRow('Banda vacia', item.precheck.beltEmpty ? 'Si' : 'No')}
     ${reportRow('Banda limpia', item.precheck.beltClean ? 'Si' : 'No')}
     ${reportRow('Sin acumulacion', item.precheck.noMaterialBuildup ? 'Si' : 'No')}
@@ -831,9 +852,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     ${reportRow('Cero realizado', item.zeroCheck.completed ? 'Si' : 'No')}
     ${reportRow('Unidad cero', item.zeroCheck.displayUnit)}
     ${reportRow('Cero ajustado', item.zeroCheck.adjusted ? 'Si' : 'No')}
-  </div>
-  <h2>Parametros y span</h2>
-  <div class="grid">
+    </div>
+    <h2>Parametros y span</h2>
+    <div class="grid">
     ${reportRow('Factor calibracion', item.parameterSnapshot.calibrationFactor)}
     ${reportRow('Cero', item.parameterSnapshot.zeroValue)}
     ${reportRow('Span', item.parameterSnapshot.spanValue)}
@@ -843,14 +864,14 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     ${reportRow('Cadena', item.chainSpan.chainName)}
     ${reportRow('Peso lineal cadena', measure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
     ${reportRow('Lectura prom.', measure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
-  </div>
-  <h2>Pasadas con material certificado</h2>
-  <table>
+    </div>
+    <h2>Pasadas con material certificado</h2>
+    <table>
     <thead><tr><th>Pasada</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th></tr></thead>
     <tbody>${materialPassRows}</tbody>
-  </table>
-  <h2>Acumulado, material real y cierre</h2>
-  <div class="grid">
+    </table>
+    <h2>Acumulado, material real y cierre</h2>
+    <div class="grid">
     ${reportRow('Caudal esperado', measure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
     ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
     ${reportRow('Total esperado', measure(item.accumulatedCheck.expectedTotal, 'massT'))}
@@ -860,10 +881,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
     ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
     ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
-  </div>
-  <h2>Notas</h2>
-  <div class="notes"><strong>Diagnostico</strong><br />${reportValue(item.diagnosis || '-')}</div>
-  <div class="notes"><strong>Observaciones</strong><br />${reportValue(item.notes || '-')}</div>
+    </div>
+    <h2>Notas</h2>
+    <div class="notes"><strong>Diagnostico</strong><br />${reportValue(item.diagnosis || '-')}</div>
+    <div class="notes"><strong>Observaciones</strong><br />${reportValue(item.notes || '-')}</div>
+  </main>
 </body>
 </html>`
 }
@@ -3254,7 +3276,7 @@ function App() {
                     </div>
                   </div>
                 ))}
-                {chains.length === 0 && <div className="result-row"><span>No hay cadenas cargadas.</span><strong>-</strong></div>}
+                {chains.length === 0 && <div className="empty-state empty-state-action"><strong>Sin cadenas patron</strong><span>Carga una cadena por planta para acelerar span, herramientas y eventos.</span></div>}
               </div>
             </CollapsibleCard>
 
@@ -3297,7 +3319,7 @@ function App() {
                   </div>
                 )
               })}
-              {equipment.length === 0 && <div className="card">Todavia no hay balanzas cargadas.</div>}
+              {equipment.length === 0 && <div className="empty-state empty-state-action"><strong>Sin balanzas cargadas</strong><span>Alta una balanza con planta, linea, cinta y datos de puente para iniciar controles trazables.</span></div>}
             </div>
           </section>
         )}
@@ -3597,8 +3619,18 @@ function App() {
                   </div>
                 </div>
                 <p className="hint compact-top">El factor final es obligatorio: debe coincidir con el factor que queda cargado en el controlador al cerrar el evento.</p>
-                <div className="pre-report compact-top">
-                  <span className="section-kicker">Pre-reporte</span>
+                <div className={`pre-report compact-top status-${statusClass(finalMaterialPass ? outcomeLabel(materialOutcome) : 'Pendiente')}`}>
+                  <div className="closeout-hero">
+                    <div>
+                      <span className="section-kicker">Hoja de cierre tecnico</span>
+                      <strong>{finalMaterialPass ? outcomeLabel(materialOutcome) : 'Pendiente de material'}</strong>
+                      <p>{eventBlockingIssues.length === 0 ? 'Resumen listo para guardar como evento trazable.' : 'Completa los bloqueos antes de emitir el cierre.'}</p>
+                    </div>
+                    <div className="closeout-stamp">
+                      <span>Bloqueos</span>
+                      <strong>{eventBlockingIssues.length}</strong>
+                    </div>
+                  </div>
                   <div className="grid four compact-top">
                     <Metric label="Equipo" value={selectedEquipment ? `${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}` : '-'} />
                     <Metric label="Resultado" value={finalMaterialPass ? outcomeLabel(materialOutcome) : '-'} />
@@ -3895,7 +3927,7 @@ function App() {
               <HistoryPager page={historyPage} pageSize={HISTORY_PAGE_SIZE} totalItems={filteredEvents.length} onPageChange={setHistoryPage} />
             )}
 
-            {filteredEvents.length === 0 && <div className="card">No hay eventos con esos filtros.</div>}
+            {filteredEvents.length === 0 && <div className="empty-state empty-state-action"><strong>Sin eventos para estos filtros</strong><span>Proba cambiar balanza, estado o mes para recuperar trazabilidad.</span></div>}
           </section>
         )}
 
@@ -3940,7 +3972,7 @@ function App() {
                   <button className="secondary small danger" disabled={user.id === currentUser.id || userManagementLoading} onClick={() => handleDeleteUser(user)}><Trash2 className="action-icon" aria-hidden="true" />Eliminar</button>
                 </div>
               ))}
-              {managedUsers.length === 0 && <div className="result-row"><span>No hay usuarios cargados o no se cargo la lista.</span><strong>-</strong></div>}
+              {managedUsers.length === 0 && <div className="empty-state empty-state-action"><strong>Sin usuarios cargados</strong><span>Actualiza la lista o crea el primer usuario operativo.</span></div>}
             </div>
             <div className="card stack">
               <div className="row wrap">
@@ -3974,7 +4006,7 @@ function App() {
                       ))}
                     </div>
                   )}
-                  {sessionLogs.length === 0 && <div className="result-row"><span>No hay sesiones registradas.</span><strong>-</strong></div>}
+                  {sessionLogs.length === 0 && <div className="empty-state empty-state-action"><strong>Sin sesiones registradas</strong><span>Los ingresos y cierres apareceran cuando haya actividad autenticada.</span></div>}
                 </>
               )}
             </div>
