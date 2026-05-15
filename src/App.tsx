@@ -815,6 +815,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .wide,
     .full { grid-column: 1 / -1; }
     .panel { padding: 6px; border: 1px solid #d5cfc3; border-radius: 7px; background: #fffdf8; break-inside: avoid; }
+    .summary-strip { margin-bottom: 7px; padding: 7px; border: 1px solid #d5cfc3; border-radius: 7px; background: #fffdf8; }
+    .summary-grid { display: grid; grid-template-columns: 1.2fr repeat(3, minmax(0, 0.8fr)); gap: 4px; }
+    .summary-grid > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -862,6 +865,20 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       </div>
     </section>
 
+    <section class="summary-strip">
+      <h2>Resumen</h2>
+      <div class="summary-grid">
+        ${reportRow('Equipo', equipmentItem ? `${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : '-')}
+        ${reportRow('Resultado', materialSummary.status)}
+        ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
+        ${reportRow('Error final', `${materialSummary.errorPct} %`)}
+        ${reportRow('Fecha', formatDateTime(item.eventDate))}
+        ${reportRow('Tecnico', item.approval.technician)}
+        ${reportRow('Pasadas', materialSummary.passes.length)}
+        ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
+      </div>
+    </section>
+
     <section class="weight-focus">
       <h2>Pesos de referencia</h2>
       <div class="weight-grid">
@@ -871,8 +888,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <div class="weight-card"><span>Error material final</span><strong>${reportValue(`${materialSummary.errorPct} %`)}</strong></div>
       </div>
       <div class="weight-strip">
-        ${reportRow('Total esperado', measure(item.accumulatedCheck.expectedTotal, 'massT'))}
-        ${reportRow('Total indicado', measure(item.accumulatedCheck.indicatedTotal, 'massT'))}
+        ${reportRow('Peso lineal cadena', measure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
+        ${reportRow('Lectura prom.', measure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
         ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
         ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
       </div>
@@ -885,16 +902,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
           <thead><tr><th>#</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th></tr></thead>
           <tbody>${materialPassRows}</tbody>
         </table>
-      </div>
-
-      <div class="panel">
-        <h2>Resumen</h2>
-        <div class="grid">
-          ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
-          ${reportRow('Error cadena', `${item.chainSpan.avgErrorPct} %`)}
-          ${reportRow('Error acumulado', `${item.accumulatedCheck.errorPct || 0} %`)}
-          ${reportRow('Pasadas', materialSummary.passes.length)}
-        </div>
       </div>
 
       <div class="panel">
@@ -933,26 +940,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
           ${reportRow('Tiempo test', `${item.chainSpan.passCount || 0} min`)}
           ${reportRow('Peso lineal', measure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
           ${reportRow('Lectura prom.', measure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>Acumulado</h2>
-        <div class="grid">
-          ${reportRow('Caudal leido', measure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
-          ${reportRow('Tiempo prueba', `${item.accumulatedCheck.testMinutes} min`)}
-          ${reportRow('Factor ajuste ant.', item.accumulatedCheck.adjustmentFactorBefore)}
-          ${reportRow('Factor ajuste sug.', item.accumulatedCheck.adjustmentFactorSuggested)}
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>Cierre</h2>
-        <div class="grid">
-          ${reportRow('Resultado', materialSummary.status)}
-          ${reportRow('Ajuste aplicado', materialSummary.adjustmentApplied ? 'Si' : 'No')}
-          ${reportRow('Aprobado', formatDateTime(item.approval.approvedAt))}
-          ${reportRow('Tecnico', item.approval.technician)}
         </div>
       </div>
 
