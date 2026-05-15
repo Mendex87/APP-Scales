@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.17 - Bloqueo de guardado duplicado
+
+- Se evita que un doble click o submit repetido en `Guardar evento` cree calibraciones duplicadas.
+- El wizard bloquea recuperar, guardar o descartar borradores, cambiar pasos y navegar mientras el evento se esta guardando.
+- El boton de cierre muestra `Guardando...` durante la operacion para dejar claro que el evento ya esta en proceso.
+
 ## v3.0.16 - Retiro de Google Sheets
 
 - Se retira Google Sheets del flujo operativo: guardar, eliminar eventos y dar de baja balanzas ya no invocan `sync-sheets-event` ni Apps Script.
