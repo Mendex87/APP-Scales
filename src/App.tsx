@@ -124,6 +124,7 @@ const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000
 const PASSWORD_RESET_COOLDOWN_MS = 60 * 1000
 const HISTORY_PAGE_SIZE = 25
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
+const Plant3DScene = lazy(() => import('./components/Plant3DScene').then((module) => ({ default: module.Plant3DScene })))
 
 function getToastTone(message: string): ToastTone {
   if (/^error|fallo|incorrect|invalid|invalido|inválido|no se pudo/i.test(message)) return 'error'
@@ -3828,48 +3829,9 @@ function App() {
                 </div>
 
                 <div className={`plant-map-canvas ${plantMapEditing ? 'editing' : ''}`} ref={plantMapCanvasRef}>
-                  <div className="plant-map-model" aria-hidden="true">
-                    <div className="plant-model-grid" />
-                    <div className="plant-model-zone zone-stock" style={{ '--x': '23%', '--y': '39%', '--w': '24%', '--h': '30%' } as CSSProperties}><span>Acopios</span></div>
-                    <div className="plant-model-zone zone-process" style={{ '--x': '49%', '--y': '37%', '--w': '33%', '--h': '34%' } as CSSProperties}><span>Secado / zarandas</span></div>
-                    <div className="plant-model-zone zone-dispatch" style={{ '--x': '78%', '--y': '47%', '--w': '25%', '--h': '36%' } as CSSProperties}><span>Silos y despacho</span></div>
-                    <div className="plant-model-zone zone-truck" style={{ '--x': '72%', '--y': '80%', '--w': '35%', '--h': '19%' } as CSSProperties}><span>Camiones</span></div>
-
-                    <div className="plant-3d-road road-main" style={{ '--x': '74%', '--y': '77%', '--w': '36rem', '--angle': '-7deg' } as CSSProperties} />
-                    <div className="plant-3d-road road-service" style={{ '--x': '50%', '--y': '65%', '--w': '34rem', '--angle': '-12deg' } as CSSProperties} />
-
-                    <div className="plant-3d-stockpile pile-one" style={{ '--x': '18%', '--y': '44%', '--w': '8.5rem', '--h': '5.4rem' } as CSSProperties}><span>Mineral humedo</span></div>
-                    <div className="plant-3d-stockpile pile-two" style={{ '--x': '27%', '--y': '35%', '--w': '9.5rem', '--h': '6rem' } as CSSProperties}><span>Acopio lavado</span></div>
-                    <div className="plant-3d-cabin" style={{ '--x': '18%', '--y': '63%', '--w': '5rem', '--h': '3.2rem', '--tone': 'control' } as CSSProperties}><span>Sala MCC</span></div>
-
-                    <div className="plant-3d-belt belt-main" style={{ '--x': '31%', '--y': '57%', '--w': '19rem', '--angle': '-13deg' } as CSSProperties}><span>Cinta 23</span></div>
-                    <div className="plant-3d-belt belt-feed" style={{ '--x': '40%', '--y': '47%', '--w': '14rem', '--angle': '-19deg' } as CSSProperties}><span>Alimentacion hornos</span></div>
-                    <div className="plant-3d-belt belt-transfer" style={{ '--x': '60%', '--y': '46%', '--w': '20rem', '--angle': '11deg' } as CSSProperties}><span>Transferencia a silos</span></div>
-                    <div className="plant-3d-belt belt-dispatch" style={{ '--x': '76%', '--y': '60%', '--w': '16rem', '--angle': '-10deg' } as CSSProperties}><span>Despacho</span></div>
-
-                    <div className="plant-3d-kiln kiln-one" style={{ '--x': '36%', '--y': '40%', '--w': '10.5rem', '--h': '3.8rem', '--angle': '-8deg' } as CSSProperties}><span>Horno 1</span></div>
-                    <div className="plant-3d-kiln kiln-two" style={{ '--x': '47%', '--y': '37%', '--w': '10.5rem', '--h': '3.8rem', '--angle': '-8deg' } as CSSProperties}><span>Horno 2</span></div>
-                    <div className="plant-3d-kiln kiln-three" style={{ '--x': '58%', '--y': '34%', '--w': '10.5rem', '--h': '3.8rem', '--angle': '-8deg' } as CSSProperties}><span>Horno 3</span></div>
-
-                    <div className="plant-3d-structure screen-house" style={{ '--x': '49%', '--y': '53%', '--w': '10rem', '--h': '5rem' } as CSSProperties}><span>Zarandas</span></div>
-                    <div className="plant-3d-cabin control-room" style={{ '--x': '60%', '--y': '53%', '--w': '6.8rem', '--h': '4rem', '--tone': 'control' } as CSSProperties}><span>Cabina proceso</span></div>
-
-                    <div className="plant-3d-silo silo-one" style={{ '--x': '69%', '--y': '38%', '--h': '7.4rem' } as CSSProperties}><span>Silo A</span></div>
-                    <div className="plant-3d-silo silo-two" style={{ '--x': '75%', '--y': '35%', '--h': '8.2rem' } as CSSProperties}><span>Silo B</span></div>
-                    <div className="plant-3d-silo silo-three" style={{ '--x': '82%', '--y': '33%', '--h': '7.8rem' } as CSSProperties}><span>Silo C</span></div>
-                    <div className="plant-3d-silo silo-four" style={{ '--x': '89%', '--y': '36%', '--h': '7rem' } as CSSProperties}><span>Silo D</span></div>
-
-                    <div className="plant-3d-bin dispatch-one" style={{ '--x': '68%', '--y': '57%' } as CSSProperties}><span>D1</span></div>
-                    <div className="plant-3d-bin dispatch-two" style={{ '--x': '75%', '--y': '53%' } as CSSProperties}><span>D2</span></div>
-                    <div className="plant-3d-bin dispatch-three" style={{ '--x': '82%', '--y': '49%' } as CSSProperties}><span>D3</span></div>
-                    <div className="plant-3d-bin dispatch-four" style={{ '--x': '89%', '--y': '45%' } as CSSProperties}><span>D4</span></div>
-                    <div className="plant-3d-cabin dispatch-cabin" style={{ '--x': '91%', '--y': '59%', '--w': '5.8rem', '--h': '3.6rem', '--tone': 'dispatch' } as CSSProperties}><span>Cabina despacho</span></div>
-
-                    <div className="plant-3d-scale truck-scale-one" style={{ '--x': '66%', '--y': '78%', '--w': '11rem', '--angle': '-7deg' } as CSSProperties}><span>Bascula 1</span></div>
-                    <div className="plant-3d-scale truck-scale-two" style={{ '--x': '78%', '--y': '82%', '--w': '11rem', '--angle': '-7deg' } as CSSProperties}><span>Bascula 2</span></div>
-                    <div className="plant-3d-cabin scale-cabin-one" style={{ '--x': '59%', '--y': '73%', '--w': '4.8rem', '--h': '3.2rem', '--tone': 'scale' } as CSSProperties}><span>Cabina B1</span></div>
-                    <div className="plant-3d-cabin scale-cabin-two" style={{ '--x': '87%', '--y': '77%', '--w': '4.8rem', '--h': '3.2rem', '--tone': 'scale' } as CSSProperties}><span>Cabina B2</span></div>
-                  </div>
+                  <Suspense fallback={<div className="plant-map-webgl-fallback">Cargando modelo 3D...</div>}>
+                    <Plant3DScene />
+                  </Suspense>
 
                   {activePlantMapPoints.map((point) => {
                     const status = plantMapStatusById.get(point.id)
