@@ -2827,6 +2827,7 @@ body::before {
   width: 220px;
   height: 100%;
   background: linear-gradient(130deg, rgba(255, 89, 73, 0.22), transparent 65%);
+  pointer-events: none;
   transform: skewX(-28deg);
 }
 
