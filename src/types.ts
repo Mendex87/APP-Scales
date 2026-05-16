@@ -2,6 +2,7 @@ export const DEFAULT_CHECK_INTERVAL_DAYS = 30
 
 export type SpeedSource = 'automatica' | 'calculada' | 'rpm'
 export type SyncStatus = 'pendiente' | 'sincronizado' | 'error'
+export type PlantMapPointType = 'belt_scale' | 'kiln_scale' | 'dispatch_scale' | 'truck_scale'
 
 export type Equipment = {
   id: string
@@ -146,5 +147,18 @@ export type CalibrationEvent = {
   syncStatus: SyncStatus
   syncMessage: string
   syncedAt: string
+}
+
+export type PlantMapPoint = {
+  id: string
+  label: string
+  zone: string
+  pointType: PlantMapPointType
+  x: number
+  y: number
+  equipmentId: string
+  annualCalibrationDate: string
+  createdAt: string
+  updatedAt: string
 }
 

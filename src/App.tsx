@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, MouseEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, MouseEvent, PointerEvent, ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -30,13 +30,14 @@ import {
   saveCalibrationEventRecord,
   saveChainRecord,
   saveEquipmentRecord,
+  savePlantMapPointsRecord,
   toEventRow,
   updateCalibrationEventSync,
 } from './repository'
-import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
+import { loadChains, loadEquipment, loadEvents, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, SpeedSource } from './types'
+import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapPoint, SpeedSource } from './types'
 import {
   addArgentinaDays,
   argentinaDateTimeLocalToIso,
@@ -64,7 +65,7 @@ import {
 } from './utils'
 import type { MeasureKind, UnitSystem } from './utils'
 
-type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios'
+type Screen = 'dashboard' | 'balanzas' | 'herramientas' | 'nueva' | 'historial' | 'usuarios' | 'mapa'
 type ToastTone = 'info' | 'success' | 'warning' | 'error'
 type AppTheme = 'light' | 'dark'
 type LoginTransitionPhase = 'idle' | 'cover' | 'reveal'
@@ -142,6 +143,26 @@ function clearAccessHash() {
   if (window.location.hash !== '#acceso') return
 
   window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+}
+
+function getScreenFromPath(): Screen {
+  return window.location.pathname === '/mapa' ? 'mapa' : 'dashboard'
+}
+
+function getScreenPath(screen: Screen) {
+  return screen === 'mapa' ? '/mapa' : '/'
+}
+
+function clampMapPercent(value: number) {
+  if (!Number.isFinite(value)) return 50
+  return Math.min(100, Math.max(0, value))
+}
+
+function addDateKeyDays(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  if (![year, month, day].every(Number.isFinite)) return dateKey
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
 }
 
 function getAuthCallbackParams() {
@@ -434,6 +455,8 @@ function getEventMaterialOutcome(item: CalibrationEvent) {
 }
 
 const DUE_SOON_DAYS = 7
+const ANNUAL_SCALE_INTERVAL_DAYS = 365
+const ANNUAL_SCALE_WARNING_DAYS = 30
 
 type MaintenanceStatus = 'out_of_tolerance' | 'overdue' | 'due_soon' | 'ok' | 'no_history'
 
@@ -448,6 +471,78 @@ type EquipmentMaintenance = {
   nextDueDateText: string
   daysRemaining: number | null
   daysText: string
+}
+
+type PlantPointStatus = {
+  label: string
+  rowClass: 'danger' | 'warning' | 'success' | 'neutral'
+  detail: string
+  lastValidDateText: string
+  nextDueDateText: string
+  daysText: string
+  equipment?: Equipment
+  maintenance?: EquipmentMaintenance
+}
+
+function plantMapPointTypeLabel(type: PlantMapPoint['pointType']) {
+  if (type === 'truck_scale') return 'Báscula camionera'
+  if (type === 'dispatch_scale') return 'Despacho'
+  if (type === 'kiln_scale') return 'Horno'
+  return 'Balanza dinámica'
+}
+
+function isAnnualPlantPoint(point: PlantMapPoint) {
+  return point.pointType === 'truck_scale'
+}
+
+function getAnnualPlantPointStatus(point: PlantMapPoint, today = new Date()): PlantPointStatus {
+  if (!point.annualCalibrationDate) {
+    return {
+      label: 'Sin fecha anual',
+      rowClass: 'neutral',
+      detail: 'Cargar fecha de ultima calibracion desde el mapa.',
+      lastValidDateText: '-',
+      nextDueDateText: 'Pendiente',
+      daysText: 'Pendiente',
+    }
+  }
+
+  const nextDueDate = addDateKeyDays(point.annualCalibrationDate, ANNUAL_SCALE_INTERVAL_DAYS)
+  const daysRemaining = differenceInArgentinaDays(formatArgentinaDateKey(today), nextDueDate)
+  const lastValidDateText = formatArgentinaDateKeyForDisplay(point.annualCalibrationDate)
+  const nextDueDateText = formatArgentinaDateKeyForDisplay(nextDueDate)
+
+  if (daysRemaining < 0) {
+    const overdueDays = Math.abs(daysRemaining)
+    return {
+      label: 'Control anual vencido',
+      rowClass: 'danger',
+      detail: `Vencio hace ${overdueDays} dia${overdueDays === 1 ? '' : 's'} · ultimo anual ${lastValidDateText}`,
+      lastValidDateText,
+      nextDueDateText,
+      daysText: `${overdueDays} dia${overdueDays === 1 ? '' : 's'} vencido`,
+    }
+  }
+
+  if (daysRemaining <= ANNUAL_SCALE_WARNING_DAYS) {
+    return {
+      label: daysRemaining === 0 ? 'Vence hoy' : 'Vence pronto',
+      rowClass: 'warning',
+      detail: daysRemaining === 0 ? `Vence hoy · ultimo anual ${lastValidDateText}` : `Vence en ${daysRemaining} dias · ultimo anual ${lastValidDateText}`,
+      lastValidDateText,
+      nextDueDateText,
+      daysText: daysRemaining === 0 ? 'Hoy' : `${daysRemaining} dias`,
+    }
+  }
+
+  return {
+    label: 'Anual vigente',
+    rowClass: 'success',
+    detail: `Proxima calibracion anual ${nextDueDateText} · ${daysRemaining} dias restantes`,
+    lastValidDateText,
+    nextDueDateText,
+    daysText: `${daysRemaining} dias`,
+  }
 }
 
 function getEquipmentMaintenance(item: Equipment, equipmentEvents: CalibrationEvent[], today = new Date()): EquipmentMaintenance {
@@ -1007,10 +1102,17 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
 }
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('dashboard')
+  const [screen, setScreen] = useState<Screen>(getScreenFromPath)
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
   const [chains, setChains] = useState<Chain[]>(() => loadChains())
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
+  const [plantMapPoints, setPlantMapPoints] = useState<PlantMapPoint[]>(() => loadPlantMapPoints())
+  const [plantMapDraftPoints, setPlantMapDraftPoints] = useState<PlantMapPoint[]>([])
+  const [plantMapSource, setPlantMapSource] = useState<'local' | 'supabase'>('local')
+  const [selectedPlantPointId, setSelectedPlantPointId] = useState('')
+  const [plantMapEditing, setPlantMapEditing] = useState(false)
+  const [plantMapSaving, setPlantMapSaving] = useState(false)
+  const [draggingPlantPointId, setDraggingPlantPointId] = useState('')
   const [selectedEquipmentId, setSelectedEquipmentId] = useState('')
   const [selectedChainId, setSelectedChainId] = useState('')
   const [equipmentForm, setEquipmentForm] = useState(defaultEquipmentForm)
@@ -1050,6 +1152,7 @@ function App() {
   const eventSaveInFlightRef = useRef(false)
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
+  const plantMapCanvasRef = useRef<HTMLDivElement | null>(null)
   const loginTransitionTimeoutRef = useRef<number | null>(null)
   const loginTransitionStartedAtRef = useRef(0)
   const calibrationStepAnchorRef = useRef<HTMLDivElement | null>(null)
@@ -1257,6 +1360,8 @@ function App() {
         setEquipment(result.equipment)
         setChains(result.chains || [])
         setEvents(result.events)
+        setPlantMapPoints(result.plantMapPoints)
+        setPlantMapSource(result.plantMapSource)
         setDataSource(result.source)
       } catch (error) {
         if (cancelled) return
@@ -1282,6 +1387,8 @@ function App() {
         setEquipment(result.equipment)
         setChains(result.chains || [])
         setEvents(result.events)
+        setPlantMapPoints(result.plantMapPoints)
+        setPlantMapSource(result.plantMapSource)
         setDataSource(result.source)
         if (!isSupabaseConfigured) {
           setSyncNotice('Servidor online no configurado. La app quedo en modo local.')
@@ -1367,6 +1474,20 @@ function App() {
       setScreen('dashboard')
     }
   }, [currentUser, screen])
+
+  useEffect(() => {
+    const handlePopState = () => setScreen(getScreenFromPath())
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  useEffect(() => {
+    const desiredPath = getScreenPath(screen)
+    const isPlantMapPath = window.location.pathname === '/mapa'
+    if (window.location.pathname !== desiredPath && (screen === 'mapa' || isPlantMapPath)) {
+      window.history.pushState(null, '', desiredPath)
+    }
+  }, [screen])
 
   const selectedEquipment = useMemo(
     () => equipment.find((item) => item.id === selectedEquipmentId),
@@ -1631,6 +1752,155 @@ function App() {
   const selectedEquipmentMaintenance = selectedEquipment
     ? getEquipmentMaintenance(selectedEquipment, events.filter((item) => item.equipmentId === selectedEquipment.id))
     : null
+
+  const activePlantMapPoints = plantMapEditing ? plantMapDraftPoints : plantMapPoints
+
+  useEffect(() => {
+    if (selectedPlantPointId && activePlantMapPoints.some((point) => point.id === selectedPlantPointId)) return
+    setSelectedPlantPointId(activePlantMapPoints[0]?.id || '')
+  }, [activePlantMapPoints, selectedPlantPointId])
+
+  const plantMapStatusById = useMemo(() => {
+    const statusById = new Map<string, PlantPointStatus>()
+
+    activePlantMapPoints.forEach((point) => {
+      if (isAnnualPlantPoint(point)) {
+        statusById.set(point.id, getAnnualPlantPointStatus(point, clockNow))
+        return
+      }
+
+      if (!point.equipmentId) {
+        statusById.set(point.id, {
+          label: 'Pendiente de vincular',
+          rowClass: 'neutral',
+          detail: 'Un administrador debe vincular este punto con una balanza cargada.',
+          lastValidDateText: '-',
+          nextDueDateText: 'Pendiente',
+          daysText: 'Pendiente',
+        })
+        return
+      }
+
+      const linkedEquipment = equipment.find((item) => item.id === point.equipmentId)
+      if (!linkedEquipment) {
+        statusById.set(point.id, {
+          label: 'Vinculo no encontrado',
+          rowClass: 'neutral',
+          detail: 'La balanza vinculada ya no existe en el parque cargado.',
+          lastValidDateText: '-',
+          nextDueDateText: 'Pendiente',
+          daysText: 'Pendiente',
+        })
+        return
+      }
+
+      const equipmentEvents = events.filter((item) => item.equipmentId === linkedEquipment.id)
+      const maintenance = getEquipmentMaintenance(linkedEquipment, equipmentEvents, clockNow)
+      statusById.set(point.id, {
+        label: maintenance.label,
+        rowClass: maintenance.rowClass,
+        detail: maintenance.detail,
+        lastValidDateText: maintenance.lastValidDateText,
+        nextDueDateText: maintenance.nextDueDateText,
+        daysText: maintenance.daysText,
+        equipment: linkedEquipment,
+        maintenance,
+      })
+    })
+
+    return statusById
+  }, [activePlantMapPoints, clockNow, equipment, events])
+
+  const selectedPlantPoint = activePlantMapPoints.find((point) => point.id === selectedPlantPointId) || activePlantMapPoints[0]
+  const selectedPlantPointStatus = selectedPlantPoint ? plantMapStatusById.get(selectedPlantPoint.id) : undefined
+  const plantMapStatusCounts = useMemo(() => {
+    return activePlantMapPoints.reduce(
+      (summary, point) => {
+        const status = plantMapStatusById.get(point.id)?.rowClass || 'neutral'
+        summary[status] += 1
+        return summary
+      },
+      { success: 0, warning: 0, danger: 0, neutral: 0 },
+    )
+  }, [activePlantMapPoints, plantMapStatusById])
+
+  function startPlantMapEditing() {
+    if (currentUser?.role !== 'admin') return
+    setPlantMapDraftPoints(plantMapPoints)
+    setPlantMapEditing(true)
+    setSyncNotice('Modo edicion del mapa activo. Los cambios se aplican al guardar.')
+  }
+
+  function cancelPlantMapEditing() {
+    setPlantMapDraftPoints([])
+    setPlantMapEditing(false)
+    setDraggingPlantPointId('')
+    setSyncNotice('Edicion del mapa cancelada.')
+  }
+
+  function updatePlantMapDraftPoint(pointId: string, changes: Partial<PlantMapPoint>) {
+    setPlantMapDraftPoints((current) => current.map((point) => (point.id === pointId ? { ...point, ...changes } : point)))
+  }
+
+  async function savePlantMapEditing() {
+    if (currentUser?.role !== 'admin' || !plantMapEditing) return
+    setPlantMapSaving(true)
+    try {
+      const savedAt = new Date().toISOString()
+      const nextPoints = plantMapDraftPoints.map((point) => ({ ...point, updatedAt: savedAt }))
+      const result = await savePlantMapPointsRecord(nextPoints)
+      setPlantMapPoints(nextPoints)
+      setPlantMapDraftPoints([])
+      setPlantMapEditing(false)
+      setDraggingPlantPointId('')
+      setPlantMapSource(result.source)
+      setSyncNotice(result.source === 'supabase' ? 'Mapa de planta guardado en servidor online.' : 'Mapa de planta guardado solo localmente.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo guardar el mapa.'
+      setSyncNotice(`Error al guardar mapa: ${message}`)
+    } finally {
+      setPlantMapSaving(false)
+    }
+  }
+
+  function updatePlantPointPosition(pointId: string, event: PointerEvent<HTMLElement>) {
+    const canvas = plantMapCanvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const x = clampMapPercent(((event.clientX - rect.left) / rect.width) * 100)
+    const y = clampMapPercent(((event.clientY - rect.top) / rect.height) * 100)
+    updatePlantMapDraftPoint(pointId, { x: round(x, 2), y: round(y, 2) })
+  }
+
+  function handlePlantPointPointerDown(event: PointerEvent<HTMLButtonElement>, pointId: string) {
+    setSelectedPlantPointId(pointId)
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    event.preventDefault()
+    setDraggingPlantPointId(pointId)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    updatePlantPointPosition(pointId, event)
+  }
+
+  function handlePlantPointPointerMove(event: PointerEvent<HTMLButtonElement>, pointId: string) {
+    if (draggingPlantPointId !== pointId || !plantMapEditing) return
+    updatePlantPointPosition(pointId, event)
+  }
+
+  function handlePlantPointPointerUp(event: PointerEvent<HTMLButtonElement>, pointId: string) {
+    if (draggingPlantPointId !== pointId) return
+    event.currentTarget.releasePointerCapture(event.pointerId)
+    setDraggingPlantPointId('')
+  }
+
+  function handlePlantMapPointEquipmentChange(pointId: string, equipmentId: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftPoint(pointId, { equipmentId })
+  }
+
+  function handlePlantMapPointDateChange(pointId: string, annualCalibrationDate: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftPoint(pointId, { annualCalibrationDate })
+  }
 
   const precheckPassed = useMemo(
     () =>
@@ -2187,7 +2457,7 @@ function App() {
     setLoginEmail('')
     setLoginPassword('')
     setSyncNotice('Sesion iniciada.')
-    setScreen('dashboard')
+    setScreen(getScreenFromPath())
     clearAccessHash()
     if (shouldRevealLoginTransition) revealLoginTransition()
   }
@@ -3483,6 +3753,7 @@ function App() {
               </div>
               <div className="row compact-actions">
                 {canOperate && <button className="primary" type="button" onClick={() => setScreen('nueva')}><ClipboardCheck className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
+                <button className="secondary" type="button" onClick={() => setScreen('mapa')}><Scale className="action-icon" aria-hidden="true" />Mapa planta</button>
                 {canReview && <button className="secondary" type="button" onClick={() => setScreen('balanzas')}><Scale className="action-icon" aria-hidden="true" />Ver balanzas</button>}
                 <button className="secondary" type="button" onClick={() => setScreen('historial')}><History className="action-icon" aria-hidden="true" />Historial</button>
                 <button className="secondary" type="button" onClick={() => setScreen('herramientas')}><Wrench className="action-icon" aria-hidden="true" />Herramientas</button>
@@ -3511,6 +3782,181 @@ function App() {
                 )
               })}
             </div>}
+          </section>
+        )}
+
+        {screen === 'mapa' && (
+          <section className="stack screen-shell plant-map-screen">
+            <div className="screen-banner plant-map-banner">
+              <div>
+                <span className="section-kicker">Mapa operativo</span>
+                <h2>Planta de secado y despacho</h2>
+                <p>Vista isometrica de puntos de balanzas y basculas. Los colores indican estado actual, vencimiento o falta de vinculacion.</p>
+              </div>
+              <div className="row compact-actions plant-map-banner-actions">
+                <button className="secondary" type="button" onClick={() => setScreen('dashboard')}>Volver al inicio</button>
+                {currentUser.role === 'admin' && !plantMapEditing && (
+                  <button className="primary" type="button" onClick={startPlantMapEditing}><Pencil className="action-icon" aria-hidden="true" />Editar mapa</button>
+                )}
+                {currentUser.role === 'admin' && plantMapEditing && (
+                  <>
+                    <button className="primary" type="button" onClick={() => void savePlantMapEditing()} disabled={plantMapSaving}><Save className="action-icon" aria-hidden="true" />Guardar edicion</button>
+                    <button className="secondary" type="button" onClick={cancelPlantMapEditing} disabled={plantMapSaving}><XCircle className="action-icon" aria-hidden="true" />Cancelar</button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {plantMapSource === 'local' && (
+              <div className="notice plant-map-notice" role="status">Mapa usando datos locales. Si la tabla nueva todavia no fue aplicada en el servidor online, la app sigue funcionando sin romper el resto.</div>
+            )}
+
+            <div className="plant-map-layout">
+              <div className="card plant-map-board">
+                <div className="row wrap plant-map-board-head">
+                  <div>
+                    <span className="section-kicker">Layout Noviembre 2024</span>
+                    <h2>Mapa fijo de sectores principales</h2>
+                    <p className="hint">Primera version SVG/CSS: sectores de proceso, despachos y puntos operativos interactivos.</p>
+                  </div>
+                  <div className="plant-map-legend" aria-label="Leyenda de estados">
+                    <span className="plant-status-key success">Al dia</span>
+                    <span className="plant-status-key warning">Proximo</span>
+                    <span className="plant-status-key danger">Vencido</span>
+                    <span className="plant-status-key neutral">Sin vincular</span>
+                  </div>
+                </div>
+
+                <div className={`plant-map-canvas ${plantMapEditing ? 'editing' : ''}`} ref={plantMapCanvasRef}>
+                  <svg className="plant-map-svg" viewBox="0 0 1000 620" role="img" aria-label="Layout isometrico de planta de secado y despacho">
+                    <defs>
+                      <linearGradient id="plantBase" x1="0" x2="1" y1="0" y2="1">
+                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.18" />
+                        <stop offset="100%" stopColor="currentColor" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    <polygon className="plant-map-ground" points="122,150 876,78 948,465 217,560" />
+                    <polygon className="plant-map-zone plant-map-zone-acopio" points="142,180 320,146 360,290 178,326" />
+                    <polygon className="plant-map-zone plant-map-zone-proceso" points="350,140 668,104 716,340 384,380" />
+                    <polygon className="plant-map-zone plant-map-zone-despacho" points="690,150 890,116 922,344 724,386" />
+                    <polygon className="plant-map-zone plant-map-zone-camiones" points="568,404 884,360 918,486 602,536" />
+                    <polyline className="plant-map-conveyor" points="196,360 322,322 446,302 592,272 734,246" />
+                    <polyline className="plant-map-conveyor secondary" points="305,430 460,392 622,350 798,314" />
+                    <rect className="plant-map-building" x="412" y="185" width="96" height="82" rx="8" transform="rotate(-8 460 226)" />
+                    <rect className="plant-map-building" x="520" y="170" width="96" height="82" rx="8" transform="rotate(-8 568 211)" />
+                    <rect className="plant-map-building" x="628" y="154" width="96" height="82" rx="8" transform="rotate(-8 676 195)" />
+                    <rect className="plant-map-silo" x="748" y="178" width="52" height="116" rx="18" transform="rotate(-8 774 236)" />
+                    <rect className="plant-map-silo" x="812" y="166" width="52" height="116" rx="18" transform="rotate(-8 838 224)" />
+                    <rect className="plant-map-scale-lane" x="612" y="466" width="142" height="30" rx="6" transform="rotate(-8 683 481)" />
+                    <rect className="plant-map-scale-lane" x="736" y="452" width="142" height="30" rx="6" transform="rotate(-8 807 467)" />
+                    <text className="plant-map-label" x="210" y="235">Acopio</text>
+                    <text className="plant-map-label" x="468" y="126">Secado</text>
+                    <text className="plant-map-label" x="744" y="150">Despacho</text>
+                    <text className="plant-map-label" x="650" y="432">Basculas</text>
+                    <text className="plant-map-small-label" x="402" y="300">Zarandas / celdas</text>
+                    <text className="plant-map-small-label" x="168" y="386">Cintas principales</text>
+                  </svg>
+
+                  {activePlantMapPoints.map((point) => {
+                    const status = plantMapStatusById.get(point.id)
+                    const isSelected = selectedPlantPoint?.id === point.id
+                    return (
+                      <button
+                        className={`plant-map-point status-${status?.rowClass || 'neutral'} ${isSelected ? 'selected' : ''} ${draggingPlantPointId === point.id ? 'dragging' : ''}`}
+                        key={point.id}
+                        type="button"
+                        style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                        onClick={() => setSelectedPlantPointId(point.id)}
+                        onPointerDown={(event) => handlePlantPointPointerDown(event, point.id)}
+                        onPointerMove={(event) => handlePlantPointPointerMove(event, point.id)}
+                        onPointerUp={(event) => handlePlantPointPointerUp(event, point.id)}
+                        onPointerCancel={() => setDraggingPlantPointId('')}
+                        aria-label={`${point.label}: ${status?.label || 'Sin estado'}`}
+                      >
+                        <span className="plant-point-dot" aria-hidden="true" />
+                        <span className="plant-point-label">{point.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="plant-map-footer">
+                  <div><span>10 puntos iniciales</span><strong>{activePlantMapPoints.length}</strong></div>
+                  <div><span>Al dia</span><strong>{plantMapStatusCounts.success}</strong></div>
+                  <div><span>Proximos</span><strong>{plantMapStatusCounts.warning}</strong></div>
+                  <div><span>Vencidos</span><strong>{plantMapStatusCounts.danger}</strong></div>
+                  <div><span>Pendientes</span><strong>{plantMapStatusCounts.neutral}</strong></div>
+                </div>
+                {plantMapEditing && <p className="hint compact-top">Modo edicion activo: arrastra puntos, ajusta vinculos o fechas y confirma con Guardar edicion.</p>}
+              </div>
+
+              <aside className={`card plant-map-detail status-${selectedPlantPointStatus?.rowClass || 'neutral'}`}>
+                {selectedPlantPoint ? (
+                  <>
+                    <span className="section-kicker">{plantMapPointTypeLabel(selectedPlantPoint.pointType)}</span>
+                    <h2>{selectedPlantPoint.label}</h2>
+                    <p className="hint">{selectedPlantPoint.zone} · {selectedPlantPointStatus?.detail || 'Sin estado disponible.'}</p>
+                    <div className="grid two compact-top">
+                      <Metric label="Estado" value={selectedPlantPointStatus?.label || '-'} />
+                      <Metric label="Dias" value={selectedPlantPointStatus?.daysText || '-'} />
+                      <Metric label="Ultimo valido" value={selectedPlantPointStatus?.lastValidDateText || '-'} />
+                      <Metric label="Proximo" value={selectedPlantPointStatus?.nextDueDateText || '-'} />
+                    </div>
+
+                    {!isAnnualPlantPoint(selectedPlantPoint) && (
+                      <div className="plant-map-admin-field compact-top">
+                        <label className="label">Balanza vinculada</label>
+                        <select
+                          className="input"
+                          value={selectedPlantPoint.equipmentId}
+                          onChange={(event) => handlePlantMapPointEquipmentChange(selectedPlantPoint.id, event.target.value)}
+                          disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                        >
+                          <option value="">Sin vincular</option>
+                          {equipment.map((item) => (
+                            <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
+                          ))}
+                        </select>
+                        {!plantMapEditing && currentUser.role === 'admin' && <p className="hint compact-top">Activá Editar mapa para cambiar el vinculo.</p>}
+                      </div>
+                    )}
+
+                    {isAnnualPlantPoint(selectedPlantPoint) && (
+                      <div className="plant-map-admin-field compact-top">
+                        <label className="label">Ultima calibracion anual</label>
+                        <input
+                          className="input"
+                          type="date"
+                          value={selectedPlantPoint.annualCalibrationDate}
+                          onChange={(event) => handlePlantMapPointDateChange(selectedPlantPoint.id, event.target.value)}
+                          disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                        />
+                        <p className="hint compact-top">Alerta amarilla a {ANNUAL_SCALE_WARNING_DAYS} dias del vencimiento anual.</p>
+                      </div>
+                    )}
+
+                    {selectedPlantPointStatus?.equipment && (
+                      <div className="plant-linked-equipment compact-top">
+                        <span>Equipo vinculado</span>
+                        <strong>{selectedPlantPointStatus.equipment.plant} / {selectedPlantPointStatus.equipment.line} / {selectedPlantPointStatus.equipment.beltCode}</strong>
+                        <p>{selectedPlantPointStatus.equipment.scaleName}</p>
+                      </div>
+                    )}
+
+                    <div className="row compact-actions plant-map-detail-actions">
+                      {selectedPlantPointStatus?.equipment && canOperate && (
+                        <button className="primary" type="button" onClick={() => primeEventForm(selectedPlantPointStatus.equipment!)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>
+                      )}
+                      {selectedPlantPointStatus?.equipment && (
+                        <button className="secondary" type="button" onClick={() => { setHistoryEquipmentId(selectedPlantPointStatus.equipment!.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="empty-state">No hay puntos de mapa cargados.</div>
+                )}
+              </aside>
+            </div>
           </section>
         )}
 

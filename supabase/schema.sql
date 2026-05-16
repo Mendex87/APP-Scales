@@ -127,6 +127,42 @@ create index if not exists calibration_events_equipment_id_idx
 create index if not exists calibration_events_event_date_idx
   on public.calibration_events (event_date desc);
 
+create table if not exists public.plant_map_points (
+  id text primary key,
+  label text not null default '',
+  zone text not null default '',
+  point_type text not null default 'belt_scale',
+  x double precision not null default 50,
+  y double precision not null default 50,
+  equipment_id text references public.equipments (id) on delete set null,
+  annual_calibration_date date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint plant_map_points_type_check
+    check (point_type in ('belt_scale', 'kiln_scale', 'dispatch_scale', 'truck_scale')),
+  constraint plant_map_points_x_check
+    check (x >= 0 and x <= 100),
+  constraint plant_map_points_y_check
+    check (y >= 0 and y <= 100)
+);
+
+create index if not exists plant_map_points_equipment_id_idx
+  on public.plant_map_points (equipment_id);
+
+insert into public.plant_map_points (id, label, zone, point_type, x, y)
+values
+  ('cinta-23', 'Cinta 23', 'Transporte principal', 'belt_scale', 30, 57),
+  ('horno-1', 'Horno 1', 'Secado', 'kiln_scale', 36, 40),
+  ('horno-2', 'Horno 2', 'Secado', 'kiln_scale', 47, 37),
+  ('horno-3', 'Horno 3', 'Secado', 'kiln_scale', 58, 34),
+  ('despacho-1', 'Despacho 1', 'Despacho', 'dispatch_scale', 68, 57),
+  ('despacho-2', 'Despacho 2', 'Despacho', 'dispatch_scale', 75, 53),
+  ('despacho-3', 'Despacho 3', 'Despacho', 'dispatch_scale', 82, 49),
+  ('despacho-4', 'Despacho 4', 'Despacho', 'dispatch_scale', 89, 45),
+  ('bascula-1', 'Báscula 1', 'Ingreso camiones', 'truck_scale', 66, 78),
+  ('bascula-2', 'Báscula 2', 'Egreso camiones', 'truck_scale', 78, 82)
+on conflict (id) do nothing;
+
 alter table public.calibration_events
   add column if not exists precheck jsonb not null default '{}'::jsonb;
 
@@ -163,6 +199,7 @@ alter table public.chains enable row level security;
 alter table public.profiles enable row level security;
 alter table public.equipments enable row level security;
 alter table public.calibration_events enable row level security;
+alter table public.plant_map_points enable row level security;
 
 drop policy if exists "profiles read own" on public.profiles;
 drop policy if exists "profiles admin read" on public.profiles;
@@ -182,6 +219,10 @@ drop policy if exists "public read calibration_events" on public.calibration_eve
 drop policy if exists "public insert calibration_events" on public.calibration_events;
 drop policy if exists "public update calibration_events" on public.calibration_events;
 drop policy if exists "public delete calibration_events" on public.calibration_events;
+drop policy if exists "public read plant_map_points" on public.plant_map_points;
+drop policy if exists "admin insert plant_map_points" on public.plant_map_points;
+drop policy if exists "admin update plant_map_points" on public.plant_map_points;
+drop policy if exists "admin delete plant_map_points" on public.plant_map_points;
 
 create policy "public read equipments"
 on public.equipments for select
@@ -243,6 +284,27 @@ with check (public.current_user_role() in ('admin', 'tecnico'));
 
 create policy "public delete calibration_events"
 on public.calibration_events for delete
+to authenticated
+using (public.current_user_role() = 'admin');
+
+create policy "public read plant_map_points"
+on public.plant_map_points for select
+to authenticated
+using (true);
+
+create policy "admin insert plant_map_points"
+on public.plant_map_points for insert
+to authenticated
+with check (public.current_user_role() = 'admin');
+
+create policy "admin update plant_map_points"
+on public.plant_map_points for update
+to authenticated
+using (public.current_user_role() = 'admin')
+with check (public.current_user_role() = 'admin');
+
+create policy "admin delete plant_map_points"
+on public.plant_map_points for delete
 to authenticated
 using (public.current_user_role() = 'admin');
 

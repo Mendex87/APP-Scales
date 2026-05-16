@@ -30,6 +30,7 @@
   ],
   "rewrites": [
     { "source": "/manual", "destination": "/manual/index.html" },
-    { "source": "/manual/tecnico", "destination": "/manual/tecnico/index.html" }
+    { "source": "/manual/tecnico", "destination": "/manual/tecnico/index.html" },
+    { "source": "/mapa", "destination": "/index.html" }
   ]
 }

@@ -1,7 +1,7 @@
-import { loadChains, loadEquipment, loadEvents, saveChains, saveEquipment, saveEvents } from './storage'
+import { loadChains, loadEquipment, loadEvents, loadPlantMapPoints, saveChains, saveEquipment, saveEvents, savePlantMapPoints } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, SyncStatus } from './types'
+import type { CalibrationEvent, Chain, Equipment, PlantMapPoint, SyncStatus } from './types'
 
 type EquipmentRow = {
   id: string
@@ -59,24 +59,41 @@ type ChainRow = {
   created_at: string
 }
 
+type PlantMapPointRow = {
+  id: string
+  label: string
+  zone: string
+  point_type: PlantMapPoint['pointType']
+  x: number
+  y: number
+  equipment_id: string | null
+  annual_calibration_date: string | null
+  created_at: string
+  updated_at: string
+}
+
 export async function loadAppData() {
   const cachedEquipment = loadEquipment()
   const cachedChains = loadChains()
   const cachedEvents = loadEvents()
+  const cachedPlantMapPoints = loadPlantMapPoints()
 
   if (!isSupabaseConfigured || !supabase) {
     return {
       equipment: cachedEquipment,
       chains: cachedChains,
       events: cachedEvents,
+      plantMapPoints: cachedPlantMapPoints,
+      plantMapSource: 'local' as const,
       source: 'local' as const,
     }
   }
 
-  const [equipmentResult, chainsResult, eventsResult] = await Promise.all([
+  const [equipmentResult, chainsResult, eventsResult, plantMapResult] = await Promise.all([
     supabase.from('equipments').select('*').order('created_at', { ascending: false }),
     supabase.from('chains').select('*').order('created_at', { ascending: false }),
     supabase.from('calibration_events').select('*').order('event_date', { ascending: false }),
+    supabase.from('plant_map_points').select('*').order('label', { ascending: true }),
   ])
 
   if (equipmentResult.error) {
@@ -94,15 +111,22 @@ export async function loadAppData() {
   const equipment = (equipmentResult.data || []).map(mapEquipmentRow)
   const chains = (chainsResult.data || []).map(mapChainRow)
   const events = (eventsResult.data || []).map(mapEventRow)
+  const plantMapPoints = plantMapResult.error
+    ? cachedPlantMapPoints
+    : ((plantMapResult.data || []) as PlantMapPointRow[]).map(mapPlantMapPointRow)
+  const plantMapSource = plantMapResult.error ? 'local' as const : 'supabase' as const
 
   saveEquipment(equipment)
   saveChains(chains)
   saveEvents(events)
+  savePlantMapPoints(plantMapPoints)
 
   return {
     equipment,
     chains,
     events,
+    plantMapPoints,
+    plantMapSource,
     source: 'supabase' as const,
   }
 }
@@ -177,6 +201,38 @@ export async function saveChainRecord(item: Chain) {
   }
 
   return { source: 'supabase' as const }
+}
+
+export async function savePlantMapPointsRecord(items: PlantMapPoint[]) {
+  const savedAt = new Date().toISOString()
+  const normalized = items.map((item) => ({ ...item, updatedAt: savedAt }))
+  savePlantMapPoints(normalized)
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { source: 'local' as const }
+  }
+
+  const result = await supabase.from('plant_map_points').upsert(normalized.map(toPlantMapPointRow))
+  if (result.error) {
+    if (isPlantMapTableUnavailable(result.error)) {
+      return { source: 'local' as const }
+    }
+    throw toError(result.error)
+  }
+
+  return { source: 'supabase' as const }
+}
+
+function isPlantMapTableUnavailable(value: unknown) {
+  const text = value && typeof value === 'object'
+    ? [
+        'message' in value ? (value as { message?: unknown }).message : '',
+        'details' in value ? (value as { details?: unknown }).details : '',
+        'hint' in value ? (value as { hint?: unknown }).hint : '',
+        'code' in value ? (value as { code?: unknown }).code : '',
+      ].join(' ')
+    : String(value || '')
+  return /plant_map_points|schema cache|relation/i.test(text) && /does not exist|not find|not found|42P01|PGRST205/i.test(text)
 }
 
 export async function deleteChainRecord(chainId: string) {
@@ -365,6 +421,36 @@ function toChainRow(item: Chain): ChainRow {
     total_weight_kg: item.totalWeightKg,
     notes: item.notes,
     created_at: item.createdAt,
+  }
+}
+
+function mapPlantMapPointRow(row: PlantMapPointRow): PlantMapPoint {
+  return {
+    id: row.id,
+    label: row.label,
+    zone: row.zone,
+    pointType: row.point_type,
+    x: row.x,
+    y: row.y,
+    equipmentId: row.equipment_id || '',
+    annualCalibrationDate: row.annual_calibration_date || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function toPlantMapPointRow(item: PlantMapPoint): PlantMapPointRow {
+  return {
+    id: item.id,
+    label: item.label,
+    zone: item.zone,
+    point_type: item.pointType,
+    x: item.x,
+    y: item.y,
+    equipment_id: item.equipmentId || null,
+    annual_calibration_date: item.annualCalibrationDate || null,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
   }
 }
 
