@@ -170,6 +170,7 @@ export type PlantMapObject = {
   x: number
   z: number
   rotationY: number
+  scale: number
   createdAt: string
   updatedAt: string
 }

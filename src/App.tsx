@@ -162,7 +162,12 @@ function clampMapPercent(value: number) {
 
 function clampSceneCoordinate(value: number) {
   if (!Number.isFinite(value)) return 0
-  return Math.min(12, Math.max(-12, value))
+  return Math.min(18, Math.max(-18, value))
+}
+
+function clampObjectScale(value: number) {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(3, Math.max(0.25, value))
 }
 
 function addDateKeyDays(dateKey: string, days: number) {
@@ -1939,12 +1944,16 @@ function App() {
     updatePlantMapDraftObject(objectId, { x: round(clampSceneCoordinate(x), 2), z: round(clampSceneCoordinate(z), 2) })
   }
 
-  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'rotationY', value: string) {
+  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'rotationY' | 'scale', value: string) {
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     const parsed = toNumber(value, Number.NaN)
     if (!Number.isFinite(parsed)) return
     updatePlantMapDraftObject(objectId, {
-      [field]: field === 'rotationY' ? round(parsed, 3) : round(clampSceneCoordinate(parsed), 2),
+      [field]: field === 'rotationY'
+        ? round(parsed, 3)
+        : field === 'scale'
+          ? round(clampObjectScale(parsed), 2)
+          : round(clampSceneCoordinate(parsed), 2),
     })
   }
 
@@ -3990,10 +3999,11 @@ function App() {
                       </select>
                       <p className="hint compact-top">Arrastrá el modelo para girar la vista. En modo edición admin, arrastrá un objeto 3D para acomodarlo.</p>
                       {selectedPlantObject && (
-                        <div className="grid three compact-top plant-object-controls">
+                        <div className="grid four compact-top plant-object-controls">
                           <Field label="X" type="number" value={String(selectedPlantObject.x)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'x', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
                           <Field label="Z" type="number" value={String(selectedPlantObject.z)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'z', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
                           <Field label="Rotacion" type="number" value={String(selectedPlantObject.rotationY)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'rotationY', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          <Field label="Tamaño" type="number" value={String(selectedPlantObject.scale)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'scale', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
                         </div>
                       )}
                       {selectedPlantObject && plantMapEditing && currentUser.role === 'admin' && (

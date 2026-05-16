@@ -34,6 +34,17 @@ const OBJECT_SPECS: Record<string, { length?: number; width?: number; depth?: nu
   'scale-cabin-2': { width: 1.15, depth: 0.9, tone: 'scale' },
 }
 
+const SCENE_LIMIT = 18
+
+function getObjectScale(object: PlantMapObject) {
+  if (!Number.isFinite(object.scale)) return 1
+  return Math.min(3, Math.max(0.25, object.scale))
+}
+
+function applyObjectScale(group: THREE.Group, object: PlantMapObject, selected: boolean) {
+  group.scale.setScalar(getObjectScale(object) * (selected ? 1.08 : 1))
+}
+
 export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove, onObjectSelect }: Plant3DSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const groupsRef = useRef(new Map<string, THREE.Group>())
@@ -51,10 +62,12 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
   useEffect(() => {
     selectedObjectIdRef.current = selectedObjectId
     groupsRef.current.forEach((group, objectId) => {
+      const object = objects.find((item) => item.id === objectId)
+      if (!object) return
       const selected = objectId === selectedObjectId
-      group.scale.setScalar(selected ? 1.08 : 1)
+      applyObjectScale(group, object, selected)
     })
-  }, [selectedObjectId])
+  }, [objects, selectedObjectId])
 
   useEffect(() => {
     onObjectMoveRef.current = onObjectMove
@@ -68,7 +81,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       group.position.x = object.x
       group.position.z = object.z
       group.rotation.y = object.rotationY
-      group.scale.setScalar(object.id === selectedObjectIdRef.current ? 1.08 : 1)
+      applyObjectScale(group, object, object.id === selectedObjectIdRef.current)
     })
   }, [objects])
 
@@ -112,7 +125,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
     try {
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 120)
-      camera.position.set(15, 12, 17)
+      camera.position.set(22, 16, 24)
       camera.lookAt(0, 0, 0)
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' })
@@ -131,7 +144,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       controls.rotateSpeed = 0.55
       controls.zoomSpeed = 0.65
       controls.minDistance = 10
-      controls.maxDistance = 32
+      controls.maxDistance = 46
       controls.minPolarAngle = 0.42
       controls.maxPolarAngle = Math.PI / 2.12
 
@@ -240,6 +253,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const group = new THREE.Group()
         group.position.set(object.x, 0, object.z)
         group.rotation.y = object.rotationY
+        applyObjectScale(group, object, object.id === selectedObjectIdRef.current)
         group.userData.objectId = object.id
         plant.add(group)
         groupsRef.current.set(object.id, group)
@@ -363,17 +377,17 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         else addStructure(object)
       }
 
-      addBox(23.5, 0.18, 15, 0, 0, concrete, 0, -0.09)
-      const grid = new THREE.GridHelper(23, 23, 0xb9b2a8, 0xd9d3c9)
+      addBox(35, 0.18, 24, 0, 0, concrete, 0, -0.09)
+      const grid = new THREE.GridHelper(35, 35, 0xb9b2a8, 0xd9d3c9)
       grid.position.y = 0.025
       plant.add(grid)
       addZone(5.7, 4.8, -7.3, -1.6, amberZone)
       addZone(8, 5.6, -1.6, -1.8, orangeZone)
       addZone(6.6, 5.8, 6.3, -1.5, greenZone)
       addZone(9.8, 2.7, 4.8, 4.65, greyZone)
-      addBox(12.8, 0.06, 1.45, 4.4, 4.95, asphalt, -0.12, 0.06)
-      addBox(12.2, 0.05, 0.78, -1.8, 2.95, asphalt, -0.28, 0.06)
-      addBox(0.08, 0.07, 11, 7.6, 0.9, asphalt, 0.14, 0.07)
+      addBox(20, 0.06, 1.45, 4.4, 4.95, asphalt, -0.12, 0.06)
+      addBox(19, 0.05, 0.78, -1.8, 2.95, asphalt, -0.28, 0.06)
+      addBox(0.08, 0.07, 17, 7.6, 0.9, asphalt, 0.14, 0.07)
       objects.forEach(addEditableObject)
       addLabel('Planta de secado y despacho', -2.4, 5.7, -5.55, 0.95)
 
@@ -404,8 +418,8 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const group = groupsRef.current.get(draggingObjectId)
         if (!group) return
         const nextPosition = planeHit.add(dragOffset)
-        group.position.x = Math.min(12, Math.max(-12, nextPosition.x))
-        group.position.z = Math.min(12, Math.max(-12, nextPosition.z))
+        group.position.x = Math.min(SCENE_LIMIT, Math.max(-SCENE_LIMIT, nextPosition.x))
+        group.position.z = Math.min(SCENE_LIMIT, Math.max(-SCENE_LIMIT, nextPosition.z))
         lastDragPosition = group.position.clone()
       }
 

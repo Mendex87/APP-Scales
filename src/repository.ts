@@ -79,6 +79,7 @@ type PlantMapObjectRow = {
   x: number
   z: number
   rotation_y: number
+  scale?: number
   created_at: string
   updated_at: string
 }
@@ -501,6 +502,7 @@ function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
     x: row.x,
     z: row.z,
     rotationY: row.rotation_y,
+    scale: row.scale ?? 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -514,6 +516,7 @@ function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
     x: item.x,
     z: item.z,
     rotation_y: item.rotationY,
+    scale: item.scale,
     created_at: item.createdAt,
     updated_at: item.updatedAt,
   }

@@ -1636,7 +1636,7 @@ body::before {
 
 .plant-map-canvas {
   position: relative;
-  min-height: 620px;
+  min-height: 760px;
   margin-top: 1rem;
   overflow: hidden;
   border: 1px solid var(--border-strong);
@@ -4285,7 +4285,7 @@ body::before {
   }
 
   .plant-map-canvas {
-    min-height: 520px;
+    min-height: 580px;
     margin-inline: -0.35rem;
     border-radius: 0.22rem;
   }
