@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.0.6 - Guardado de puntos libres del mapa
+
+- El guardado del mapa conserva `object_id` como texto vacio cuando un punto operativo no esta vinculado a un objeto 3D, evitando errores de restriccion en el servidor online.
+
 ## v4.0.5 - Modelos GLB para mapa 3D
 
 - El editor de mapa permite asociar una ruta `.glb`/`.gltf` a cada objeto para reemplazar la geometria generativa por modelos exportados desde Fusion 360/Blender.

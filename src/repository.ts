@@ -520,7 +520,7 @@ function toPlantMapPointRow(item: PlantMapPoint): PlantMapPointRow {
     x: item.x,
     y: item.y,
     equipment_id: item.equipmentId || null,
-    object_id: item.objectId || null,
+    object_id: item.objectId || '',
     annual_calibration_date: item.annualCalibrationDate || null,
     created_at: item.createdAt,
     updated_at: item.updatedAt,
