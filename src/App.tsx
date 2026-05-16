@@ -816,7 +816,6 @@ function buildAdminManualHtml(user: AuthUser) {
 
 function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equipment | undefined, unitSystem: UnitSystem) {
   const materialSummary = getEventMaterialOutcome(item)
-  const status = materialSummary.status
   const eventAppVersion = item.appVersion || item.parameterSnapshot.appVersion || '-'
   const measure = (value: number, kind: MeasureKind, digits = 3) => formatMeasureValue(value, kind, unitSystem, digits)
   const equipmentLabel = equipmentItem
@@ -837,6 +836,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   const finalExternalWeight = materialSummary.finalPass?.externalWeightKg ?? item.materialValidation.externalWeightKg
   const finalBeltWeight = materialSummary.finalPass?.beltWeightKg ?? item.materialValidation.beltWeightKg
   const finalWeightDiff = finalBeltWeight - finalExternalWeight
+  const closureType = materialSummary.adjustmentApplied ? 'Ajustada' : 'Control'
+  const optionalMeasure = (value: number, kind: MeasureKind, digits = 3) => value > 0 ? measure(value, kind, digits) : 'No requerido'
+  const optionalText = (value: string | number, suffix = '') => value ? `${value}${suffix}` : 'No requerido'
   const inspectionChecks = [
     reportCheck('Banda vacia', item.precheck.beltEmpty),
     reportCheck('Banda limpia', item.precheck.beltClean),
@@ -864,12 +866,12 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     h2 { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 2px solid #ff5949; font-size: 16px; line-height: 0.9; letter-spacing: -0.015em; }
     .no-print { margin: 0 0 10px; min-height: 36px; padding: 0 14px; border: 1px solid #d94135; border-radius: 999px; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
     .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.05) 0 18%, transparent 18% 100%), repeating-linear-gradient(135deg, transparent 0 16px, rgba(12, 11, 17, 0.025) 16px 17px, transparent 17px 34px), #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
-    .header { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 62mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: var(--report-dark-gradient); background-clip: padding-box; }
+    .header { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 58mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: var(--report-dark-gradient); background-clip: padding-box; }
     .header h1,
     .header span,
     .header strong { color: #f8f6ef; }
     .header p { margin-top: 4px; color: rgba(248, 246, 239, 0.78); font-size: 10px; }
-    .equipment-title { max-width: 18ch; margin-top: 7px; color: #f8f6ef; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 23px; font-weight: 700; line-height: 0.88; letter-spacing: -0.025em; text-transform: uppercase; }
+    .equipment-title { max-width: 24ch; margin-top: 7px; color: #f8f6ef; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 23px; font-weight: 700; line-height: 0.88; letter-spacing: -0.025em; text-transform: uppercase; }
     .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; background: #ff5949; color: #0c0b11; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; }
     .header .badge { color: #0c0b11; }
     .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
@@ -877,9 +879,9 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .wide,
     .full { grid-column: 1 / -1; }
     .panel { padding: 6px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(135deg, rgba(255, 89, 73, 0.035), transparent 38%), #fffdf8; break-inside: avoid; }
-    .summary-strip { margin-bottom: 7px; padding: 7px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.08), transparent 46%), #fffdf8; }
-    .summary-grid { display: grid; grid-template-columns: 1.2fr repeat(3, minmax(0, 0.8fr)); gap: 4px; }
-    .summary-grid > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
+    .result-strip { margin-bottom: 7px; padding: 7px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.08), transparent 46%), #fffdf8; }
+    .result-grid { display: grid; grid-template-columns: 1.15fr 0.72fr 0.62fr 0.54fr 0.82fr; gap: 4px; }
+    .result-grid > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -887,14 +889,12 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     span { display: block; color: #6f6a68; font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; }
     strong { display: block; margin-top: 1px; color: #0c0b11; font-size: 13.5px; line-height: 0.94; letter-spacing: -0.01em; overflow-wrap: anywhere; }
     .weight-focus { margin-bottom: 7px; padding: 8px; border: 2px solid #0c0b11; border-radius: 8px; background: linear-gradient(120deg, rgba(255, 89, 73, 0.12), transparent 42%), #fffdf8; }
-    .weight-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .weight-grid { display: grid; grid-template-columns: 1fr 1fr 0.82fr; gap: 6px; }
     .weight-card { min-height: 56px; padding: 8px; border: 1px solid #d5cfc3; border-left: 6px solid #ff5949; border-radius: 7px; background: #faf8f2; }
     .weight-card strong { font-size: 24px; line-height: 0.88; letter-spacing: -0.035em; }
     .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: var(--report-dark-gradient); background-clip: padding-box; }
     .weight-card.main span,
     .weight-card.main strong { color: #f8f6ef; }
-    .weight-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
-    .weight-strip > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
     .checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
     .check { min-height: 20px; padding: 4px 5px; border: 1px solid #dfd9ce; border-radius: 999px; background: #f7f4ed; color: #252226; font-size: 8.5px; line-height: 1; }
     .check.ok { border-color: rgba(31, 143, 95, 0.38); background: rgba(31, 143, 95, 0.1); }
@@ -921,25 +921,21 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <div class="equipment-title">${reportValue(equipmentLabel)}</div>
       </div>
       <div class="header-meta">
-        <div><span>Resultado</span><strong>${reportValue(status)}</strong></div>
-        <div><span>Estado</span><strong><span class="badge">${reportValue(materialSummary.adjustmentApplied ? 'Ajustada' : 'Control')}</span></strong></div>
         <div><span>Fecha evento</span><strong>${reportValue(formatDateTime(item.eventDate))}</strong></div>
-        <div><span>Tecnico</span><strong>${reportValue(item.approval.technician)}</strong></div>
+        <div><span>Tipo cierre</span><strong><span class="badge">${reportValue(closureType)}</span></strong></div>
+        <div><span>Version app</span><strong>${reportValue(eventAppVersion)}</strong></div>
+        <div><span>Unidades</span><strong>${reportValue(unitSystem === 'metric' ? 'Metricas' : 'Imperiales')}</strong></div>
       </div>
     </section>
 
-    <section class="summary-strip">
+    <section class="result-strip">
       <h2>Resumen</h2>
-      <div class="summary-grid">
-        ${reportRow('Equipo', equipmentItem ? `${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : '-')}
+      <div class="result-grid">
         ${reportRow('Resultado', materialSummary.status)}
-        ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
         ${reportRow('Error final', `${materialSummary.errorPct} %`)}
-        ${reportRow('Fecha', formatDateTime(item.eventDate))}
-        ${reportRow('Tecnico', item.approval.technician)}
+        ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
         ${reportRow('Pasadas', materialSummary.passes.length)}
         ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
-        ${reportRow('Version app', eventAppVersion)}
       </div>
     </section>
 
@@ -949,13 +945,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <div class="weight-card main"><span>Peso certificado final</span><strong>${reportValue(measure(finalExternalWeight, 'weightKg'))}</strong></div>
         <div class="weight-card main"><span>Peso controlador final</span><strong>${reportValue(measure(finalBeltWeight, 'weightKg'))}</strong></div>
         <div class="weight-card"><span>Diferencia controlador-certificado</span><strong>${reportValue(measure(finalWeightDiff, 'weightKg'))}</strong></div>
-        <div class="weight-card"><span>Error material final</span><strong>${reportValue(`${materialSummary.errorPct} %`)}</strong></div>
-      </div>
-      <div class="weight-strip">
-        ${reportRow('Peso lineal cadena', measure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
-        ${reportRow('Lectura prom.', measure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
-        ${reportRow('Factor anterior', item.finalAdjustment.factorBefore)}
-        ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
       </div>
     </section>
 
@@ -969,24 +958,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       </div>
 
       <div class="panel">
-        <h2>Equipo</h2>
+        <h2>Controlador y parametros</h2>
         <div class="grid">
-          ${reportRow('Planta / linea', equipmentItem ? `${equipmentItem.plant} / ${equipmentItem.line}` : '-')}
-          ${reportRow('Cinta / balanza', equipmentItem ? `${equipmentItem.beltCode} / ${equipmentItem.scaleName}` : '-')}
           ${reportRow('Controlador', equipmentItem ? equipmentItem.controllerModel : '-')}
           ${reportRow('Serie', equipmentItem ? equipmentItem.controllerSerial : '-')}
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2>Inspeccion y cero</h2>
-        <div class="checks">${inspectionChecks}</div>
-      </div>
-
-      <div class="panel">
-        <h2>Parametros</h2>
-        <div class="grid">
-          ${reportRow('Factor calibracion', item.parameterSnapshot.calibrationFactor)}
+          ${reportRow('Factor inicial', item.parameterSnapshot.calibrationFactor)}
           ${reportRow('Cero controlador', item.parameterSnapshot.zeroValue)}
           ${reportRow('Puente', measure(item.parameterSnapshot.bridgeLengthM, 'lengthM'))}
           ${reportRow('Velocidad', measure(item.parameterSnapshot.nominalSpeedMs, 'speedMs'))}
@@ -994,13 +970,20 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       </div>
 
       <div class="panel">
-        <h2>Cadena</h2>
+        <h2>Cadena y acumulado</h2>
         <div class="grid">
-          ${reportRow('Cadena', item.chainSpan.chainName || '-')}
-          ${reportRow('Tiempo test', `${item.chainSpan.passCount || 0} min`)}
-          ${reportRow('Peso lineal', measure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
-          ${reportRow('Lectura prom.', measure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
+          ${reportRow('Cadena', item.chainSpan.chainName || 'No requerido')}
+          ${reportRow('Tiempo cadena', optionalText(item.chainSpan.passCount, ' min'))}
+          ${reportRow('Peso lineal', optionalMeasure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
+          ${reportRow('Lectura prom.', optionalMeasure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
+          ${reportRow('Caudal leido', optionalMeasure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
+          ${reportRow('Acumulado indicado', optionalMeasure(item.accumulatedCheck.indicatedTotal, 'massT'))}
         </div>
+      </div>
+
+      <div class="panel full">
+        <h2>Inspeccion y cero</h2>
+        <div class="checks">${inspectionChecks}</div>
       </div>
 
       <div class="panel full">
