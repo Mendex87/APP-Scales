@@ -1,7 +1,7 @@
-import { loadChains, loadEquipment, loadEvents, loadPlantMapPoints, saveChains, saveEquipment, saveEvents, savePlantMapPoints } from './storage'
+import { loadChains, loadEquipment, loadEvents, loadPlantMapObjects, loadPlantMapPoints, saveChains, saveEquipment, saveEvents, savePlantMapObjects, savePlantMapPoints } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, PlantMapPoint, SyncStatus } from './types'
+import type { CalibrationEvent, Chain, Equipment, PlantMapObject, PlantMapPoint, SyncStatus } from './types'
 
 type EquipmentRow = {
   id: string
@@ -72,11 +72,23 @@ type PlantMapPointRow = {
   updated_at: string
 }
 
+type PlantMapObjectRow = {
+  id: string
+  label: string
+  object_type: PlantMapObject['objectType']
+  x: number
+  z: number
+  rotation_y: number
+  created_at: string
+  updated_at: string
+}
+
 export async function loadAppData() {
   const cachedEquipment = loadEquipment()
   const cachedChains = loadChains()
   const cachedEvents = loadEvents()
   const cachedPlantMapPoints = loadPlantMapPoints()
+  const cachedPlantMapObjects = loadPlantMapObjects()
 
   if (!isSupabaseConfigured || !supabase) {
     return {
@@ -84,16 +96,18 @@ export async function loadAppData() {
       chains: cachedChains,
       events: cachedEvents,
       plantMapPoints: cachedPlantMapPoints,
+      plantMapObjects: cachedPlantMapObjects,
       plantMapSource: 'local' as const,
       source: 'local' as const,
     }
   }
 
-  const [equipmentResult, chainsResult, eventsResult, plantMapResult] = await Promise.all([
+  const [equipmentResult, chainsResult, eventsResult, plantMapResult, plantMapObjectsResult] = await Promise.all([
     supabase.from('equipments').select('*').order('created_at', { ascending: false }),
     supabase.from('chains').select('*').order('created_at', { ascending: false }),
     supabase.from('calibration_events').select('*').order('event_date', { ascending: false }),
     supabase.from('plant_map_points').select('*').order('label', { ascending: true }),
+    supabase.from('plant_map_objects').select('*').order('label', { ascending: true }),
   ])
 
   if (equipmentResult.error) {
@@ -114,18 +128,23 @@ export async function loadAppData() {
   const plantMapPoints = plantMapResult.error
     ? cachedPlantMapPoints
     : ((plantMapResult.data || []) as PlantMapPointRow[]).map(mapPlantMapPointRow)
-  const plantMapSource = plantMapResult.error ? 'local' as const : 'supabase' as const
+  const plantMapObjects = plantMapObjectsResult.error
+    ? cachedPlantMapObjects
+    : ((plantMapObjectsResult.data || []) as PlantMapObjectRow[]).map(mapPlantMapObjectRow)
+  const plantMapSource = plantMapResult.error || plantMapObjectsResult.error ? 'local' as const : 'supabase' as const
 
   saveEquipment(equipment)
   saveChains(chains)
   saveEvents(events)
   savePlantMapPoints(plantMapPoints)
+  savePlantMapObjects(plantMapObjects)
 
   return {
     equipment,
     chains,
     events,
     plantMapPoints,
+    plantMapObjects,
     plantMapSource,
     source: 'supabase' as const,
   }
@@ -223,6 +242,26 @@ export async function savePlantMapPointsRecord(items: PlantMapPoint[]) {
   return { source: 'supabase' as const }
 }
 
+export async function savePlantMapObjectsRecord(items: PlantMapObject[]) {
+  const savedAt = new Date().toISOString()
+  const normalized = items.map((item) => ({ ...item, updatedAt: savedAt }))
+  savePlantMapObjects(normalized)
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { source: 'local' as const }
+  }
+
+  const result = await supabase.from('plant_map_objects').upsert(normalized.map(toPlantMapObjectRow))
+  if (result.error) {
+    if (isPlantMapTableUnavailable(result.error)) {
+      return { source: 'local' as const }
+    }
+    throw toError(result.error)
+  }
+
+  return { source: 'supabase' as const }
+}
+
 function isPlantMapTableUnavailable(value: unknown) {
   const text = value && typeof value === 'object'
     ? [
@@ -232,7 +271,7 @@ function isPlantMapTableUnavailable(value: unknown) {
         'code' in value ? (value as { code?: unknown }).code : '',
       ].join(' ')
     : String(value || '')
-  return /plant_map_points|schema cache|relation/i.test(text) && /does not exist|not find|not found|42P01|PGRST205/i.test(text)
+  return /plant_map_points|plant_map_objects|schema cache|relation/i.test(text) && /does not exist|not find|not found|42P01|PGRST205/i.test(text)
 }
 
 export async function deleteChainRecord(chainId: string) {
@@ -449,6 +488,32 @@ function toPlantMapPointRow(item: PlantMapPoint): PlantMapPointRow {
     y: item.y,
     equipment_id: item.equipmentId || null,
     annual_calibration_date: item.annualCalibrationDate || null,
+    created_at: item.createdAt,
+    updated_at: item.updatedAt,
+  }
+}
+
+function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
+  return {
+    id: row.id,
+    label: row.label,
+    objectType: row.object_type,
+    x: row.x,
+    z: row.z,
+    rotationY: row.rotation_y,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
+  return {
+    id: item.id,
+    label: item.label,
+    object_type: item.objectType,
+    x: item.x,
+    z: item.z,
+    rotation_y: item.rotationY,
     created_at: item.createdAt,
     updated_at: item.updatedAt,
   }

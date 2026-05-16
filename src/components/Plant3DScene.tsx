@@ -1,22 +1,94 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import type { PlantMapObject } from '../types'
 
 type MeshMaterial = THREE.MeshStandardMaterial | THREE.MeshBasicMaterial | THREE.SpriteMaterial
 
-export function Plant3DScene() {
+type Plant3DSceneProps = {
+  objects: PlantMapObject[]
+  editing: boolean
+  selectedObjectId: string
+  onObjectMove: (objectId: string, x: number, z: number) => void
+  onObjectSelect: (objectId: string) => void
+}
+
+const OBJECT_SPECS: Record<string, { length?: number; width?: number; depth?: number; height?: number; scaleX?: number; scaleZ?: number; tone?: 'default' | 'process' | 'dispatch' | 'scale' }> = {
+  'stockpile-wet': { scaleX: 1.3, scaleZ: 0.95 },
+  'stockpile-washed': { scaleX: 1.5, scaleZ: 1.1 },
+  'mcc-room': { width: 1.35, depth: 1, tone: 'process' },
+  'belt-cinta-23': { length: 7.2, height: 1.05 },
+  'belt-feed': { length: 5.4, height: 1.65 },
+  'belt-transfer': { length: 7.8, height: 1.95 },
+  'belt-dispatch': { length: 5.4, height: 1.2 },
+  'screen-house': { width: 2.65, depth: 2.25, height: 1.65 },
+  'process-cabin': { width: 1.6, depth: 1.05, tone: 'process' },
+  'silo-a': { height: 3.7 },
+  'silo-b': { height: 4.3 },
+  'silo-c': { height: 4.1 },
+  'silo-d': { height: 3.5 },
+  'dispatch-cabin': { width: 1.5, depth: 1.05, tone: 'dispatch' },
+  'truck-scale-1': { length: 4.5 },
+  'truck-scale-2': { length: 4.5 },
+  'scale-cabin-1': { width: 1.15, depth: 0.9, tone: 'scale' },
+  'scale-cabin-2': { width: 1.15, depth: 0.9, tone: 'scale' },
+}
+
+export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove, onObjectSelect }: Plant3DSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
+  const groupsRef = useRef(new Map<string, THREE.Group>())
+  const pickTargetsRef = useRef<THREE.Object3D[]>([])
+  const editingRef = useRef(editing)
+  const selectedObjectIdRef = useRef(selectedObjectId)
+  const onObjectMoveRef = useRef(onObjectMove)
+  const onObjectSelectRef = useRef(onObjectSelect)
   const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    editingRef.current = editing
+  }, [editing])
+
+  useEffect(() => {
+    selectedObjectIdRef.current = selectedObjectId
+    groupsRef.current.forEach((group, objectId) => {
+      const selected = objectId === selectedObjectId
+      group.scale.setScalar(selected ? 1.08 : 1)
+    })
+  }, [selectedObjectId])
+
+  useEffect(() => {
+    onObjectMoveRef.current = onObjectMove
+    onObjectSelectRef.current = onObjectSelect
+  }, [onObjectMove, onObjectSelect])
+
+  useEffect(() => {
+    objects.forEach((object) => {
+      const group = groupsRef.current.get(object.id)
+      if (!group) return
+      group.position.x = object.x
+      group.position.z = object.z
+      group.rotation.y = object.rotationY
+      group.scale.setScalar(object.id === selectedObjectIdRef.current ? 1.08 : 1)
+    })
+  }, [objects])
 
   useEffect(() => {
     const mount = mountRef.current
     if (!mount) return undefined
 
     let renderer: THREE.WebGLRenderer | null = null
+    let controls: OrbitControls | null = null
     let frameId = 0
     let resizeObserver: ResizeObserver | null = null
+    let draggingObjectId = ''
+    let dragOffset = new THREE.Vector3()
+    let lastDragPosition = new THREE.Vector3()
     const geometries: THREE.BufferGeometry[] = []
     const materials: MeshMaterial[] = []
     const textures: THREE.Texture[] = []
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 
     const geometry = <T extends THREE.BufferGeometry>(item: T) => {
       geometries.push(item)
@@ -27,6 +99,14 @@ export function Plant3DScene() {
       const item = new THREE.MeshStandardMaterial(options)
       materials.push(item)
       return item
+    }
+
+    const updatePointer = (event: PointerEvent, camera: THREE.Camera) => {
+      if (!renderer) return
+      const rect = renderer.domElement.getBoundingClientRect()
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+      raycaster.setFromCamera(pointer, camera)
     }
 
     try {
@@ -40,7 +120,20 @@ export function Plant3DScene() {
       renderer.shadowMap.enabled = true
       renderer.shadowMap.type = THREE.PCFSoftShadowMap
       renderer.outputColorSpace = THREE.SRGBColorSpace
+      renderer.domElement.className = 'plant-map-webgl-canvas'
       mount.appendChild(renderer.domElement)
+
+      controls = new OrbitControls(camera, renderer.domElement)
+      controls.target.set(0, 0, 0)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.08
+      controls.enablePan = false
+      controls.rotateSpeed = 0.55
+      controls.zoomSpeed = 0.65
+      controls.minDistance = 10
+      controls.maxDistance = 32
+      controls.minPolarAngle = 0.42
+      controls.maxPolarAngle = Math.PI / 2.12
 
       const plant = new THREE.Group()
       plant.rotation.y = -0.15
@@ -76,6 +169,7 @@ export function Plant3DScene() {
       const hopperMat = material({ color: 0x8fa094, roughness: 0.62, metalness: 0.14 })
       const cabinMat = material({ color: 0xcbdde2, roughness: 0.55, metalness: 0.04 })
       const dispatchCabinMat = material({ color: 0xb8d2a7, roughness: 0.58, metalness: 0.04 })
+      const scaleCabinMat = material({ color: 0xd8dee8, roughness: 0.56, metalness: 0.04 })
       const roofMat = material({ color: 0x7b8488, roughness: 0.52, metalness: 0.16 })
       const stockMat = material({ color: 0xb87a32, roughness: 0.92, metalness: 0.01 })
       const concrete = material({ color: 0xd6d2c8, roughness: 0.78, metalness: 0.02 })
@@ -84,14 +178,18 @@ export function Plant3DScene() {
       const amberZone = material({ color: 0xc98500, roughness: 0.9, transparent: true, opacity: 0.24 })
       const greyZone = material({ color: 0x666a70, roughness: 0.9, transparent: true, opacity: 0.18 })
 
-      function addMesh(mesh: THREE.Mesh, parent = plant) {
+      function addMesh(mesh: THREE.Mesh, parent = plant, objectId = '') {
         mesh.castShadow = true
         mesh.receiveShadow = true
+        if (objectId) {
+          mesh.userData.objectId = objectId
+          pickTargetsRef.current.push(mesh)
+        }
         parent.add(mesh)
         return mesh
       }
 
-      function addLabel(text: string, x: number, y: number, z: number, scale = 1) {
+      function addLabel(text: string, x: number, y: number, z: number, scale = 1, parent = plant) {
         const canvas = document.createElement('canvas')
         const context = canvas.getContext('2d')
         if (!context) return
@@ -121,7 +219,7 @@ export function Plant3DScene() {
         sprite.position.set(x, y, z)
         sprite.scale.set((canvas.width / pixelRatio / 85) * scale, (canvas.height / pixelRatio / 85) * scale, 1)
         sprite.renderOrder = 10
-        plant.add(sprite)
+        parent.add(sprite)
       }
 
       function addBox(width: number, height: number, depth: number, x: number, z: number, meshMaterial: THREE.Material, rotationY = 0, y = height / 2) {
@@ -138,161 +236,198 @@ export function Plant3DScene() {
         plant.add(mesh)
       }
 
-      function addBelt(label: string, x: number, z: number, length: number, rotationY: number, height = 1.1) {
+      function createObjectGroup(object: PlantMapObject) {
         const group = new THREE.Group()
-        group.position.set(x, 0, z)
-        group.rotation.y = rotationY
+        group.position.set(object.x, 0, object.z)
+        group.rotation.y = object.rotationY
+        group.userData.objectId = object.id
         plant.add(group)
+        groupsRef.current.set(object.id, group)
+        return group
+      }
 
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length, 0.28, 0.72)), beltBlack), group).position.set(0, height, 0)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length * 0.9, 0.08, 0.16)), beltAccent), group).position.set(0, height + 0.2, -0.39)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length * 0.96, 0.06, 0.94)), darkSteel), group).position.set(0, height - 0.24, 0)
-
+      function addBelt(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const spec = OBJECT_SPECS[object.id] || {}
+        const length = spec.length || 5
+        const height = spec.height || 1.1
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length, 0.28, 0.72)), beltBlack), group, object.id).position.set(0, height, 0)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length * 0.9, 0.08, 0.16)), beltAccent), group, object.id).position.set(0, height + 0.2, -0.39)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length * 0.96, 0.06, 0.94)), darkSteel), group, object.id).position.set(0, height - 0.24, 0)
         const supportCount = Math.max(3, Math.round(length / 2.4))
         for (let index = 0; index < supportCount; index += 1) {
           const supportX = -length / 2 + (index + 0.5) * (length / supportCount)
-          addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(0.12, height, 0.12)), darkSteel), group).position.set(supportX, height / 2, -0.28)
-          addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(0.12, height, 0.12)), darkSteel), group).position.set(supportX, height / 2, 0.28)
+          addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(0.12, height, 0.12)), darkSteel), group, object.id).position.set(supportX, height / 2, -0.28)
+          addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(0.12, height, 0.12)), darkSteel), group, object.id).position.set(supportX, height / 2, 0.28)
         }
-        addLabel(label, x, height + 0.95, z, 0.72)
+        addLabel(object.label, 0, height + 0.95, 0, 0.72, group)
       }
 
-      function addKiln(label: string, x: number, z: number, rotationY: number) {
-        const group = new THREE.Group()
-        group.position.set(x, 1.35, z)
-        group.rotation.y = rotationY
-        plant.add(group)
+      function addKiln(object: PlantMapObject) {
+        const group = createObjectGroup(object)
         const body = new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.72, 0.72, 4.3, 48)), kilnMat)
+        body.position.y = 1.35
         body.rotation.z = Math.PI / 2
-        addMesh(body, group)
+        addMesh(body, group, object.id)
         const leftCap = new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.76, 0.76, 0.18, 48)), kilnCap)
+        leftCap.position.set(-2.25, 1.35, 0)
         leftCap.rotation.z = Math.PI / 2
-        leftCap.position.x = -2.25
-        addMesh(leftCap, group)
-        const rightCap = leftCap.clone()
-        rightCap.geometry = geometry(leftCap.geometry.clone())
-        rightCap.position.x = 2.25
-        addMesh(rightCap, group)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(5, 0.14, 1.55)), darkSteel), group).position.set(0, -0.88, 0)
-        addLabel(label, x, 2.85, z, 0.78)
+        addMesh(leftCap, group, object.id)
+        const rightCap = new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.76, 0.76, 0.18, 48)), kilnCap)
+        rightCap.position.set(2.25, 1.35, 0)
+        rightCap.rotation.z = Math.PI / 2
+        addMesh(rightCap, group, object.id)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(5, 0.14, 1.55)), darkSteel), group, object.id).position.set(0, 0.47, 0)
+        addLabel(object.label, 0, 2.85, 0, 0.78, group)
       }
 
-      function addSilo(label: string, x: number, z: number, height: number) {
-        const group = new THREE.Group()
-        group.position.set(x, 0, z)
-        plant.add(group)
+      function addSilo(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const height = OBJECT_SPECS[object.id]?.height || 3.7
         const body = new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.62, 0.68, height, 48)), siloMat)
         body.position.y = 1.05 + height / 2
-        addMesh(body, group)
+        addMesh(body, group, object.id)
         const top = new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.66, 0.66, 0.18, 48)), steel)
         top.position.y = 1.05 + height + 0.12
-        addMesh(top, group)
+        addMesh(top, group, object.id)
         const hopper = new THREE.Mesh(geometry(new THREE.ConeGeometry(0.7, 1.1, 48)), hopperMat)
         hopper.position.y = 0.58
         hopper.rotation.x = Math.PI
-        addMesh(hopper, group)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(1.5, 0.16, 1.5)), concrete), group).position.y = 0.05
-        addLabel(label, x, height + 2.25, z, 0.65)
+        addMesh(hopper, group, object.id)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(1.5, 0.16, 1.5)), concrete), group, object.id).position.y = 0.05
+        addLabel(object.label, 0, height + 2.25, 0, 0.65, group)
       }
 
-      function addCabin(label: string, x: number, z: number, width: number, depth: number, meshMaterial: THREE.Material) {
-        const group = new THREE.Group()
-        group.position.set(x, 0, z)
-        group.rotation.y = -0.12
-        plant.add(group)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width, 1.2, depth)), meshMaterial), group).position.y = 0.65
+      function addCabin(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const spec = OBJECT_SPECS[object.id] || {}
+        const width = spec.width || 1.35
+        const depth = spec.depth || 1
+        const cabinMaterial = spec.tone === 'dispatch' ? dispatchCabinMat : spec.tone === 'scale' ? scaleCabinMat : cabinMat
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width, 1.2, depth)), cabinMaterial), group, object.id).position.y = 0.65
         const roof = new THREE.Mesh(geometry(new THREE.BoxGeometry(width + 0.18, 0.16, depth + 0.32)), roofMat)
         roof.position.y = 1.35
         roof.rotation.z = 0.05
-        addMesh(roof, group)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width * 0.32, 0.36, 0.04)), steel), group).position.set(-width * 0.18, 0.82, depth / 2 + 0.025)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width * 0.32, 0.36, 0.04)), steel), group).position.set(width * 0.22, 0.82, depth / 2 + 0.025)
-        addLabel(label, x, 2.15, z, 0.58)
+        addMesh(roof, group, object.id)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width * 0.32, 0.36, 0.04)), steel), group, object.id).position.set(-width * 0.18, 0.82, depth / 2 + 0.025)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width * 0.32, 0.36, 0.04)), steel), group, object.id).position.set(width * 0.22, 0.82, depth / 2 + 0.025)
+        addLabel(object.label, 0, 2.15, 0, 0.58, group)
       }
 
-      function addStockpile(label: string, x: number, z: number, width: number, depth: number) {
+      function addStockpile(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const spec = OBJECT_SPECS[object.id] || {}
         const pile = new THREE.Mesh(geometry(new THREE.ConeGeometry(1.4, 1.45, 7)), stockMat)
-        pile.position.set(x, 0.72, z)
-        pile.scale.set(width, 1, depth)
+        pile.position.y = 0.72
+        pile.scale.set(spec.scaleX || 1.3, 1, spec.scaleZ || 1)
         pile.rotation.y = 0.5
-        addMesh(pile)
-        addLabel(label, x, 1.85, z, 0.58)
+        addMesh(pile, group, object.id)
+        addLabel(object.label, 0, 1.85, 0, 0.58, group)
       }
 
-      function addDispatchBin(label: string, x: number, z: number) {
-        const group = new THREE.Group()
-        group.position.set(x, 0, z)
-        plant.add(group)
+      function addDispatchBin(object: PlantMapObject) {
+        const group = createObjectGroup(object)
         const hopper = new THREE.Mesh(geometry(new THREE.ConeGeometry(0.88, 1.35, 4)), hopperMat)
         hopper.position.y = 1.2
         hopper.rotation.x = Math.PI
         hopper.rotation.y = Math.PI / 4
-        addMesh(hopper, group)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(1.35, 0.2, 1.35)), greenZone), group).position.y = 1.9
-        addLabel(label, x, 2.75, z, 0.48)
+        addMesh(hopper, group, object.id)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(1.35, 0.2, 1.35)), greenZone), group, object.id).position.y = 1.9
+        addLabel(object.label, 0, 2.75, 0, 0.48, group)
       }
 
-      function addTruckScale(label: string, x: number, z: number, rotationY: number) {
-        const group = new THREE.Group()
-        group.position.set(x, 0, z)
-        group.rotation.y = rotationY
-        plant.add(group)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(4.5, 0.22, 1.2)), concrete), group).position.y = 0.14
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(4.1, 0.08, 0.08)), steel), group).position.set(0, 0.34, -0.45)
-        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(4.1, 0.08, 0.08)), steel), group).position.set(0, 0.34, 0.45)
-        addLabel(label, x, 1.3, z, 0.65)
+      function addTruckScale(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const length = OBJECT_SPECS[object.id]?.length || 4.5
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length, 0.22, 1.2)), concrete), group, object.id).position.y = 0.14
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length - 0.4, 0.08, 0.08)), steel), group, object.id).position.set(0, 0.34, -0.45)
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length - 0.4, 0.08, 0.08)), steel), group, object.id).position.set(0, 0.34, 0.45)
+        addLabel(object.label, 0, 1.3, 0, 0.65, group)
+      }
+
+      function addStructure(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const spec = OBJECT_SPECS[object.id] || {}
+        addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(spec.width || 2.65, spec.height || 1.65, spec.depth || 2.25)), steel), group, object.id).position.y = (spec.height || 1.65) / 2
+        addLabel(object.label, 0, (spec.height || 1.65) + 0.9, 0, 0.68, group)
+      }
+
+      function addEditableObject(object: PlantMapObject) {
+        if (object.objectType === 'belt') addBelt(object)
+        else if (object.objectType === 'kiln') addKiln(object)
+        else if (object.objectType === 'silo') addSilo(object)
+        else if (object.objectType === 'cabin') addCabin(object)
+        else if (object.objectType === 'stockpile') addStockpile(object)
+        else if (object.objectType === 'dispatch_bin') addDispatchBin(object)
+        else if (object.objectType === 'truck_scale') addTruckScale(object)
+        else addStructure(object)
       }
 
       addBox(23.5, 0.18, 15, 0, 0, concrete, 0, -0.09)
       const grid = new THREE.GridHelper(23, 23, 0xb9b2a8, 0xd9d3c9)
       grid.position.y = 0.025
       plant.add(grid)
-
       addZone(5.7, 4.8, -7.3, -1.6, amberZone)
       addZone(8, 5.6, -1.6, -1.8, orangeZone)
       addZone(6.6, 5.8, 6.3, -1.5, greenZone)
       addZone(9.8, 2.7, 4.8, 4.65, greyZone)
-
       addBox(12.8, 0.06, 1.45, 4.4, 4.95, asphalt, -0.12, 0.06)
       addBox(12.2, 0.05, 0.78, -1.8, 2.95, asphalt, -0.28, 0.06)
       addBox(0.08, 0.07, 11, 7.6, 0.9, asphalt, 0.14, 0.07)
-
-      addStockpile('Acopio humedo', -8.1, 0.55, 1.3, 0.95)
-      addStockpile('Acopio lavado', -6.6, -2.2, 1.5, 1.1)
-      addCabin('Sala MCC', -8.9, 3.05, 1.35, 1, cabinMat)
-
-      addBelt('Cinta 23', -5.3, 1.3, 7.2, -0.24, 1.05)
-      addBelt('Alimentacion hornos', -2.9, -0.4, 5.4, -0.62, 1.65)
-      addBelt('Transferencia a silos', 2.9, -0.15, 7.8, 0.26, 1.95)
-      addBelt('Cinta despacho', 6.5, 1.35, 5.4, -0.18, 1.2)
-
-      addKiln('Horno 1', -3.4, -2.8, -0.12)
-      addKiln('Horno 2', -0.65, -3.15, -0.12)
-      addKiln('Horno 3', 2.1, -3.45, -0.12)
-      addBox(2.65, 1.65, 2.25, -0.9, 0.9, steel, -0.16)
-      addLabel('Zarandas', -0.9, 2.55, 0.9, 0.68)
-      addCabin('Cabina proceso', 1.8, 1.1, 1.6, 1.05, cabinMat)
-
-      addSilo('Silo A', 4.6, -2.65, 3.7)
-      addSilo('Silo B', 6.1, -3.05, 4.3)
-      addSilo('Silo C', 7.6, -3.18, 4.1)
-      addSilo('Silo D', 9.1, -2.8, 3.5)
-      addDispatchBin('D1', 4.6, 0.55)
-      addDispatchBin('D2', 6.15, 0.25)
-      addDispatchBin('D3', 7.7, -0.05)
-      addDispatchBin('D4', 9.25, 0.25)
-      addCabin('Cabina despacho', 9.6, 2.0, 1.5, 1.05, dispatchCabinMat)
-
-      addTruckScale('Bascula 1', 3.4, 4.55, -0.12)
-      addTruckScale('Bascula 2', 6.75, 5.05, -0.12)
-      addCabin('Cabina B1', 1.35, 4.05, 1.15, 0.9, cabinMat)
-      addCabin('Cabina B2', 9.25, 4.55, 1.15, 0.9, cabinMat)
-
+      objects.forEach(addEditableObject)
       addLabel('Planta de secado y despacho', -2.4, 5.7, -5.55, 0.95)
+
+      const handlePointerDown = (event: PointerEvent) => {
+        if (!renderer) return
+        updatePointer(event, camera)
+        const hit = raycaster.intersectObjects(pickTargetsRef.current, false)[0]
+        const objectId = hit?.object.userData.objectId as string | undefined
+        if (!objectId) return
+        onObjectSelectRef.current(objectId)
+        if (!editingRef.current) return
+        const group = groupsRef.current.get(objectId)
+        if (!group) return
+        const planeHit = new THREE.Vector3()
+        if (!raycaster.ray.intersectPlane(groundPlane, planeHit)) return
+        draggingObjectId = objectId
+        dragOffset = group.position.clone().sub(planeHit)
+        lastDragPosition = group.position.clone()
+        controls!.enabled = false
+        renderer.domElement.setPointerCapture(event.pointerId)
+      }
+
+      const handlePointerMove = (event: PointerEvent) => {
+        if (!draggingObjectId) return
+        updatePointer(event, camera)
+        const planeHit = new THREE.Vector3()
+        if (!raycaster.ray.intersectPlane(groundPlane, planeHit)) return
+        const group = groupsRef.current.get(draggingObjectId)
+        if (!group) return
+        const nextPosition = planeHit.add(dragOffset)
+        group.position.x = Math.min(12, Math.max(-12, nextPosition.x))
+        group.position.z = Math.min(12, Math.max(-12, nextPosition.z))
+        lastDragPosition = group.position.clone()
+      }
+
+      const finishDrag = (event: PointerEvent) => {
+        if (!draggingObjectId) return
+        onObjectMoveRef.current(draggingObjectId, lastDragPosition.x, lastDragPosition.z)
+        draggingObjectId = ''
+        controls!.enabled = true
+        if (renderer?.domElement.hasPointerCapture(event.pointerId)) {
+          renderer.domElement.releasePointerCapture(event.pointerId)
+        }
+      }
+
+      renderer.domElement.addEventListener('pointerdown', handlePointerDown)
+      renderer.domElement.addEventListener('pointermove', handlePointerMove)
+      renderer.domElement.addEventListener('pointerup', finishDrag)
+      renderer.domElement.addEventListener('pointercancel', finishDrag)
 
       const render = () => {
         const elapsed = performance.now() / 1000
         keyLight.position.x = -8 + Math.sin(elapsed * 0.28) * 0.35
+        controls?.update()
         renderer?.render(scene, camera)
         frameId = window.requestAnimationFrame(render)
       }
@@ -310,6 +445,23 @@ export function Plant3DScene() {
       resizeObserver.observe(mount)
       resize()
       render()
+
+      return () => {
+        renderer?.domElement.removeEventListener('pointerdown', handlePointerDown)
+        renderer?.domElement.removeEventListener('pointermove', handlePointerMove)
+        renderer?.domElement.removeEventListener('pointerup', finishDrag)
+        renderer?.domElement.removeEventListener('pointercancel', finishDrag)
+        if (frameId) window.cancelAnimationFrame(frameId)
+        resizeObserver?.disconnect()
+        controls?.dispose()
+        if (renderer?.domElement.parentElement === mount) mount.removeChild(renderer.domElement)
+        geometries.forEach((item) => item.dispose())
+        materials.forEach((item) => item.dispose())
+        textures.forEach((item) => item.dispose())
+        renderer?.dispose()
+        groupsRef.current.clear()
+        pickTargetsRef.current = []
+      }
     } catch (error) {
       console.error('No se pudo inicializar el modelo 3D de planta:', error)
       setFailed(true)
@@ -318,11 +470,14 @@ export function Plant3DScene() {
     return () => {
       if (frameId) window.cancelAnimationFrame(frameId)
       resizeObserver?.disconnect()
+      controls?.dispose()
       if (renderer?.domElement.parentElement === mount) mount.removeChild(renderer.domElement)
       geometries.forEach((item) => item.dispose())
       materials.forEach((item) => item.dispose())
       textures.forEach((item) => item.dispose())
       renderer?.dispose()
+      groupsRef.current.clear()
+      pickTargetsRef.current = []
     }
   }, [])
 

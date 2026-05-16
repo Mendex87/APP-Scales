@@ -1,11 +1,13 @@
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, PlantMapPoint, PlantMapPointType } from './types'
+import type { CalibrationEvent, Chain, Equipment, PlantMapObject, PlantMapObjectType, PlantMapPoint, PlantMapPointType } from './types'
 
 const EQUIPMENT_KEY = 'balanzas-equipment-v2'
 const CHAINS_KEY = 'balanzas-chains-v1'
 const EVENTS_KEY = 'balanzas-events-v2'
 const PLANT_MAP_POINTS_KEY = 'calibracinta:plant-map-points:v1'
+const PLANT_MAP_OBJECTS_KEY = 'calibracinta:plant-map-objects:v1'
 const PLANT_MAP_POINT_TYPES = new Set<PlantMapPointType>(['belt_scale', 'kiln_scale', 'dispatch_scale', 'truck_scale'])
+const PLANT_MAP_OBJECT_TYPES = new Set<PlantMapObjectType>(['stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale'])
 const DEFAULT_PLANT_MAP_CREATED_AT = '2026-01-01T00:00:00.000Z'
 
 export const DEFAULT_PLANT_MAP_POINTS: PlantMapPoint[] = [
@@ -19,6 +21,34 @@ export const DEFAULT_PLANT_MAP_POINTS: PlantMapPoint[] = [
   { id: 'despacho-4', label: 'Despacho 4', zone: 'Despacho', pointType: 'dispatch_scale', x: 89, y: 45, equipmentId: '', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
   { id: 'bascula-1', label: 'Báscula 1', zone: 'Ingreso camiones', pointType: 'truck_scale', x: 66, y: 78, equipmentId: '', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
   { id: 'bascula-2', label: 'Báscula 2', zone: 'Egreso camiones', pointType: 'truck_scale', x: 78, y: 82, equipmentId: '', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+]
+
+export const DEFAULT_PLANT_MAP_OBJECTS: PlantMapObject[] = [
+  { id: 'stockpile-wet', label: 'Acopio humedo', objectType: 'stockpile', x: -8.1, z: 0.55, rotationY: 0.5, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'stockpile-washed', label: 'Acopio lavado', objectType: 'stockpile', x: -6.6, z: -2.2, rotationY: 0.5, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'mcc-room', label: 'Sala MCC', objectType: 'cabin', x: -8.9, z: 3.05, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'belt-cinta-23', label: 'Cinta 23', objectType: 'belt', x: -5.3, z: 1.3, rotationY: -0.24, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'belt-feed', label: 'Alimentacion hornos', objectType: 'belt', x: -2.9, z: -0.4, rotationY: -0.62, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'belt-transfer', label: 'Transferencia a silos', objectType: 'belt', x: 2.9, z: -0.15, rotationY: 0.26, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'belt-dispatch', label: 'Cinta despacho', objectType: 'belt', x: 6.5, z: 1.35, rotationY: -0.18, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'kiln-1', label: 'Horno 1', objectType: 'kiln', x: -3.4, z: -2.8, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'kiln-2', label: 'Horno 2', objectType: 'kiln', x: -0.65, z: -3.15, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'kiln-3', label: 'Horno 3', objectType: 'kiln', x: 2.1, z: -3.45, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'screen-house', label: 'Zarandas', objectType: 'structure', x: -0.9, z: 0.9, rotationY: -0.16, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'process-cabin', label: 'Cabina proceso', objectType: 'cabin', x: 1.8, z: 1.1, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'silo-a', label: 'Silo A', objectType: 'silo', x: 4.6, z: -2.65, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'silo-b', label: 'Silo B', objectType: 'silo', x: 6.1, z: -3.05, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'silo-c', label: 'Silo C', objectType: 'silo', x: 7.6, z: -3.18, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'silo-d', label: 'Silo D', objectType: 'silo', x: 9.1, z: -2.8, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'dispatch-1', label: 'Despacho 1', objectType: 'dispatch_bin', x: 4.6, z: 0.55, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'dispatch-2', label: 'Despacho 2', objectType: 'dispatch_bin', x: 6.15, z: 0.25, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'dispatch-3', label: 'Despacho 3', objectType: 'dispatch_bin', x: 7.7, z: -0.05, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'dispatch-4', label: 'Despacho 4', objectType: 'dispatch_bin', x: 9.25, z: 0.25, rotationY: 0, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'dispatch-cabin', label: 'Cabina despacho', objectType: 'cabin', x: 9.6, z: 2, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'truck-scale-1', label: 'Bascula 1', objectType: 'truck_scale', x: 3.4, z: 4.55, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'truck-scale-2', label: 'Bascula 2', objectType: 'truck_scale', x: 6.75, z: 5.05, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'scale-cabin-1', label: 'Cabina B1', objectType: 'cabin', x: 1.35, z: 4.05, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'scale-cabin-2', label: 'Cabina B2', objectType: 'cabin', x: 9.25, z: 4.55, rotationY: -0.12, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
 ]
 
 function parseStorage<T>(key: string, fallback: T): T {
@@ -66,6 +96,16 @@ export function savePlantMapPoints(items: PlantMapPoint[]) {
   localStorage.setItem(PLANT_MAP_POINTS_KEY, JSON.stringify(items.map(normalizePlantMapPoint)))
 }
 
+export function loadPlantMapObjects(): PlantMapObject[] {
+  const stored = parseStorage<PlantMapObject[]>(PLANT_MAP_OBJECTS_KEY, [])
+  const source = stored.length > 0 ? stored : DEFAULT_PLANT_MAP_OBJECTS
+  return source.map(normalizePlantMapObject)
+}
+
+export function savePlantMapObjects(items: PlantMapObject[]) {
+  localStorage.setItem(PLANT_MAP_OBJECTS_KEY, JSON.stringify(items.map(normalizePlantMapObject)))
+}
+
 function normalizeEquipment(item: Equipment): Equipment {
   return {
     ...item,
@@ -92,7 +132,27 @@ function normalizePlantMapPoint(item: PlantMapPoint): PlantMapPoint {
   }
 }
 
+function normalizePlantMapObject(item: PlantMapObject): PlantMapObject {
+  const objectType = PLANT_MAP_OBJECT_TYPES.has(item.objectType) ? item.objectType : 'structure'
+  const now = new Date().toISOString()
+  return {
+    id: item.id || crypto.randomUUID(),
+    label: item.label || 'Objeto 3D',
+    objectType,
+    x: clampSceneCoordinate(item.x),
+    z: clampSceneCoordinate(item.z),
+    rotationY: Number.isFinite(item.rotationY) ? item.rotationY : 0,
+    createdAt: item.createdAt || now,
+    updatedAt: item.updatedAt || item.createdAt || now,
+  }
+}
+
 function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 50
   return Math.min(100, Math.max(0, value))
+}
+
+function clampSceneCoordinate(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(12, Math.max(-12, value))
 }

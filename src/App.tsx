@@ -30,14 +30,15 @@ import {
   saveCalibrationEventRecord,
   saveChainRecord,
   saveEquipmentRecord,
+  savePlantMapObjectsRecord,
   savePlantMapPointsRecord,
   toEventRow,
   updateCalibrationEventSync,
 } from './repository'
-import { loadChains, loadEquipment, loadEvents, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
+import { loadChains, loadEquipment, loadEvents, loadPlantMapObjects, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapPoint, SpeedSource } from './types'
+import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapObject, PlantMapPoint, SpeedSource } from './types'
 import {
   addArgentinaDays,
   argentinaDateTimeLocalToIso,
@@ -157,6 +158,11 @@ function getScreenPath(screen: Screen) {
 function clampMapPercent(value: number) {
   if (!Number.isFinite(value)) return 50
   return Math.min(100, Math.max(0, value))
+}
+
+function clampSceneCoordinate(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(12, Math.max(-12, value))
 }
 
 function addDateKeyDays(dateKey: string, days: number) {
@@ -1109,8 +1115,11 @@ function App() {
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
   const [plantMapPoints, setPlantMapPoints] = useState<PlantMapPoint[]>(() => loadPlantMapPoints())
   const [plantMapDraftPoints, setPlantMapDraftPoints] = useState<PlantMapPoint[]>([])
+  const [plantMapObjects, setPlantMapObjects] = useState<PlantMapObject[]>(() => loadPlantMapObjects())
+  const [plantMapDraftObjects, setPlantMapDraftObjects] = useState<PlantMapObject[]>([])
   const [plantMapSource, setPlantMapSource] = useState<'local' | 'supabase'>('local')
   const [selectedPlantPointId, setSelectedPlantPointId] = useState('')
+  const [selectedPlantObjectId, setSelectedPlantObjectId] = useState('')
   const [plantMapEditing, setPlantMapEditing] = useState(false)
   const [plantMapSaving, setPlantMapSaving] = useState(false)
   const [draggingPlantPointId, setDraggingPlantPointId] = useState('')
@@ -1362,6 +1371,7 @@ function App() {
         setChains(result.chains || [])
         setEvents(result.events)
         setPlantMapPoints(result.plantMapPoints)
+        setPlantMapObjects(result.plantMapObjects)
         setPlantMapSource(result.plantMapSource)
         setDataSource(result.source)
       } catch (error) {
@@ -1389,6 +1399,7 @@ function App() {
         setChains(result.chains || [])
         setEvents(result.events)
         setPlantMapPoints(result.plantMapPoints)
+        setPlantMapObjects(result.plantMapObjects)
         setPlantMapSource(result.plantMapSource)
         setDataSource(result.source)
         if (!isSupabaseConfigured) {
@@ -1755,11 +1766,17 @@ function App() {
     : null
 
   const activePlantMapPoints = plantMapEditing ? plantMapDraftPoints : plantMapPoints
+  const activePlantMapObjects = plantMapEditing ? plantMapDraftObjects : plantMapObjects
 
   useEffect(() => {
     if (selectedPlantPointId && activePlantMapPoints.some((point) => point.id === selectedPlantPointId)) return
     setSelectedPlantPointId(activePlantMapPoints[0]?.id || '')
   }, [activePlantMapPoints, selectedPlantPointId])
+
+  useEffect(() => {
+    if (selectedPlantObjectId && activePlantMapObjects.some((object) => object.id === selectedPlantObjectId)) return
+    setSelectedPlantObjectId(activePlantMapObjects[0]?.id || '')
+  }, [activePlantMapObjects, selectedPlantObjectId])
 
   const plantMapStatusById = useMemo(() => {
     const statusById = new Map<string, PlantPointStatus>()
@@ -1814,6 +1831,7 @@ function App() {
 
   const selectedPlantPoint = activePlantMapPoints.find((point) => point.id === selectedPlantPointId) || activePlantMapPoints[0]
   const selectedPlantPointStatus = selectedPlantPoint ? plantMapStatusById.get(selectedPlantPoint.id) : undefined
+  const selectedPlantObject = activePlantMapObjects.find((object) => object.id === selectedPlantObjectId) || activePlantMapObjects[0]
   const plantMapStatusCounts = useMemo(() => {
     return activePlantMapPoints.reduce(
       (summary, point) => {
@@ -1828,12 +1846,14 @@ function App() {
   function startPlantMapEditing() {
     if (currentUser?.role !== 'admin') return
     setPlantMapDraftPoints(plantMapPoints)
+    setPlantMapDraftObjects(plantMapObjects)
     setPlantMapEditing(true)
     setSyncNotice('Modo edicion del mapa activo. Los cambios se aplican al guardar.')
   }
 
   function cancelPlantMapEditing() {
     setPlantMapDraftPoints([])
+    setPlantMapDraftObjects([])
     setPlantMapEditing(false)
     setDraggingPlantPointId('')
     setSyncNotice('Edicion del mapa cancelada.')
@@ -1843,19 +1863,30 @@ function App() {
     setPlantMapDraftPoints((current) => current.map((point) => (point.id === pointId ? { ...point, ...changes } : point)))
   }
 
+  function updatePlantMapDraftObject(objectId: string, changes: Partial<PlantMapObject>) {
+    setPlantMapDraftObjects((current) => current.map((object) => (object.id === objectId ? { ...object, ...changes } : object)))
+  }
+
   async function savePlantMapEditing() {
     if (currentUser?.role !== 'admin' || !plantMapEditing) return
     setPlantMapSaving(true)
     try {
       const savedAt = new Date().toISOString()
       const nextPoints = plantMapDraftPoints.map((point) => ({ ...point, updatedAt: savedAt }))
-      const result = await savePlantMapPointsRecord(nextPoints)
+      const nextObjects = plantMapDraftObjects.map((object) => ({ ...object, updatedAt: savedAt }))
+      const [pointsResult, objectsResult] = await Promise.all([
+        savePlantMapPointsRecord(nextPoints),
+        savePlantMapObjectsRecord(nextObjects),
+      ])
       setPlantMapPoints(nextPoints)
+      setPlantMapObjects(nextObjects)
       setPlantMapDraftPoints([])
+      setPlantMapDraftObjects([])
       setPlantMapEditing(false)
       setDraggingPlantPointId('')
-      setPlantMapSource(result.source)
-      setSyncNotice(result.source === 'supabase' ? 'Mapa de planta guardado en servidor online.' : 'Mapa de planta guardado solo localmente.')
+      const nextSource = pointsResult.source === 'supabase' && objectsResult.source === 'supabase' ? 'supabase' : 'local'
+      setPlantMapSource(nextSource)
+      setSyncNotice(nextSource === 'supabase' ? 'Mapa de planta guardado en servidor online.' : 'Mapa de planta guardado solo localmente.')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo guardar el mapa.'
       setSyncNotice(`Error al guardar mapa: ${message}`)
@@ -1901,6 +1932,27 @@ function App() {
   function handlePlantMapPointDateChange(pointId: string, annualCalibrationDate: string) {
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     updatePlantMapDraftPoint(pointId, { annualCalibrationDate })
+  }
+
+  function handlePlantMapObjectMove(objectId: string, x: number, z: number) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftObject(objectId, { x: round(clampSceneCoordinate(x), 2), z: round(clampSceneCoordinate(z), 2) })
+  }
+
+  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'rotationY', value: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    const parsed = toNumber(value, Number.NaN)
+    if (!Number.isFinite(parsed)) return
+    updatePlantMapDraftObject(objectId, {
+      [field]: field === 'rotationY' ? round(parsed, 3) : round(clampSceneCoordinate(parsed), 2),
+    })
+  }
+
+  function rotatePlantMapObject(objectId: string, delta: number) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    const object = activePlantMapObjects.find((item) => item.id === objectId)
+    if (!object) return
+    updatePlantMapDraftObject(objectId, { rotationY: round(object.rotationY + delta, 3) })
   }
 
   const precheckPassed = useMemo(
@@ -3830,7 +3882,13 @@ function App() {
 
                 <div className={`plant-map-canvas ${plantMapEditing ? 'editing' : ''}`} ref={plantMapCanvasRef}>
                   <Suspense fallback={<div className="plant-map-webgl-fallback">Cargando modelo 3D...</div>}>
-                    <Plant3DScene />
+                    <Plant3DScene
+                      editing={plantMapEditing && currentUser.role === 'admin'}
+                      objects={activePlantMapObjects}
+                      selectedObjectId={selectedPlantObjectId}
+                      onObjectMove={handlePlantMapObjectMove}
+                      onObjectSelect={setSelectedPlantObjectId}
+                    />
                   </Suspense>
 
                   {activePlantMapPoints.map((point) => {
@@ -3918,6 +3976,33 @@ function App() {
                         <p>{selectedPlantPointStatus.equipment.scaleName}</p>
                       </div>
                     )}
+
+                    <div className="plant-map-admin-field compact-top">
+                      <label className="label">Objeto 3D seleccionado</label>
+                      <select
+                        className="input"
+                        value={selectedPlantObject?.id || ''}
+                        onChange={(event) => setSelectedPlantObjectId(event.target.value)}
+                      >
+                        {activePlantMapObjects.map((object) => (
+                          <option key={object.id} value={object.id}>{object.label}</option>
+                        ))}
+                      </select>
+                      <p className="hint compact-top">Arrastrá el modelo para girar la vista. En modo edición admin, arrastrá un objeto 3D para acomodarlo.</p>
+                      {selectedPlantObject && (
+                        <div className="grid three compact-top plant-object-controls">
+                          <Field label="X" type="number" value={String(selectedPlantObject.x)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'x', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          <Field label="Z" type="number" value={String(selectedPlantObject.z)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'z', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          <Field label="Rotacion" type="number" value={String(selectedPlantObject.rotationY)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'rotationY', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                        </div>
+                      )}
+                      {selectedPlantObject && plantMapEditing && currentUser.role === 'admin' && (
+                        <div className="row compact-actions compact-top">
+                          <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, -0.15)}>Girar -</button>
+                          <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, 0.15)}>Girar +</button>
+                        </div>
+                      )}
+                    </div>
 
                     <div className="row compact-actions plant-map-detail-actions">
                       {selectedPlantPointStatus?.equipment && canOperate && (

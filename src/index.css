@@ -1657,7 +1657,16 @@ body::before {
 }
 
 .plant-map-webgl {
-  pointer-events: none;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.plant-map-canvas.editing .plant-map-webgl {
+  cursor: crosshair;
+}
+
+.plant-map-webgl:active {
+  cursor: grabbing;
 }
 
 .plant-map-webgl canvas {
@@ -2322,6 +2331,10 @@ body::before {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-muted);
+}
+
+.plant-object-controls .field-shell {
+  min-width: 0;
 }
 
 .plant-linked-equipment {

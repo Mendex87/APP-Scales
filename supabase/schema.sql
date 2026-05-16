@@ -163,6 +163,52 @@ values
   ('bascula-2', 'Báscula 2', 'Egreso camiones', 'truck_scale', 78, 82)
 on conflict (id) do nothing;
 
+create table if not exists public.plant_map_objects (
+  id text primary key,
+  label text not null default '',
+  object_type text not null default 'structure',
+  x double precision not null default 0,
+  z double precision not null default 0,
+  rotation_y double precision not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint plant_map_objects_type_check
+    check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale')),
+  constraint plant_map_objects_x_check
+    check (x >= -12 and x <= 12),
+  constraint plant_map_objects_z_check
+    check (z >= -12 and z <= 12)
+);
+
+insert into public.plant_map_objects (id, label, object_type, x, z, rotation_y)
+values
+  ('stockpile-wet', 'Acopio humedo', 'stockpile', -8.1, 0.55, 0.5),
+  ('stockpile-washed', 'Acopio lavado', 'stockpile', -6.6, -2.2, 0.5),
+  ('mcc-room', 'Sala MCC', 'cabin', -8.9, 3.05, -0.12),
+  ('belt-cinta-23', 'Cinta 23', 'belt', -5.3, 1.3, -0.24),
+  ('belt-feed', 'Alimentacion hornos', 'belt', -2.9, -0.4, -0.62),
+  ('belt-transfer', 'Transferencia a silos', 'belt', 2.9, -0.15, 0.26),
+  ('belt-dispatch', 'Cinta despacho', 'belt', 6.5, 1.35, -0.18),
+  ('kiln-1', 'Horno 1', 'kiln', -3.4, -2.8, -0.12),
+  ('kiln-2', 'Horno 2', 'kiln', -0.65, -3.15, -0.12),
+  ('kiln-3', 'Horno 3', 'kiln', 2.1, -3.45, -0.12),
+  ('screen-house', 'Zarandas', 'structure', -0.9, 0.9, -0.16),
+  ('process-cabin', 'Cabina proceso', 'cabin', 1.8, 1.1, -0.12),
+  ('silo-a', 'Silo A', 'silo', 4.6, -2.65, 0),
+  ('silo-b', 'Silo B', 'silo', 6.1, -3.05, 0),
+  ('silo-c', 'Silo C', 'silo', 7.6, -3.18, 0),
+  ('silo-d', 'Silo D', 'silo', 9.1, -2.8, 0),
+  ('dispatch-1', 'Despacho 1', 'dispatch_bin', 4.6, 0.55, 0),
+  ('dispatch-2', 'Despacho 2', 'dispatch_bin', 6.15, 0.25, 0),
+  ('dispatch-3', 'Despacho 3', 'dispatch_bin', 7.7, -0.05, 0),
+  ('dispatch-4', 'Despacho 4', 'dispatch_bin', 9.25, 0.25, 0),
+  ('dispatch-cabin', 'Cabina despacho', 'cabin', 9.6, 2, -0.12),
+  ('truck-scale-1', 'Bascula 1', 'truck_scale', 3.4, 4.55, -0.12),
+  ('truck-scale-2', 'Bascula 2', 'truck_scale', 6.75, 5.05, -0.12),
+  ('scale-cabin-1', 'Cabina B1', 'cabin', 1.35, 4.05, -0.12),
+  ('scale-cabin-2', 'Cabina B2', 'cabin', 9.25, 4.55, -0.12)
+on conflict (id) do nothing;
+
 alter table public.calibration_events
   add column if not exists precheck jsonb not null default '{}'::jsonb;
 
@@ -200,6 +246,7 @@ alter table public.profiles enable row level security;
 alter table public.equipments enable row level security;
 alter table public.calibration_events enable row level security;
 alter table public.plant_map_points enable row level security;
+alter table public.plant_map_objects enable row level security;
 
 drop policy if exists "profiles read own" on public.profiles;
 drop policy if exists "profiles admin read" on public.profiles;
@@ -223,6 +270,10 @@ drop policy if exists "public read plant_map_points" on public.plant_map_points;
 drop policy if exists "admin insert plant_map_points" on public.plant_map_points;
 drop policy if exists "admin update plant_map_points" on public.plant_map_points;
 drop policy if exists "admin delete plant_map_points" on public.plant_map_points;
+drop policy if exists "public read plant_map_objects" on public.plant_map_objects;
+drop policy if exists "admin insert plant_map_objects" on public.plant_map_objects;
+drop policy if exists "admin update plant_map_objects" on public.plant_map_objects;
+drop policy if exists "admin delete plant_map_objects" on public.plant_map_objects;
 
 create policy "public read equipments"
 on public.equipments for select
@@ -305,6 +356,27 @@ with check (public.current_user_role() = 'admin');
 
 create policy "admin delete plant_map_points"
 on public.plant_map_points for delete
+to authenticated
+using (public.current_user_role() = 'admin');
+
+create policy "public read plant_map_objects"
+on public.plant_map_objects for select
+to authenticated
+using (true);
+
+create policy "admin insert plant_map_objects"
+on public.plant_map_objects for insert
+to authenticated
+with check (public.current_user_role() = 'admin');
+
+create policy "admin update plant_map_objects"
+on public.plant_map_objects for update
+to authenticated
+using (public.current_user_role() = 'admin')
+with check (public.current_user_role() = 'admin');
+
+create policy "admin delete plant_map_objects"
+on public.plant_map_objects for delete
 to authenticated
 using (public.current_user_role() = 'admin');
 
