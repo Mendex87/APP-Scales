@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.3 - Reporte imprimible depurado
+
+- El reporte A4 reduce informacion repetida: la cabecera identifica evento/equipo y el resumen queda enfocado en resultado, tolerancia, pasadas y factor final.
+- `Pesos de referencia` concentra pesos principales, diferencia y porcentaje de error material final.
+- Se unifican bloques tecnicos de controlador/parametros y cadena/acumulado para mejorar lectura sin perder trazabilidad.
+
 ## v4.0.2 - Recuperacion de contraseña
 
 - La pantalla de ingreso agrega `Olvidé mi contraseña` para pedir un link de recuperacion por email desde el servidor online.

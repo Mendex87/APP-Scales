@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-15 - v4.0.3 - Reporte A4 sin duplicados
+
+- Contexto: el reporte imprimible repetia datos entre cabecera, resumen, pesos de referencia y bloques tecnicos, reduciendo claridad en una sola pagina.
+- Decision: promover `preview-report-print-polish` a `main` como `v4.0.3`, manteniendo A4 vertical y la identidad visual industrial.
+- Cambio reporte: la cabecera queda para identificacion del evento/equipo; el resumen queda para resultado, tolerancia, pasadas y factor final.
+- Cambio pesos: `Pesos de referencia` agrupa peso certificado final, peso controlador final, diferencia y error material final.
+- Cambio tecnico: se eliminan duplicados de equipo y se unifican `Controlador y parametros` y `Cadena y acumulado`.
+- Verificacion requerida: correr `npm run build` y revisar impresion de un evento con cadena completa y de un control preventivo.
+
 ## 2026-05-15 - v4.0.2 - Recuperacion de contraseña por email
 
 - Contexto: los usuarios necesitaban recuperar acceso sin depender de que un administrador genere una contrasena manual nueva.

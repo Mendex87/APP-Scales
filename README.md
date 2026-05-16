@@ -2,7 +2,7 @@
 
 Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
 
-Version actual: `v4.0.2`.
+Version actual: `v4.0.3`.
 
 ## Incluye
 
@@ -18,7 +18,7 @@ Version actual: `v4.0.2`.
 - recuperacion de contraseña por email con cooldown local para evitar reenvios repetidos
 - almacenamiento local o en Supabase
 - historial tecnico de calibraciones
-- reporte imprimible A4 con resumen, pesos de referencia, pasadas completas y firma
+- reporte imprimible A4 con resumen sin duplicados, pesos de referencia con error final, pasadas completas y firma
 
 ## Desarrollo local
 
