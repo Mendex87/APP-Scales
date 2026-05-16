@@ -105,6 +105,20 @@ type PlantMapObjectForm = {
   color: string
 }
 
+type PlantMapObjectPreset = {
+  label: string
+  description: string
+  objectType: PlantMapObjectType
+  color?: string
+  width?: number
+  depth?: number
+  height?: number
+  elevation?: number
+  rotationY?: number
+  scale?: number
+  slope?: number
+}
+
 type ObjectScreenPosition = { x: number; y: number }
 
 type ManagedUser = AuthUser & {
@@ -121,7 +135,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.3'
+const APP_VERSION = 'v4.0.4'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -162,6 +176,21 @@ const DEFAULT_PLANT_MAP_OBJECT_FORM: PlantMapObjectForm = {
   objectType: 'block',
   color: '#aeb6b4',
 }
+
+const PLANT_MAP_OBJECT_PRESETS: PlantMapObjectPreset[] = [
+  { label: 'Cinta horizontal', description: 'Tramo recto transportador', objectType: 'belt_horizontal', width: 6.2, depth: 0.72, height: 0.34, color: '#17151a' },
+  { label: 'Cinta inclinada', description: 'Elevador entre niveles', objectType: 'belt_inclined', width: 5.8, depth: 0.74, height: 0.36, slope: 0.42, color: '#17151a' },
+  { label: 'Tolva rectangular', description: 'Recepcion o descarga', objectType: 'rectangular_hopper', width: 1.8, depth: 1.7, height: 1.9, color: '#8fa094' },
+  { label: 'Silo rectangular', description: 'Almacenamiento alto', objectType: 'rectangular_silo', width: 1.55, depth: 1.55, height: 4.1, color: '#dfe7e1' },
+  { label: 'Despacho carga', description: 'Punto de carga camion', objectType: 'dispatch_belt', width: 2.4, depth: 0.9, height: 0.48, slope: 0.24, color: '#5c9a68' },
+  { label: 'Bascula camionera', description: 'Plataforma de pesaje', objectType: 'truck_scale', width: 4.7, depth: 1.35, height: 0.18, color: '#d6d2c8' },
+  { label: 'Camion', description: 'Vehiculo de referencia', objectType: 'truck', width: 3.9, depth: 1.25, height: 0.72, color: '#d6d2c8' },
+  { label: 'Cabina control', description: 'Sala o garita operativa', objectType: 'cabin', width: 1.55, depth: 1.05, height: 1.32, color: '#cbdde2' },
+  { label: 'Camino playa', description: 'Vialidad editable', objectType: 'yard', width: 8, depth: 1.1, height: 0.06, elevation: 0.06, color: '#4b4c50' },
+  { label: 'Zona operativa', description: 'Area coloreada editable', objectType: 'zone', width: 5.8, depth: 4.8, height: 0.05, elevation: 0.03, color: '#c98500' },
+  { label: 'Piso/base', description: 'Plataforma principal', objectType: 'floor', width: 14, depth: 8, height: 0.12, elevation: -0.06, color: '#d6d2c8' },
+  { label: 'Marcador', description: 'Referencia vertical', objectType: 'marker', width: 0.55, depth: 0.55, height: 2, color: '#ff5949' },
+]
 
 function getToastTone(message: string): ToastTone {
   if (/^error|fallo|incorrect|invalid|invalido|inválido|no se pudo/i.test(message)) return 'error'
@@ -2147,6 +2176,36 @@ function App() {
     setSelectedPlantObjectId(nextObject.id)
     setPlantMapCreateOpen(false)
     setSyncNotice('Objeto 3D creado en el centro. Ajustalo y guardá la edición para confirmar.')
+  }
+
+  function createPlantMapObjectFromPreset(preset: PlantMapObjectPreset) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    const defaults = getPlantMapObjectDefaults(preset.objectType)
+    const now = new Date().toISOString()
+    const origin = selectedPlantObject
+      ? { x: selectedPlantObject.x + 0.9, z: selectedPlantObject.z + 0.9, rotationY: selectedPlantObject.rotationY }
+      : { x: 0, z: 0, rotationY: 0 }
+    const nextObject: PlantMapObject = {
+      id: generateId(),
+      label: preset.label,
+      objectType: preset.objectType,
+      x: round(clampSceneCoordinate(origin.x), 2),
+      z: round(clampSceneCoordinate(origin.z), 2),
+      elevation: preset.elevation ?? defaults.elevation,
+      rotationY: preset.rotationY ?? origin.rotationY,
+      scale: preset.scale ?? 1,
+      width: preset.width ?? defaults.width,
+      depth: preset.depth ?? defaults.depth,
+      height: preset.height ?? defaults.height,
+      slope: preset.slope ?? defaults.slope,
+      color: normalizeObjectColor(preset.color || defaults.color),
+      createdAt: now,
+      updatedAt: now,
+    }
+    setPlantMapDraftObjects((current) => [...current, nextObject])
+    setSelectedPlantObjectId(nextObject.id)
+    setPlantMapCreateOpen(false)
+    setSyncNotice(`${preset.label} agregado al borrador. Ubicalo y guarda la edicion para confirmar.`)
   }
 
   function duplicateSelectedPlantMapObject() {
@@ -4259,6 +4318,23 @@ function App() {
                           <button className="secondary small" type="button" onClick={openPlantMapObjectForm}><PlusCircle className="action-icon" aria-hidden="true" />Crear objeto</button>
                           <button className="secondary small" type="button" onClick={duplicateSelectedPlantMapObject} disabled={!selectedPlantObject}>Duplicar</button>
                           <button className="secondary danger small" type="button" onClick={deleteSelectedPlantMapObject} disabled={!selectedPlantObject}><Trash2 className="action-icon" aria-hidden="true" />Borrar</button>
+                        </div>
+                      )}
+                      {plantMapEditing && currentUser.role === 'admin' && (
+                        <div className="plant-map-presets compact-top" aria-label="Presets industriales">
+                          <div className="plant-map-presets-head">
+                            <span>Presets industriales</span>
+                            <small>se agregan cerca del objeto seleccionado</small>
+                          </div>
+                          <div className="plant-map-preset-grid">
+                            {PLANT_MAP_OBJECT_PRESETS.map((preset) => (
+                              <button className="plant-map-preset" type="button" key={`${preset.objectType}-${preset.label}`} onClick={() => createPlantMapObjectFromPreset(preset)}>
+                                <span className="plant-map-preset-swatch" style={{ backgroundColor: preset.color || getPlantMapObjectDefaults(preset.objectType).color }} aria-hidden="true" />
+                                <strong>{preset.label}</strong>
+                                <small>{preset.description}</small>
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       )}
                       {plantMapCreateOpen && plantMapEditing && currentUser.role === 'admin' && (

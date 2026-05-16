@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.4 - Presets industriales de mapa
+
+- El editor 3D de planta agrega una biblioteca de presets industriales para crear cintas, tolvas, silos, despachos, basculas, caminos, zonas y marcadores con medidas iniciales utiles.
+- Los presets se insertan cerca del objeto seleccionado y quedan en borrador hasta confirmar con `Guardar edicion`.
+
 ## v4.0.3 - Reporte imprimible depurado
 
 - El reporte A4 reduce informacion repetida: la cabecera identifica evento/equipo y el resumen queda enfocado en resultado, tolerancia, pasadas y factor final.
