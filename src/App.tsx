@@ -880,7 +880,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .full { grid-column: 1 / -1; }
     .panel { padding: 6px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(135deg, rgba(255, 89, 73, 0.035), transparent 38%), #fffdf8; break-inside: avoid; }
     .result-strip { margin-bottom: 7px; padding: 7px; border: 1px solid #d5cfc3; border-radius: 7px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.08), transparent 46%), #fffdf8; }
-    .result-grid { display: grid; grid-template-columns: 1.15fr 0.72fr 0.62fr 0.54fr 0.82fr; gap: 4px; }
+    .result-grid { display: grid; grid-template-columns: 1.15fr 0.62fr 0.54fr 0.82fr; gap: 4px; }
     .result-grid > div { min-height: 30px; padding: 5px 6px; border: 1px solid #dfd9ce; border-top: 3px solid #ff5949; border-radius: 5px; background: #faf8f2; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
     .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -889,7 +889,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     span { display: block; color: #6f6a68; font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; }
     strong { display: block; margin-top: 1px; color: #0c0b11; font-size: 13.5px; line-height: 0.94; letter-spacing: -0.01em; overflow-wrap: anywhere; }
     .weight-focus { margin-bottom: 7px; padding: 8px; border: 2px solid #0c0b11; border-radius: 8px; background: linear-gradient(120deg, rgba(255, 89, 73, 0.12), transparent 42%), #fffdf8; }
-    .weight-grid { display: grid; grid-template-columns: 1fr 1fr 0.82fr; gap: 6px; }
+    .weight-grid { display: grid; grid-template-columns: 1fr 1fr 0.82fr 0.72fr; gap: 6px; }
     .weight-card { min-height: 56px; padding: 8px; border: 1px solid #d5cfc3; border-left: 6px solid #ff5949; border-radius: 7px; background: #faf8f2; }
     .weight-card strong { font-size: 24px; line-height: 0.88; letter-spacing: -0.035em; }
     .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: var(--report-dark-gradient); background-clip: padding-box; }
@@ -932,7 +932,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       <h2>Resumen</h2>
       <div class="result-grid">
         ${reportRow('Resultado', materialSummary.status)}
-        ${reportRow('Error final', `${materialSummary.errorPct} %`)}
         ${reportRow('Tolerancia', `${item.tolerancePercent} %`)}
         ${reportRow('Pasadas', materialSummary.passes.length)}
         ${reportRow('Factor final', item.finalAdjustment.factorAfter)}
@@ -945,6 +944,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <div class="weight-card main"><span>Peso certificado final</span><strong>${reportValue(measure(finalExternalWeight, 'weightKg'))}</strong></div>
         <div class="weight-card main"><span>Peso controlador final</span><strong>${reportValue(measure(finalBeltWeight, 'weightKg'))}</strong></div>
         <div class="weight-card"><span>Diferencia controlador-certificado</span><strong>${reportValue(measure(finalWeightDiff, 'weightKg'))}</strong></div>
+        <div class="weight-card"><span>Error material final</span><strong>${reportValue(`${materialSummary.errorPct} %`)}</strong></div>
       </div>
     </section>
 
