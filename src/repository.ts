@@ -87,6 +87,7 @@ type PlantMapObjectRow = {
   height?: number
   slope?: number
   color?: string
+  model_path?: string | null
   created_at: string
   updated_at: string
 }
@@ -541,6 +542,7 @@ function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
     height: row.height ?? 1,
     slope: row.slope ?? 0,
     color: row.color || '#aeb6b4',
+    modelPath: row.model_path || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -561,6 +563,7 @@ function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
     height: item.height,
     slope: item.slope,
     color: item.color,
+    model_path: item.modelPath || '',
     created_at: item.createdAt,
     updated_at: item.updatedAt,
   }

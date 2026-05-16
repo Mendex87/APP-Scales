@@ -135,7 +135,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.4'
+const APP_VERSION = 'v4.0.5'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -257,6 +257,12 @@ function clampObjectSlope(value: number) {
 
 function normalizeObjectColor(value: string) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#aeb6b4'
+}
+
+function normalizePlantMapModelPath(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('public/') ? `/${trimmed.slice('public/'.length)}` : trimmed
 }
 
 function getPlantMapObjectDefaults(type: PlantMapObjectType) {
@@ -1895,7 +1901,7 @@ function App() {
   const activePlantMapObjects = plantMapEditing ? plantMapDraftObjects : plantMapObjects
   const plantMapSceneKey = useMemo(() => {
     return activePlantMapObjects
-      .map((object) => [object.id, object.label, object.objectType, object.color, object.width, object.depth, object.height, object.slope].join(':'))
+      .map((object) => [object.id, object.label, object.objectType, object.color, object.modelPath, object.width, object.depth, object.height, object.slope].join(':'))
       .join('|')
   }, [activePlantMapObjects])
 
@@ -2136,6 +2142,11 @@ function App() {
     updatePlantMapDraftObject(objectId, { color: normalizeObjectColor(color) })
   }
 
+  function handlePlantMapObjectModelPathChange(objectId: string, modelPath: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftObject(objectId, { modelPath: normalizePlantMapModelPath(modelPath) })
+  }
+
   function handlePlantMapObjectTypeChange(objectId: string, objectType: string) {
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     const nextType = PLANT_MAP_OBJECT_OPTIONS.find((option) => option.value === objectType)?.value
@@ -2169,6 +2180,7 @@ function App() {
       height: defaults.height,
       slope: defaults.slope,
       color: normalizeObjectColor(plantMapObjectForm.color || defaults.color),
+      modelPath: '',
       createdAt: now,
       updatedAt: now,
     }
@@ -2199,6 +2211,7 @@ function App() {
       height: preset.height ?? defaults.height,
       slope: preset.slope ?? defaults.slope,
       color: normalizeObjectColor(preset.color || defaults.color),
+      modelPath: '',
       createdAt: now,
       updatedAt: now,
     }
@@ -4277,7 +4290,7 @@ function App() {
                     )}
 
                     {plantMapEditing && currentUser.role === 'admin' && (
-                      <div className="plant-map-admin-field compact-top">
+                      <PlantEditorSection title="Vinculos" hint="punto operativo" defaultOpen>
                         <label className="label">Objeto 3D vinculado</label>
                         <select
                           className="input"
@@ -4289,8 +4302,8 @@ function App() {
                             <option key={object.id} value={object.id}>{object.label}</option>
                           ))}
                         </select>
-                        <p className="hint compact-top">Si está vinculado, el marcador sigue al objeto 3D cuando girás la cámara o movés la planta.</p>
-                      </div>
+                        <p className="hint compact-top">Si esta vinculado, el marcador sigue al objeto 3D cuando giras la camara o moves la planta.</p>
+                      </PlantEditorSection>
                     )}
 
                     {selectedPlantPointStatus?.equipment && !plantMapEditing && (
@@ -4301,107 +4314,120 @@ function App() {
                       </div>
                     )}
 
-                    {plantMapEditing && currentUser.role === 'admin' && <div className="plant-map-admin-field compact-top">
-                      <label className="label">Objeto 3D seleccionado</label>
-                      <select
-                        className="input"
-                        value={selectedPlantObject?.id || ''}
-                        onChange={(event) => setSelectedPlantObjectId(event.target.value)}
-                      >
-                        {activePlantMapObjects.map((object) => (
-                          <option key={object.id} value={object.id}>{object.label}</option>
-                        ))}
-                      </select>
-                      <p className="hint compact-top">Arrastrá el modelo para girar la vista. En modo edición admin, arrastrá un objeto 3D para acomodarlo.</p>
-                      {plantMapEditing && currentUser.role === 'admin' && (
+                    {plantMapEditing && currentUser.role === 'admin' && <div className="plant-map-admin-field compact-top plant-object-editor">
+                      <PlantEditorSection title="Objetos" hint="seleccion y creacion" defaultOpen>
+                        <label className="label">Objeto 3D seleccionado</label>
+                        <select
+                          className="input"
+                          value={selectedPlantObject?.id || ''}
+                          onChange={(event) => setSelectedPlantObjectId(event.target.value)}
+                        >
+                          {activePlantMapObjects.map((object) => (
+                            <option key={object.id} value={object.id}>{object.label}</option>
+                          ))}
+                        </select>
+                        <p className="hint compact-top">Arrastra el modelo para girar la vista. En edicion admin, arrastra un objeto 3D para acomodarlo.</p>
                         <div className="row compact-actions compact-top plant-object-actions">
                           <button className="secondary small" type="button" onClick={openPlantMapObjectForm}><PlusCircle className="action-icon" aria-hidden="true" />Crear objeto</button>
                           <button className="secondary small" type="button" onClick={duplicateSelectedPlantMapObject} disabled={!selectedPlantObject}>Duplicar</button>
                           <button className="secondary danger small" type="button" onClick={deleteSelectedPlantMapObject} disabled={!selectedPlantObject}><Trash2 className="action-icon" aria-hidden="true" />Borrar</button>
                         </div>
-                      )}
-                      {plantMapEditing && currentUser.role === 'admin' && (
-                        <div className="plant-map-presets compact-top" aria-label="Presets industriales">
-                          <div className="plant-map-presets-head">
-                            <span>Presets industriales</span>
-                            <small>se agregan cerca del objeto seleccionado</small>
+                        <details className="plant-editor-section plant-editor-nested compact-top">
+                          <summary className="plant-editor-summary">
+                            <span>
+                              <strong>Presets industriales</strong>
+                              <small>opcional, oculto por defecto</small>
+                            </span>
+                            <span className="plant-editor-indicator">Abrir</span>
+                          </summary>
+                          <div className="plant-editor-section-body">
+                            <div className="plant-map-preset-grid">
+                              {PLANT_MAP_OBJECT_PRESETS.map((preset) => (
+                                <button className="plant-map-preset" type="button" key={`${preset.objectType}-${preset.label}`} onClick={() => createPlantMapObjectFromPreset(preset)}>
+                                  <span className="plant-map-preset-swatch" style={{ backgroundColor: preset.color || getPlantMapObjectDefaults(preset.objectType).color }} aria-hidden="true" />
+                                  <strong>{preset.label}</strong>
+                                  <small>{preset.description}</small>
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <div className="plant-map-preset-grid">
-                            {PLANT_MAP_OBJECT_PRESETS.map((preset) => (
-                              <button className="plant-map-preset" type="button" key={`${preset.objectType}-${preset.label}`} onClick={() => createPlantMapObjectFromPreset(preset)}>
-                                <span className="plant-map-preset-swatch" style={{ backgroundColor: preset.color || getPlantMapObjectDefaults(preset.objectType).color }} aria-hidden="true" />
-                                <strong>{preset.label}</strong>
-                                <small>{preset.description}</small>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {plantMapCreateOpen && plantMapEditing && currentUser.role === 'admin' && (
-                        <form className="plant-object-create-form compact-top" onSubmit={createPlantMapObject}>
-                          <label className="label">Tipo nuevo</label>
-                          <select
-                            className="input"
-                            value={plantMapObjectForm.objectType}
-                            onChange={(event) => {
-                              const nextType = event.target.value as PlantMapObjectType
-                              const defaults = getPlantMapObjectDefaults(nextType)
-                              setPlantMapObjectForm((current) => ({ ...current, objectType: nextType, color: defaults.color }))
-                            }}
-                          >
-                            {PLANT_MAP_OBJECT_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                          </select>
-                          <div className="grid two compact-top">
-                            <Field label="Nombre" value={plantMapObjectForm.label} onChange={(value) => setPlantMapObjectForm((current) => ({ ...current, label: value }))} />
-                            <Field label="Color" type="color" value={plantMapObjectForm.color} onChange={(value) => setPlantMapObjectForm((current) => ({ ...current, color: value }))} />
-                          </div>
-                          <div className="row compact-actions compact-top">
-                            <button className="primary small" type="submit">Crear en centro</button>
-                            <button className="secondary small" type="button" onClick={() => setPlantMapCreateOpen(false)}>Cancelar</button>
-                          </div>
-                        </form>
-                      )}
-                      {selectedPlantObject && plantMapEditing && currentUser.role === 'admin' && (
-                        <>
-                          <div className="grid two compact-top plant-object-controls">
-                            <Field label="Nombre" value={selectedPlantObject.label} onChange={(value) => handlePlantMapObjectLabelChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Color" type="color" value={selectedPlantObject.color} onChange={(value) => handlePlantMapObjectColorChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                          </div>
-                          <div className="plant-map-admin-field nested compact-top">
-                            <label className="label">Tipo de objeto</label>
+                        </details>
+                        {plantMapCreateOpen && (
+                          <form className="plant-object-create-form compact-top" onSubmit={createPlantMapObject}>
+                            <label className="label">Tipo nuevo</label>
                             <select
                               className="input"
-                              value={selectedPlantObject.objectType}
-                              onChange={(event) => handlePlantMapObjectTypeChange(selectedPlantObject.id, event.target.value)}
-                              disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                              value={plantMapObjectForm.objectType}
+                              onChange={(event) => {
+                                const nextType = event.target.value as PlantMapObjectType
+                                const defaults = getPlantMapObjectDefaults(nextType)
+                                setPlantMapObjectForm((current) => ({ ...current, objectType: nextType, color: defaults.color }))
+                              }}
                             >
                               {PLANT_MAP_OBJECT_OPTIONS.map((option) => (
                                 <option key={option.value} value={option.value}>{option.label}</option>
                               ))}
                             </select>
-                          </div>
-                          <div className="grid two compact-top plant-object-controls slider-controls">
-                            <SliderField label="X" value={selectedPlantObject.x} min={-18} max={18} step={0.1} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'x', value)} />
-                            <SliderField label="Z" value={selectedPlantObject.z} min={-18} max={18} step={0.1} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'z', value)} />
-                            <SliderField label="Altura" value={selectedPlantObject.elevation} min={-1} max={8} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'elevation', value)} />
-                            <SliderField label="Rotacion" value={radiansToDegrees(selectedPlantObject.rotationY)} min={-180} max={180} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'rotationY', value)} />
-                          </div>
-                          <div className="grid two compact-top plant-object-controls slider-controls">
-                            <SliderField label="Tamaño" value={selectedPlantObject.scale} min={0.25} max={3} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'scale', value)} />
-                            <SliderField label="Largo" value={selectedPlantObject.width} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'width', value)} />
-                            <SliderField label="Ancho" value={selectedPlantObject.depth} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'depth', value)} />
-                            <SliderField label="Alto" value={selectedPlantObject.height} min={0.01} max={12} step={0.01} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'height', value)} />
-                            <SliderField label="Inclinacion" value={radiansToDegrees(selectedPlantObject.slope)} min={-70} max={70} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'slope', value)} />
-                          </div>
+                            <div className="grid two compact-top">
+                              <Field label="Nombre" value={plantMapObjectForm.label} onChange={(value) => setPlantMapObjectForm((current) => ({ ...current, label: value }))} />
+                              <Field label="Color" type="color" value={plantMapObjectForm.color} onChange={(value) => setPlantMapObjectForm((current) => ({ ...current, color: value }))} />
+                            </div>
+                            <div className="row compact-actions compact-top">
+                              <button className="primary small" type="submit">Crear en centro</button>
+                              <button className="secondary small" type="button" onClick={() => setPlantMapCreateOpen(false)}>Cancelar</button>
+                            </div>
+                          </form>
+                        )}
+                      </PlantEditorSection>
+
+                      {selectedPlantObject && (
+                        <>
+                          <PlantEditorSection title="Objeto y modelo" hint="tipo, color y GLB" defaultOpen>
+                            <div className="grid two compact-top plant-object-controls">
+                              <Field label="Nombre" value={selectedPlantObject.label} onChange={(value) => handlePlantMapObjectLabelChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                              <Field label="Color" type="color" value={selectedPlantObject.color} onChange={(value) => handlePlantMapObjectColorChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            </div>
+                            <div className="plant-map-admin-field nested compact-top">
+                              <label className="label">Tipo de objeto</label>
+                              <select
+                                className="input"
+                                value={selectedPlantObject.objectType}
+                                onChange={(event) => handlePlantMapObjectTypeChange(selectedPlantObject.id, event.target.value)}
+                                disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                              >
+                                {PLANT_MAP_OBJECT_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="compact-top">
+                              <Field label="Modelo .glb" value={selectedPlantObject.modelPath} onChange={(value) => handlePlantMapObjectModelPathChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} hint="Ejemplo: /models/plant/silo.glb" />
+                            </div>
+                          </PlantEditorSection>
+
+                          <PlantEditorSection title="Transformar" hint="posicion y rotacion" defaultOpen>
+                            <div className="grid two compact-top plant-object-controls slider-controls">
+                              <SliderField label="X" value={selectedPlantObject.x} min={-18} max={18} step={0.1} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'x', value)} />
+                              <SliderField label="Z" value={selectedPlantObject.z} min={-18} max={18} step={0.1} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'z', value)} />
+                              <SliderField label="Altura" value={selectedPlantObject.elevation} min={-1} max={8} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'elevation', value)} />
+                              <SliderField label="Rotacion" value={radiansToDegrees(selectedPlantObject.rotationY)} min={-180} max={180} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'rotationY', value)} />
+                            </div>
+                            <div className="row compact-actions compact-top">
+                              <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, -0.15)}>Girar -</button>
+                              <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, 0.15)}>Girar +</button>
+                            </div>
+                          </PlantEditorSection>
+
+                          <PlantEditorSection title="Dimensiones" hint="escala y medidas">
+                            <div className="grid two compact-top plant-object-controls slider-controls">
+                              <SliderField label="Tamaño" value={selectedPlantObject.scale} min={0.25} max={3} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'scale', value)} />
+                              <SliderField label="Largo" value={selectedPlantObject.width} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'width', value)} />
+                              <SliderField label="Ancho" value={selectedPlantObject.depth} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'depth', value)} />
+                              <SliderField label="Alto" value={selectedPlantObject.height} min={0.01} max={12} step={0.01} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'height', value)} />
+                              <SliderField label="Inclinacion" value={radiansToDegrees(selectedPlantObject.slope)} min={-70} max={70} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'slope', value)} />
+                            </div>
+                          </PlantEditorSection>
                         </>
-                      )}
-                      {selectedPlantObject && plantMapEditing && currentUser.role === 'admin' && (
-                        <div className="row compact-actions compact-top">
-                          <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, -0.15)}>Girar -</button>
-                          <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, 0.15)}>Girar +</button>
-                        </div>
                       )}
                     </div>}
 
@@ -5392,6 +5418,33 @@ function CollapsibleCard({
         <span className="collapsible-indicator">Abrir</span>
       </summary>
       <div className="collapsible-body">
+        {children}
+      </div>
+    </details>
+  )
+}
+
+function PlantEditorSection({
+  title,
+  hint,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  hint?: string
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details className="plant-editor-section" open={defaultOpen}>
+      <summary className="plant-editor-summary">
+        <span>
+          <strong>{title}</strong>
+          {hint && <small>{hint}</small>}
+        </span>
+        <span className="plant-editor-indicator">Abrir</span>
+      </summary>
+      <div className="plant-editor-section-body">
         {children}
       </div>
     </details>

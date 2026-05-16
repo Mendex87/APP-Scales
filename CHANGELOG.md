@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.5 - Modelos GLB para mapa 3D
+
+- El editor de mapa permite asociar una ruta `.glb`/`.gltf` a cada objeto para reemplazar la geometria generativa por modelos exportados desde Fusion 360/Blender.
+- La escena 3D carga modelos desde `public/models/plant/`, los escala al volumen configurado y conserva un fallback visual si el archivo todavia no existe.
+- El panel de edicion queda dividido en secciones plegables para ocultar presets y reducir ruido visual.
+
 ## v4.0.4 - Presets industriales de mapa
 
 - El editor 3D de planta agrega una biblioteca de presets industriales para crear cintas, tolvas, silos, despachos, basculas, caminos, zonas y marcadores con medidas iniciales utiles.

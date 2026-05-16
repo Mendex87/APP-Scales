@@ -188,6 +188,7 @@ function normalizePlantMapObject(item: Partial<PlantMapObject>): PlantMapObject 
     height: clampObjectHeight(item.height ?? defaults.height),
     slope: clampObjectSlope(item.slope ?? defaults.slope),
     color: normalizeColor(item.color || defaults.color),
+    modelPath: normalizeModelPath(item.modelPath || ''),
     createdAt: item.createdAt || now,
     updatedAt: item.updatedAt || item.createdAt || now,
   }
@@ -255,4 +256,10 @@ function clampObjectSlope(value: number) {
 
 function normalizeColor(value: string) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#aeb6b4'
+}
+
+function normalizeModelPath(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('public/') ? `/${trimmed.slice('public/'.length)}` : trimmed
 }

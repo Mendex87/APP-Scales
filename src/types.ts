@@ -197,6 +197,7 @@ export type PlantMapObject = {
   height: number
   slope: number
   color: string
+  modelPath: string
   createdAt: string
   updatedAt: string
 }

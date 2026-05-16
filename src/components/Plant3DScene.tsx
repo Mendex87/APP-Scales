@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { PlantMapObject } from '../types'
 
-type MeshMaterial = THREE.MeshStandardMaterial | THREE.MeshBasicMaterial | THREE.SpriteMaterial
+type MeshMaterial = THREE.Material
 
 type Plant3DSceneProps = {
   objects: PlantMapObject[]
@@ -104,6 +105,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
     let renderer: THREE.WebGLRenderer | null = null
     let controls: OrbitControls | null = null
     let frameId = 0
+    let disposed = false
     let resizeObserver: ResizeObserver | null = null
     let draggingObjectId = ''
     let dragOffset = new THREE.Vector3()
@@ -137,6 +139,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
     try {
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 120)
+      const modelLoader = new GLTFLoader()
       camera.position.set(28, 20, 31)
       camera.lookAt(0, 0, 0)
 
@@ -216,6 +219,54 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         }
         parent.add(mesh)
         return mesh
+      }
+
+      function getModelPath(object: PlantMapObject) {
+        const modelPath = object.modelPath.trim()
+        return /\.(glb|gltf)(?:[?#].*)?$/i.test(modelPath) ? modelPath : ''
+      }
+
+      function registerLoadedModel(root: THREE.Object3D, objectId: string) {
+        root.traverse((child) => {
+          const mesh = child as THREE.Mesh
+          if (!mesh.isMesh) return
+          mesh.castShadow = true
+          mesh.receiveShadow = true
+          mesh.userData.objectId = objectId
+          pickTargetsRef.current.push(mesh)
+          if (mesh.geometry) geometries.push(mesh.geometry)
+          const meshMaterial = mesh.material
+          if (Array.isArray(meshMaterial)) materials.push(...meshMaterial)
+          else if (meshMaterial) materials.push(meshMaterial)
+        })
+      }
+
+      function disposeLoadedModel(root: THREE.Object3D) {
+        root.traverse((child) => {
+          const mesh = child as THREE.Mesh
+          if (!mesh.isMesh) return
+          mesh.geometry?.dispose()
+          const meshMaterial = mesh.material
+          if (Array.isArray(meshMaterial)) meshMaterial.forEach((item) => item.dispose())
+          else meshMaterial?.dispose()
+        })
+      }
+
+      function fitLoadedModel(root: THREE.Object3D, object: PlantMapObject) {
+        const box = new THREE.Box3().setFromObject(root)
+        if (box.isEmpty()) return
+        const size = new THREE.Vector3()
+        const center = new THREE.Vector3()
+        box.getSize(size)
+        box.getCenter(center)
+        const scaleOptions = [
+          size.x > 0 ? (object.width || 1) / size.x : Number.POSITIVE_INFINITY,
+          size.y > 0 ? (object.height || 1) / size.y : Number.POSITIVE_INFINITY,
+          size.z > 0 ? (object.depth || 1) / size.z : Number.POSITIVE_INFINITY,
+        ].filter(Number.isFinite)
+        const modelScale = Math.max(0.001, scaleOptions.length > 0 ? Math.min(...scaleOptions) : 1)
+        root.scale.setScalar(modelScale)
+        root.position.set(-center.x * modelScale, -box.min.y * modelScale, -center.z * modelScale)
       }
 
       function addLabel(text: string, x: number, y: number, z: number, scale = 1, parent = plant) {
@@ -445,7 +496,43 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         addLabel(object.label, 0, height + 0.9, 0, 0.48, group)
       }
 
+      function addModelObject(object: PlantMapObject) {
+        const modelPath = getModelPath(object)
+        if (!modelPath) return false
+        const group = createObjectGroup(object)
+        const width = object.width || 1.5
+        const depth = object.depth || 1.5
+        const height = object.height || 1.5
+        const placeholder = new THREE.Mesh(
+          geometry(new THREE.BoxGeometry(width, height, depth)),
+          objectMaterial(object, 0xaeb6b4, { transparent: true, opacity: 0.24 }),
+        )
+        placeholder.position.y = height / 2
+        addMesh(placeholder, group, object.id)
+        addLabel(object.label, 0, height + 0.9, 0, 0.58, group)
+
+        modelLoader.load(
+          modelPath,
+          (gltf) => {
+            if (disposed) {
+              disposeLoadedModel(gltf.scene)
+              return
+            }
+            group.remove(placeholder)
+            fitLoadedModel(gltf.scene, object)
+            registerLoadedModel(gltf.scene, object.id)
+            group.add(gltf.scene)
+          },
+          undefined,
+          (error) => {
+            console.warn(`No se pudo cargar el modelo 3D ${modelPath}:`, error)
+          },
+        )
+        return true
+      }
+
       function addEditableObject(object: PlantMapObject) {
+        if (addModelObject(object)) return
         if (object.objectType === 'belt' || object.objectType === 'belt_horizontal' || object.objectType === 'belt_inclined' || object.objectType === 'dispatch_belt') addBelt(object)
         else if (object.objectType === 'kiln') addKiln(object)
         else if (object.objectType === 'silo' || object.objectType === 'rectangular_silo') addSilo(object)
@@ -562,6 +649,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       render()
 
       return () => {
+        disposed = true
         renderer?.domElement.removeEventListener('pointerdown', handlePointerDown)
         renderer?.domElement.removeEventListener('pointermove', handlePointerMove)
         renderer?.domElement.removeEventListener('pointerup', finishDrag)
@@ -583,6 +671,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
     }
 
     return () => {
+      disposed = true
       if (frameId) window.cancelAnimationFrame(frameId)
       resizeObserver?.disconnect()
       controls?.dispose()

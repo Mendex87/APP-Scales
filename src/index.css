@@ -2403,6 +2403,10 @@ body::before {
   display: none;
 }
 
+.plant-map-detail.editing .plant-editor-section .field-shell .hint.compact-top {
+  display: block;
+}
+
 .plant-map-detail.editing .label {
   font-size: 0.62rem;
   letter-spacing: 0.06em;
@@ -2462,6 +2466,90 @@ body::before {
   border-radius: var(--radius);
   padding: 0.85rem;
   background: var(--color-paper-strong);
+}
+
+.plant-object-editor {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.plant-editor-section {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.58rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.72);
+  background: color-mix(in srgb, var(--color-paper-strong) 68%, transparent);
+}
+
+.plant-editor-section + .plant-editor-section {
+  margin-top: 0.45rem;
+}
+
+.plant-editor-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.plant-editor-summary::-webkit-details-marker {
+  display: none;
+}
+
+.plant-editor-summary span:first-child {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.plant-editor-summary strong {
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.plant-editor-summary small {
+  color: var(--color-grey-500);
+  font-size: 0.68rem;
+}
+
+.plant-editor-indicator {
+  color: var(--color-grey-500);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.plant-editor-section[open] > .plant-editor-summary .plant-editor-indicator {
+  color: var(--color-orange-dark);
+}
+
+.plant-editor-section[open] > .plant-editor-summary .plant-editor-indicator::before {
+  content: 'Cerrar';
+}
+
+.plant-editor-section[open] > .plant-editor-summary .plant-editor-indicator {
+  font-size: 0;
+}
+
+.plant-editor-section[open] > .plant-editor-summary .plant-editor-indicator::before {
+  font-size: 0.68rem;
+}
+
+.plant-editor-section-body {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.plant-editor-nested {
+  padding: 0.42rem;
+  background: var(--surface-muted);
 }
 
 .plant-object-actions {

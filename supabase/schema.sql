@@ -201,6 +201,7 @@ create table if not exists public.plant_map_objects (
   height double precision not null default 1,
   slope double precision not null default 0,
   color text not null default '#aeb6b4',
+  model_path text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint plant_map_objects_type_check
@@ -241,6 +242,9 @@ alter table public.plant_map_objects
 
 alter table public.plant_map_objects
   add column if not exists color text not null default '#aeb6b4';
+
+alter table public.plant_map_objects
+  add column if not exists model_path text not null default '';
 
 alter table public.plant_map_objects
   drop constraint if exists plant_map_objects_type_check;
