@@ -245,7 +245,7 @@ function clampObjectDimension(value: number) {
 
 function clampObjectHeight(value: number) {
   if (!Number.isFinite(value)) return 1
-  return Math.min(12, Math.max(0.08, value))
+  return Math.min(12, Math.max(0.01, value))
 }
 
 function clampObjectSlope(value: number) {

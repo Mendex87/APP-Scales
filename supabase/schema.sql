@@ -214,7 +214,7 @@ create table if not exists public.plant_map_objects (
   constraint plant_map_objects_scale_check
     check (scale >= 0.25 and scale <= 3),
   constraint plant_map_objects_dimensions_check
-    check (width >= 0.08 and width <= 50 and depth >= 0.08 and depth <= 50 and height >= 0.08 and height <= 12),
+    check (width >= 0.08 and width <= 50 and depth >= 0.08 and depth <= 50 and height >= 0.01 and height <= 12),
   constraint plant_map_objects_slope_check
     check (slope >= -1.2 and slope <= 1.2),
   constraint plant_map_objects_color_check
@@ -288,7 +288,7 @@ alter table public.plant_map_objects
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_dimensions_check
-  check (width >= 0.08 and width <= 50 and depth >= 0.08 and depth <= 50 and height >= 0.08 and height <= 12);
+  check (width >= 0.08 and width <= 50 and depth >= 0.08 and depth <= 50 and height >= 0.01 and height <= 12);
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_slope_check

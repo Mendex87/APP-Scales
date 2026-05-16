@@ -218,7 +218,7 @@ function clampObjectDimension(value: number) {
 
 function clampObjectHeight(value: number) {
   if (!Number.isFinite(value)) return 1
-  return Math.min(12, Math.max(0.08, value))
+  return Math.min(12, Math.max(0.01, value))
 }
 
 function clampObjectSlope(value: number) {
@@ -4315,7 +4315,7 @@ function App() {
                             <SliderField label="Tamaño" value={selectedPlantObject.scale} min={0.25} max={3} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'scale', value)} />
                             <SliderField label="Largo" value={selectedPlantObject.width} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'width', value)} />
                             <SliderField label="Ancho" value={selectedPlantObject.depth} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'depth', value)} />
-                            <SliderField label="Alto" value={selectedPlantObject.height} min={0.08} max={12} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'height', value)} />
+                            <SliderField label="Alto" value={selectedPlantObject.height} min={0.01} max={12} step={0.01} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'height', value)} />
                             <SliderField label="Inclinacion" value={radiansToDegrees(selectedPlantObject.slope)} min={-70} max={70} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'slope', value)} />
                           </div>
                         </>
