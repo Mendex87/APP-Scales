@@ -2228,6 +2228,13 @@ body::before {
   z-index: 30;
 }
 
+.plant-map-point.linked-object .plant-point-dot {
+  box-shadow:
+    0 0 0 0.35rem var(--point-bg),
+    0 0 0 0.62rem rgba(255, 89, 73, 0.18),
+    0 0.65rem 1.1rem rgba(12, 11, 17, 0.22);
+}
+
 .plant-point-dot {
   width: 1.35rem;
   height: 1.35rem;
@@ -2333,8 +2340,26 @@ body::before {
   background: var(--surface-muted);
 }
 
+.plant-map-admin-field.nested,
+.plant-object-create-form {
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  background: var(--color-paper-strong);
+}
+
+.plant-object-actions {
+  justify-content: flex-start;
+}
+
 .plant-object-controls .field-shell {
   min-width: 0;
+}
+
+.plant-object-controls input[type='color'],
+.plant-object-create-form input[type='color'] {
+  min-height: 2.75rem;
+  padding: 0.2rem;
 }
 
 .plant-linked-equipment {

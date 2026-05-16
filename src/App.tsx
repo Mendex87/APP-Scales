@@ -38,7 +38,7 @@ import {
 import { loadChains, loadEquipment, loadEvents, loadPlantMapObjects, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapObject, PlantMapPoint, SpeedSource } from './types'
+import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapObject, PlantMapObjectType, PlantMapPoint, SpeedSource } from './types'
 import {
   addArgentinaDays,
   argentinaDateTimeLocalToIso,
@@ -99,6 +99,14 @@ type AuthUser = {
   role: UserRole
 }
 
+type PlantMapObjectForm = {
+  label: string
+  objectType: PlantMapObjectType
+  color: string
+}
+
+type ObjectScreenPosition = { x: number; y: number }
+
 type ManagedUser = AuthUser & {
   createdAt: string
 }
@@ -126,6 +134,32 @@ const PASSWORD_RESET_COOLDOWN_MS = 60 * 1000
 const HISTORY_PAGE_SIZE = 25
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 const Plant3DScene = lazy(() => import('./components/Plant3DScene').then((module) => ({ default: module.Plant3DScene })))
+
+const PLANT_MAP_OBJECT_OPTIONS: Array<{ value: PlantMapObjectType; label: string }> = [
+  { value: 'block', label: 'Bloque / edificio' },
+  { value: 'rectangular_silo', label: 'Silo rectangular' },
+  { value: 'rectangular_hopper', label: 'Tolva rectangular' },
+  { value: 'belt_horizontal', label: 'Cinta horizontal' },
+  { value: 'belt_inclined', label: 'Cinta inclinada' },
+  { value: 'dispatch_belt', label: 'Despacho / carga' },
+  { value: 'truck', label: 'Vehiculo / camion' },
+  { value: 'yard', label: 'Camino / playa' },
+  { value: 'marker', label: 'Marcador' },
+  { value: 'stockpile', label: 'Acopio' },
+  { value: 'belt', label: 'Cinta existente' },
+  { value: 'kiln', label: 'Horno' },
+  { value: 'structure', label: 'Estructura existente' },
+  { value: 'cabin', label: 'Cabina' },
+  { value: 'silo', label: 'Silo existente' },
+  { value: 'dispatch_bin', label: 'Despacho existente' },
+  { value: 'truck_scale', label: 'Bascula camionera' },
+]
+
+const DEFAULT_PLANT_MAP_OBJECT_FORM: PlantMapObjectForm = {
+  label: 'Nuevo objeto',
+  objectType: 'block',
+  color: '#aeb6b4',
+}
 
 function getToastTone(message: string): ToastTone {
   if (/^error|fallo|incorrect|invalid|invalido|inválido|no se pudo/i.test(message)) return 'error'
@@ -168,6 +202,39 @@ function clampSceneCoordinate(value: number) {
 function clampObjectScale(value: number) {
   if (!Number.isFinite(value)) return 1
   return Math.min(3, Math.max(0.25, value))
+}
+
+function clampObjectDimension(value: number) {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(12, Math.max(0.08, value))
+}
+
+function clampObjectSlope(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(1.2, Math.max(-1.2, value))
+}
+
+function normalizeObjectColor(value: string) {
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : '#aeb6b4'
+}
+
+function getPlantMapObjectDefaults(type: PlantMapObjectType) {
+  if (type === 'stockpile') return { width: 2.7, depth: 2.1, height: 1.45, slope: 0, color: '#b87a32' }
+  if (type === 'belt' || type === 'belt_horizontal') return { width: 5.6, depth: 0.75, height: 0.35, slope: 0, color: '#17151a' }
+  if (type === 'belt_inclined') return { width: 5.6, depth: 0.75, height: 0.35, slope: 0.38, color: '#17151a' }
+  if (type === 'dispatch_bin' || type === 'dispatch_belt') return { width: 2.1, depth: 0.85, height: 0.45, slope: 0.22, color: '#5c9a68' }
+  if (type === 'kiln') return { width: 4.5, depth: 1.45, height: 1.5, slope: 0, color: '#d85f4f' }
+  if (type === 'silo' || type === 'rectangular_silo') return { width: 1.45, depth: 1.45, height: 3.8, slope: 0, color: '#dfe7e1' }
+  if (type === 'rectangular_hopper') return { width: 1.7, depth: 1.7, height: 1.8, slope: 0, color: '#8fa094' }
+  if (type === 'cabin') return { width: 1.45, depth: 1, height: 1.25, slope: 0, color: '#cbdde2' }
+  if (type === 'truck' || type === 'truck_scale') return { width: 3.9, depth: 1.25, height: 0.7, slope: 0, color: '#d6d2c8' }
+  if (type === 'yard') return { width: 5, depth: 3.2, height: 0.08, slope: 0, color: '#4b4c50' }
+  if (type === 'marker') return { width: 0.55, depth: 0.55, height: 2, slope: 0, color: '#ff5949' }
+  return { width: 2.6, depth: 2.1, height: 1.7, slope: 0, color: '#aeb6b4' }
+}
+
+function plantMapObjectTypeLabel(type: PlantMapObjectType) {
+  return PLANT_MAP_OBJECT_OPTIONS.find((option) => option.value === type)?.label || 'Objeto 3D'
 }
 
 function addDateKeyDays(dateKey: string, days: number) {
@@ -1125,6 +1192,9 @@ function App() {
   const [plantMapSource, setPlantMapSource] = useState<'local' | 'supabase'>('local')
   const [selectedPlantPointId, setSelectedPlantPointId] = useState('')
   const [selectedPlantObjectId, setSelectedPlantObjectId] = useState('')
+  const [plantMapCreateOpen, setPlantMapCreateOpen] = useState(false)
+  const [plantMapObjectForm, setPlantMapObjectForm] = useState<PlantMapObjectForm>(DEFAULT_PLANT_MAP_OBJECT_FORM)
+  const [plantObjectScreenPositions, setPlantObjectScreenPositions] = useState<Record<string, ObjectScreenPosition>>({})
   const [plantMapEditing, setPlantMapEditing] = useState(false)
   const [plantMapSaving, setPlantMapSaving] = useState(false)
   const [draggingPlantPointId, setDraggingPlantPointId] = useState('')
@@ -1772,6 +1842,11 @@ function App() {
 
   const activePlantMapPoints = plantMapEditing ? plantMapDraftPoints : plantMapPoints
   const activePlantMapObjects = plantMapEditing ? plantMapDraftObjects : plantMapObjects
+  const plantMapSceneKey = useMemo(() => {
+    return activePlantMapObjects
+      .map((object) => [object.id, object.label, object.objectType, object.color, object.width, object.depth, object.height, object.slope].join(':'))
+      .join('|')
+  }, [activePlantMapObjects])
 
   useEffect(() => {
     if (selectedPlantPointId && activePlantMapPoints.some((point) => point.id === selectedPlantPointId)) return
@@ -1859,6 +1934,7 @@ function App() {
   function cancelPlantMapEditing() {
     setPlantMapDraftPoints([])
     setPlantMapDraftObjects([])
+    setPlantMapCreateOpen(false)
     setPlantMapEditing(false)
     setDraggingPlantPointId('')
     setSyncNotice('Edicion del mapa cancelada.')
@@ -1887,6 +1963,7 @@ function App() {
       setPlantMapObjects(nextObjects)
       setPlantMapDraftPoints([])
       setPlantMapDraftObjects([])
+      setPlantMapCreateOpen(false)
       setPlantMapEditing(false)
       setDraggingPlantPointId('')
       const nextSource = pointsResult.source === 'supabase' && objectsResult.source === 'supabase' ? 'supabase' : 'local'
@@ -1911,6 +1988,8 @@ function App() {
 
   function handlePlantPointPointerDown(event: PointerEvent<HTMLButtonElement>, pointId: string) {
     setSelectedPlantPointId(pointId)
+    const point = activePlantMapPoints.find((item) => item.id === pointId)
+    if (point?.objectId) return
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     event.preventDefault()
     setDraggingPlantPointId(pointId)
@@ -1939,12 +2018,17 @@ function App() {
     updatePlantMapDraftPoint(pointId, { annualCalibrationDate })
   }
 
+  function handlePlantMapPointObjectChange(pointId: string, objectId: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftPoint(pointId, { objectId })
+  }
+
   function handlePlantMapObjectMove(objectId: string, x: number, z: number) {
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     updatePlantMapDraftObject(objectId, { x: round(clampSceneCoordinate(x), 2), z: round(clampSceneCoordinate(z), 2) })
   }
 
-  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'rotationY' | 'scale', value: string) {
+  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'rotationY' | 'scale' | 'width' | 'depth' | 'height' | 'slope', value: string) {
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     const parsed = toNumber(value, Number.NaN)
     if (!Number.isFinite(parsed)) return
@@ -1953,8 +2037,89 @@ function App() {
         ? round(parsed, 3)
         : field === 'scale'
           ? round(clampObjectScale(parsed), 2)
-          : round(clampSceneCoordinate(parsed), 2),
+          : field === 'slope'
+            ? round(clampObjectSlope(parsed), 3)
+            : field === 'width' || field === 'depth' || field === 'height'
+              ? round(clampObjectDimension(parsed), 2)
+              : round(clampSceneCoordinate(parsed), 2),
     })
+  }
+
+  function handlePlantMapObjectLabelChange(objectId: string, label: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftObject(objectId, { label })
+  }
+
+  function handlePlantMapObjectColorChange(objectId: string, color: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftObject(objectId, { color: normalizeObjectColor(color) })
+  }
+
+  function handlePlantMapObjectTypeChange(objectId: string, objectType: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    const nextType = PLANT_MAP_OBJECT_OPTIONS.find((option) => option.value === objectType)?.value
+    if (!nextType) return
+    updatePlantMapDraftObject(objectId, { objectType: nextType })
+  }
+
+  function openPlantMapObjectForm() {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    const defaults = getPlantMapObjectDefaults(DEFAULT_PLANT_MAP_OBJECT_FORM.objectType)
+    setPlantMapObjectForm({ ...DEFAULT_PLANT_MAP_OBJECT_FORM, color: defaults.color })
+    setPlantMapCreateOpen(true)
+  }
+
+  function createPlantMapObject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    const defaults = getPlantMapObjectDefaults(plantMapObjectForm.objectType)
+    const now = new Date().toISOString()
+    const nextObject: PlantMapObject = {
+      id: generateId(),
+      label: plantMapObjectForm.label.trim() || plantMapObjectTypeLabel(plantMapObjectForm.objectType),
+      objectType: plantMapObjectForm.objectType,
+      x: 0,
+      z: 0,
+      rotationY: 0,
+      scale: 1,
+      width: defaults.width,
+      depth: defaults.depth,
+      height: defaults.height,
+      slope: defaults.slope,
+      color: normalizeObjectColor(plantMapObjectForm.color || defaults.color),
+      createdAt: now,
+      updatedAt: now,
+    }
+    setPlantMapDraftObjects((current) => [...current, nextObject])
+    setSelectedPlantObjectId(nextObject.id)
+    setPlantMapCreateOpen(false)
+    setSyncNotice('Objeto 3D creado en el centro. Ajustalo y guardá la edición para confirmar.')
+  }
+
+  function duplicateSelectedPlantMapObject() {
+    if (!plantMapEditing || currentUser?.role !== 'admin' || !selectedPlantObject) return
+    const now = new Date().toISOString()
+    const nextObject: PlantMapObject = {
+      ...selectedPlantObject,
+      id: generateId(),
+      label: `${selectedPlantObject.label} copia`,
+      x: round(clampSceneCoordinate(selectedPlantObject.x + 0.8), 2),
+      z: round(clampSceneCoordinate(selectedPlantObject.z + 0.8), 2),
+      createdAt: now,
+      updatedAt: now,
+    }
+    setPlantMapDraftObjects((current) => [...current, nextObject])
+    setSelectedPlantObjectId(nextObject.id)
+    setSyncNotice('Objeto duplicado en el borrador del mapa.')
+  }
+
+  function deleteSelectedPlantMapObject() {
+    if (!plantMapEditing || currentUser?.role !== 'admin' || !selectedPlantObject) return
+    const objectId = selectedPlantObject.id
+    setPlantMapDraftObjects((current) => current.filter((object) => object.id !== objectId))
+    setPlantMapDraftPoints((current) => current.map((point) => (point.objectId === objectId ? { ...point, objectId: '' } : point)))
+    setSelectedPlantObjectId('')
+    setSyncNotice('Objeto eliminado del borrador. Los puntos vinculados quedaron libres.')
   }
 
   function rotatePlantMapObject(objectId: string, delta: number) {
@@ -1962,6 +2127,25 @@ function App() {
     const object = activePlantMapObjects.find((item) => item.id === objectId)
     if (!object) return
     updatePlantMapDraftObject(objectId, { rotationY: round(object.rotationY + delta, 3) })
+  }
+
+  function handlePlantObjectScreenPositionsChange(nextPositions: Record<string, ObjectScreenPosition>) {
+    setPlantObjectScreenPositions((current) => {
+      const currentKeys = Object.keys(current)
+      const nextKeys = Object.keys(nextPositions)
+      if (currentKeys.length === nextKeys.length && nextKeys.every((key) => current[key]?.x === nextPositions[key].x && current[key]?.y === nextPositions[key].y)) {
+        return current
+      }
+      return nextPositions
+    })
+  }
+
+  function getPlantMapPointStyle(point: PlantMapPoint): CSSProperties {
+    const objectPosition = point.objectId ? plantObjectScreenPositions[point.objectId] : undefined
+    return {
+      left: `${objectPosition?.x ?? point.x}%`,
+      top: `${objectPosition?.y ?? point.y}%`,
+    }
   }
 
   const precheckPassed = useMemo(
@@ -3892,11 +4076,13 @@ function App() {
                 <div className={`plant-map-canvas ${plantMapEditing ? 'editing' : ''}`} ref={plantMapCanvasRef}>
                   <Suspense fallback={<div className="plant-map-webgl-fallback">Cargando modelo 3D...</div>}>
                     <Plant3DScene
+                      key={plantMapSceneKey}
                       editing={plantMapEditing && currentUser.role === 'admin'}
                       objects={activePlantMapObjects}
                       selectedObjectId={selectedPlantObjectId}
                       onObjectMove={handlePlantMapObjectMove}
                       onObjectSelect={setSelectedPlantObjectId}
+                      onObjectScreenPositionsChange={handlePlantObjectScreenPositionsChange}
                     />
                   </Suspense>
 
@@ -3905,10 +4091,10 @@ function App() {
                     const isSelected = selectedPlantPoint?.id === point.id
                     return (
                       <button
-                        className={`plant-map-point status-${status?.rowClass || 'neutral'} ${isSelected ? 'selected' : ''} ${draggingPlantPointId === point.id ? 'dragging' : ''}`}
+                        className={`plant-map-point status-${status?.rowClass || 'neutral'} ${isSelected ? 'selected' : ''} ${draggingPlantPointId === point.id ? 'dragging' : ''} ${point.objectId ? 'linked-object' : ''}`}
                         key={point.id}
                         type="button"
-                        style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                        style={getPlantMapPointStyle(point)}
                         onClick={() => setSelectedPlantPointId(point.id)}
                         onPointerDown={(event) => handlePlantPointPointerDown(event, point.id)}
                         onPointerMove={(event) => handlePlantPointPointerMove(event, point.id)}
@@ -3978,6 +4164,22 @@ function App() {
                       </div>
                     )}
 
+                    <div className="plant-map-admin-field compact-top">
+                      <label className="label">Objeto 3D vinculado</label>
+                      <select
+                        className="input"
+                        value={selectedPlantPoint.objectId}
+                        onChange={(event) => handlePlantMapPointObjectChange(selectedPlantPoint.id, event.target.value)}
+                        disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                      >
+                        <option value="">Punto libre en pantalla</option>
+                        {activePlantMapObjects.map((object) => (
+                          <option key={object.id} value={object.id}>{object.label}</option>
+                        ))}
+                      </select>
+                      <p className="hint compact-top">Si está vinculado, el marcador sigue al objeto 3D cuando girás la cámara o movés la planta.</p>
+                    </div>
+
                     {selectedPlantPointStatus?.equipment && (
                       <div className="plant-linked-equipment compact-top">
                         <span>Equipo vinculado</span>
@@ -3998,13 +4200,71 @@ function App() {
                         ))}
                       </select>
                       <p className="hint compact-top">Arrastrá el modelo para girar la vista. En modo edición admin, arrastrá un objeto 3D para acomodarlo.</p>
-                      {selectedPlantObject && (
-                        <div className="grid four compact-top plant-object-controls">
-                          <Field label="X" type="number" value={String(selectedPlantObject.x)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'x', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                          <Field label="Z" type="number" value={String(selectedPlantObject.z)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'z', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                          <Field label="Rotacion" type="number" value={String(selectedPlantObject.rotationY)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'rotationY', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                          <Field label="Tamaño" type="number" value={String(selectedPlantObject.scale)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'scale', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                      {plantMapEditing && currentUser.role === 'admin' && (
+                        <div className="row compact-actions compact-top plant-object-actions">
+                          <button className="secondary small" type="button" onClick={openPlantMapObjectForm}><PlusCircle className="action-icon" aria-hidden="true" />Crear objeto</button>
+                          <button className="secondary small" type="button" onClick={duplicateSelectedPlantMapObject} disabled={!selectedPlantObject}>Duplicar</button>
+                          <button className="secondary danger small" type="button" onClick={deleteSelectedPlantMapObject} disabled={!selectedPlantObject}><Trash2 className="action-icon" aria-hidden="true" />Borrar</button>
                         </div>
+                      )}
+                      {plantMapCreateOpen && plantMapEditing && currentUser.role === 'admin' && (
+                        <form className="plant-object-create-form compact-top" onSubmit={createPlantMapObject}>
+                          <label className="label">Tipo nuevo</label>
+                          <select
+                            className="input"
+                            value={plantMapObjectForm.objectType}
+                            onChange={(event) => {
+                              const nextType = event.target.value as PlantMapObjectType
+                              const defaults = getPlantMapObjectDefaults(nextType)
+                              setPlantMapObjectForm((current) => ({ ...current, objectType: nextType, color: defaults.color }))
+                            }}
+                          >
+                            {PLANT_MAP_OBJECT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                          <div className="grid two compact-top">
+                            <Field label="Nombre" value={plantMapObjectForm.label} onChange={(value) => setPlantMapObjectForm((current) => ({ ...current, label: value }))} />
+                            <Field label="Color" type="color" value={plantMapObjectForm.color} onChange={(value) => setPlantMapObjectForm((current) => ({ ...current, color: value }))} />
+                          </div>
+                          <div className="row compact-actions compact-top">
+                            <button className="primary small" type="submit">Crear en centro</button>
+                            <button className="secondary small" type="button" onClick={() => setPlantMapCreateOpen(false)}>Cancelar</button>
+                          </div>
+                        </form>
+                      )}
+                      {selectedPlantObject && (
+                        <>
+                          <div className="grid two compact-top plant-object-controls">
+                            <Field label="Nombre" value={selectedPlantObject.label} onChange={(value) => handlePlantMapObjectLabelChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Color" type="color" value={selectedPlantObject.color} onChange={(value) => handlePlantMapObjectColorChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          </div>
+                          <div className="plant-map-admin-field nested compact-top">
+                            <label className="label">Tipo de objeto</label>
+                            <select
+                              className="input"
+                              value={selectedPlantObject.objectType}
+                              onChange={(event) => handlePlantMapObjectTypeChange(selectedPlantObject.id, event.target.value)}
+                              disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                            >
+                              {PLANT_MAP_OBJECT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="grid four compact-top plant-object-controls">
+                            <Field label="X" type="number" value={String(selectedPlantObject.x)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'x', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Z" type="number" value={String(selectedPlantObject.z)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'z', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Rotacion" type="number" value={String(selectedPlantObject.rotationY)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'rotationY', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Tamaño" type="number" value={String(selectedPlantObject.scale)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'scale', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          </div>
+                          <div className="grid four compact-top plant-object-controls">
+                            <Field label="Largo" type="number" value={String(selectedPlantObject.width)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'width', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Ancho" type="number" value={String(selectedPlantObject.depth)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'depth', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Alto" type="number" value={String(selectedPlantObject.height)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'height', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                            <Field label="Inclinacion" type="number" value={String(selectedPlantObject.slope)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'slope', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          </div>
+                        </>
                       )}
                       {selectedPlantObject && plantMapEditing && currentUser.role === 'admin' && (
                         <div className="row compact-actions compact-top">

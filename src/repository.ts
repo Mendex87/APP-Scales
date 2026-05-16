@@ -67,6 +67,7 @@ type PlantMapPointRow = {
   x: number
   y: number
   equipment_id: string | null
+  object_id?: string | null
   annual_calibration_date: string | null
   created_at: string
   updated_at: string
@@ -80,6 +81,11 @@ type PlantMapObjectRow = {
   z: number
   rotation_y: number
   scale?: number
+  width?: number
+  depth?: number
+  height?: number
+  slope?: number
+  color?: string
   created_at: string
   updated_at: string
 }
@@ -252,12 +258,34 @@ export async function savePlantMapObjectsRecord(items: PlantMapObject[]) {
     return { source: 'local' as const }
   }
 
-  const result = await supabase.from('plant_map_objects').upsert(normalized.map(toPlantMapObjectRow))
-  if (result.error) {
-    if (isPlantMapTableUnavailable(result.error)) {
+  if (normalized.length > 0) {
+    const result = await supabase.from('plant_map_objects').upsert(normalized.map(toPlantMapObjectRow))
+    if (result.error) {
+      if (isPlantMapTableUnavailable(result.error)) {
+        return { source: 'local' as const }
+      }
+      throw toError(result.error)
+    }
+  }
+
+  const existingResult = await supabase.from('plant_map_objects').select('id')
+  if (existingResult.error) {
+    if (isPlantMapTableUnavailable(existingResult.error)) {
       return { source: 'local' as const }
     }
-    throw toError(result.error)
+    throw toError(existingResult.error)
+  }
+
+  const savedIds = new Set(normalized.map((item) => item.id))
+  const deletedIds = (existingResult.data || [])
+    .map((item) => item.id as string)
+    .filter((id) => !savedIds.has(id))
+
+  if (deletedIds.length > 0) {
+    const deleteResult = await supabase.from('plant_map_objects').delete().in('id', deletedIds)
+    if (deleteResult.error) {
+      throw toError(deleteResult.error)
+    }
   }
 
   return { source: 'supabase' as const }
@@ -473,6 +501,7 @@ function mapPlantMapPointRow(row: PlantMapPointRow): PlantMapPoint {
     x: row.x,
     y: row.y,
     equipmentId: row.equipment_id || '',
+    objectId: row.object_id || '',
     annualCalibrationDate: row.annual_calibration_date || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -488,6 +517,7 @@ function toPlantMapPointRow(item: PlantMapPoint): PlantMapPointRow {
     x: item.x,
     y: item.y,
     equipment_id: item.equipmentId || null,
+    object_id: item.objectId || null,
     annual_calibration_date: item.annualCalibrationDate || null,
     created_at: item.createdAt,
     updated_at: item.updatedAt,
@@ -503,6 +533,11 @@ function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
     z: row.z,
     rotationY: row.rotation_y,
     scale: row.scale ?? 1,
+    width: row.width ?? 1,
+    depth: row.depth ?? 1,
+    height: row.height ?? 1,
+    slope: row.slope ?? 0,
+    color: row.color || '#aeb6b4',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -517,6 +552,11 @@ function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
     z: item.z,
     rotation_y: item.rotationY,
     scale: item.scale,
+    width: item.width,
+    depth: item.depth,
+    height: item.height,
+    slope: item.slope,
+    color: item.color,
     created_at: item.createdAt,
     updated_at: item.updatedAt,
   }
