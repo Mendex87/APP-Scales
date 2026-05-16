@@ -1571,6 +1571,7 @@ body::before {
 }
 
 .plant-map-layout {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
   align-items: start;
@@ -1581,13 +1582,22 @@ body::before {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.plant-map-layout.editing .plant-map-board,
-.plant-map-layout.editing .plant-map-detail {
+.plant-map-layout.editing .plant-map-board {
   width: 100%;
 }
 
 .plant-map-board {
   overflow: hidden;
+}
+
+.plant-map-screen.editing .plant-map-board-head,
+.plant-map-screen.editing .plant-map-footer,
+.plant-map-screen.editing .plant-map-board > .hint {
+  display: none;
+}
+
+.plant-map-screen.editing .plant-map-canvas {
+  margin-top: 0;
 }
 
 .plant-map-board-head {
@@ -2331,22 +2341,80 @@ body::before {
 }
 
 .plant-map-layout.editing .plant-map-detail {
-  position: static;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 80;
   display: block;
-  border-left-width: 0;
-  border-top: 5px solid var(--color-grey-300);
+  width: min(390px, calc(100% - 2rem));
+  max-height: min(720px, calc(100vh - 2rem));
+  overflow: auto;
+  border: 1px solid rgba(12, 11, 17, 0.18);
+  border-left: 4px solid var(--color-grey-300);
+  background: color-mix(in srgb, var(--color-paper-strong) 82%, transparent);
+  box-shadow: 0 1.6rem 3rem rgba(12, 11, 17, 0.22);
+  backdrop-filter: blur(14px) saturate(1.08);
 }
 
 .plant-map-layout.editing .plant-map-detail.status-success {
-  border-top-color: var(--color-success);
+  border-left-color: var(--color-success);
 }
 
 .plant-map-layout.editing .plant-map-detail.status-warning {
-  border-top-color: var(--color-warning);
+  border-left-color: var(--color-warning);
 }
 
 .plant-map-layout.editing .plant-map-detail.status-danger {
-  border-top-color: var(--color-error);
+  border-left-color: var(--color-error);
+}
+
+.plant-map-detail.editing > .grid.two.compact-top,
+.plant-map-detail.editing .plant-linked-equipment,
+.plant-map-detail.editing .plant-map-detail-actions {
+  display: none;
+}
+
+.plant-map-detail.editing h2 {
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+}
+
+.plant-map-detail.editing > p.hint {
+  margin-top: 0.25rem;
+  font-size: 0.84rem;
+}
+
+.plant-map-detail.editing .plant-map-admin-field,
+.plant-map-detail.editing .plant-object-create-form,
+.plant-map-detail.editing .plant-map-admin-field.nested {
+  padding: 0.58rem;
+  border-radius: calc(var(--radius) * 0.75);
+}
+
+.plant-map-detail.editing .compact-top {
+  margin-top: 0.55rem;
+}
+
+.plant-map-detail.editing .hint.compact-top {
+  display: none;
+}
+
+.plant-map-detail.editing .label {
+  font-size: 0.72rem;
+}
+
+.plant-map-detail.editing .input {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.58rem;
+  font-size: 0.92rem;
+}
+
+.plant-map-detail.editing .small {
+  min-height: 2.15rem;
+  padding: 0.38rem 0.55rem;
+}
+
+.plant-map-detail.editing .plant-object-actions {
+  gap: 0.35rem;
 }
 
 .plant-map-detail.status-success {

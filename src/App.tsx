@@ -4172,7 +4172,7 @@ function App() {
                 {plantMapEditing && <p className="hint compact-top">Modo edicion activo: arrastra puntos, ajusta vinculos o fechas y confirma con Guardar edicion.</p>}
               </div>
 
-              <aside className={`card plant-map-detail status-${selectedPlantPointStatus?.rowClass || 'neutral'}`}>
+              <aside className={`card plant-map-detail ${plantMapEditing ? 'editing' : ''} status-${selectedPlantPointStatus?.rowClass || 'neutral'}`}>
                 {selectedPlantPoint ? (
                   <>
                     <span className="section-kicker">{plantMapPointTypeLabel(selectedPlantPoint.pointType)}</span>
