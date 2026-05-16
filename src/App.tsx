@@ -3828,34 +3828,48 @@ function App() {
                 </div>
 
                 <div className={`plant-map-canvas ${plantMapEditing ? 'editing' : ''}`} ref={plantMapCanvasRef}>
-                  <svg className="plant-map-svg" viewBox="0 0 1000 620" role="img" aria-label="Layout isometrico de planta de secado y despacho">
-                    <defs>
-                      <linearGradient id="plantBase" x1="0" x2="1" y1="0" y2="1">
-                        <stop offset="0%" stopColor="currentColor" stopOpacity="0.18" />
-                        <stop offset="100%" stopColor="currentColor" stopOpacity="0.05" />
-                      </linearGradient>
-                    </defs>
-                    <polygon className="plant-map-ground" points="122,150 876,78 948,465 217,560" />
-                    <polygon className="plant-map-zone plant-map-zone-acopio" points="142,180 320,146 360,290 178,326" />
-                    <polygon className="plant-map-zone plant-map-zone-proceso" points="350,140 668,104 716,340 384,380" />
-                    <polygon className="plant-map-zone plant-map-zone-despacho" points="690,150 890,116 922,344 724,386" />
-                    <polygon className="plant-map-zone plant-map-zone-camiones" points="568,404 884,360 918,486 602,536" />
-                    <polyline className="plant-map-conveyor" points="196,360 322,322 446,302 592,272 734,246" />
-                    <polyline className="plant-map-conveyor secondary" points="305,430 460,392 622,350 798,314" />
-                    <rect className="plant-map-building" x="412" y="185" width="96" height="82" rx="8" transform="rotate(-8 460 226)" />
-                    <rect className="plant-map-building" x="520" y="170" width="96" height="82" rx="8" transform="rotate(-8 568 211)" />
-                    <rect className="plant-map-building" x="628" y="154" width="96" height="82" rx="8" transform="rotate(-8 676 195)" />
-                    <rect className="plant-map-silo" x="748" y="178" width="52" height="116" rx="18" transform="rotate(-8 774 236)" />
-                    <rect className="plant-map-silo" x="812" y="166" width="52" height="116" rx="18" transform="rotate(-8 838 224)" />
-                    <rect className="plant-map-scale-lane" x="612" y="466" width="142" height="30" rx="6" transform="rotate(-8 683 481)" />
-                    <rect className="plant-map-scale-lane" x="736" y="452" width="142" height="30" rx="6" transform="rotate(-8 807 467)" />
-                    <text className="plant-map-label" x="210" y="235">Acopio</text>
-                    <text className="plant-map-label" x="468" y="126">Secado</text>
-                    <text className="plant-map-label" x="744" y="150">Despacho</text>
-                    <text className="plant-map-label" x="650" y="432">Basculas</text>
-                    <text className="plant-map-small-label" x="402" y="300">Zarandas / celdas</text>
-                    <text className="plant-map-small-label" x="168" y="386">Cintas principales</text>
-                  </svg>
+                  <div className="plant-map-model" aria-hidden="true">
+                    <div className="plant-model-grid" />
+                    <div className="plant-model-zone zone-stock" style={{ '--x': '23%', '--y': '39%', '--w': '24%', '--h': '30%' } as CSSProperties}><span>Acopios</span></div>
+                    <div className="plant-model-zone zone-process" style={{ '--x': '49%', '--y': '37%', '--w': '33%', '--h': '34%' } as CSSProperties}><span>Secado / zarandas</span></div>
+                    <div className="plant-model-zone zone-dispatch" style={{ '--x': '78%', '--y': '47%', '--w': '25%', '--h': '36%' } as CSSProperties}><span>Silos y despacho</span></div>
+                    <div className="plant-model-zone zone-truck" style={{ '--x': '72%', '--y': '80%', '--w': '35%', '--h': '19%' } as CSSProperties}><span>Camiones</span></div>
+
+                    <div className="plant-3d-road road-main" style={{ '--x': '74%', '--y': '77%', '--w': '36rem', '--angle': '-7deg' } as CSSProperties} />
+                    <div className="plant-3d-road road-service" style={{ '--x': '50%', '--y': '65%', '--w': '34rem', '--angle': '-12deg' } as CSSProperties} />
+
+                    <div className="plant-3d-stockpile pile-one" style={{ '--x': '18%', '--y': '44%', '--w': '8.5rem', '--h': '5.4rem' } as CSSProperties}><span>Mineral humedo</span></div>
+                    <div className="plant-3d-stockpile pile-two" style={{ '--x': '27%', '--y': '35%', '--w': '9.5rem', '--h': '6rem' } as CSSProperties}><span>Acopio lavado</span></div>
+                    <div className="plant-3d-cabin" style={{ '--x': '18%', '--y': '63%', '--w': '5rem', '--h': '3.2rem', '--tone': 'control' } as CSSProperties}><span>Sala MCC</span></div>
+
+                    <div className="plant-3d-belt belt-main" style={{ '--x': '31%', '--y': '57%', '--w': '19rem', '--angle': '-13deg' } as CSSProperties}><span>Cinta 23</span></div>
+                    <div className="plant-3d-belt belt-feed" style={{ '--x': '40%', '--y': '47%', '--w': '14rem', '--angle': '-19deg' } as CSSProperties}><span>Alimentacion hornos</span></div>
+                    <div className="plant-3d-belt belt-transfer" style={{ '--x': '60%', '--y': '46%', '--w': '20rem', '--angle': '11deg' } as CSSProperties}><span>Transferencia a silos</span></div>
+                    <div className="plant-3d-belt belt-dispatch" style={{ '--x': '76%', '--y': '60%', '--w': '16rem', '--angle': '-10deg' } as CSSProperties}><span>Despacho</span></div>
+
+                    <div className="plant-3d-kiln kiln-one" style={{ '--x': '36%', '--y': '40%', '--w': '10.5rem', '--h': '3.8rem', '--angle': '-8deg' } as CSSProperties}><span>Horno 1</span></div>
+                    <div className="plant-3d-kiln kiln-two" style={{ '--x': '47%', '--y': '37%', '--w': '10.5rem', '--h': '3.8rem', '--angle': '-8deg' } as CSSProperties}><span>Horno 2</span></div>
+                    <div className="plant-3d-kiln kiln-three" style={{ '--x': '58%', '--y': '34%', '--w': '10.5rem', '--h': '3.8rem', '--angle': '-8deg' } as CSSProperties}><span>Horno 3</span></div>
+
+                    <div className="plant-3d-structure screen-house" style={{ '--x': '49%', '--y': '53%', '--w': '10rem', '--h': '5rem' } as CSSProperties}><span>Zarandas</span></div>
+                    <div className="plant-3d-cabin control-room" style={{ '--x': '60%', '--y': '53%', '--w': '6.8rem', '--h': '4rem', '--tone': 'control' } as CSSProperties}><span>Cabina proceso</span></div>
+
+                    <div className="plant-3d-silo silo-one" style={{ '--x': '69%', '--y': '38%', '--h': '7.4rem' } as CSSProperties}><span>Silo A</span></div>
+                    <div className="plant-3d-silo silo-two" style={{ '--x': '75%', '--y': '35%', '--h': '8.2rem' } as CSSProperties}><span>Silo B</span></div>
+                    <div className="plant-3d-silo silo-three" style={{ '--x': '82%', '--y': '33%', '--h': '7.8rem' } as CSSProperties}><span>Silo C</span></div>
+                    <div className="plant-3d-silo silo-four" style={{ '--x': '89%', '--y': '36%', '--h': '7rem' } as CSSProperties}><span>Silo D</span></div>
+
+                    <div className="plant-3d-bin dispatch-one" style={{ '--x': '68%', '--y': '57%' } as CSSProperties}><span>D1</span></div>
+                    <div className="plant-3d-bin dispatch-two" style={{ '--x': '75%', '--y': '53%' } as CSSProperties}><span>D2</span></div>
+                    <div className="plant-3d-bin dispatch-three" style={{ '--x': '82%', '--y': '49%' } as CSSProperties}><span>D3</span></div>
+                    <div className="plant-3d-bin dispatch-four" style={{ '--x': '89%', '--y': '45%' } as CSSProperties}><span>D4</span></div>
+                    <div className="plant-3d-cabin dispatch-cabin" style={{ '--x': '91%', '--y': '59%', '--w': '5.8rem', '--h': '3.6rem', '--tone': 'dispatch' } as CSSProperties}><span>Cabina despacho</span></div>
+
+                    <div className="plant-3d-scale truck-scale-one" style={{ '--x': '66%', '--y': '78%', '--w': '11rem', '--angle': '-7deg' } as CSSProperties}><span>Bascula 1</span></div>
+                    <div className="plant-3d-scale truck-scale-two" style={{ '--x': '78%', '--y': '82%', '--w': '11rem', '--angle': '-7deg' } as CSSProperties}><span>Bascula 2</span></div>
+                    <div className="plant-3d-cabin scale-cabin-one" style={{ '--x': '59%', '--y': '73%', '--w': '4.8rem', '--h': '3.2rem', '--tone': 'scale' } as CSSProperties}><span>Cabina B1</span></div>
+                    <div className="plant-3d-cabin scale-cabin-two" style={{ '--x': '87%', '--y': '77%', '--w': '4.8rem', '--h': '3.2rem', '--tone': 'scale' } as CSSProperties}><span>Cabina B2</span></div>
+                  </div>
 
                   {activePlantMapPoints.map((point) => {
                     const status = plantMapStatusById.get(point.id)
