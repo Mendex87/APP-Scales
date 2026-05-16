@@ -1579,10 +1579,13 @@ body::before {
 }
 
 .plant-map-layout.editing {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  align-items: stretch;
+  gap: 0.75rem;
 }
 
-.plant-map-layout.editing .plant-map-board {
+.plant-map-layout.editing .plant-map-board,
+.plant-map-layout.editing .plant-map-detail {
   width: 100%;
 }
 
@@ -2341,20 +2344,17 @@ body::before {
 }
 
 .plant-map-layout.editing .plant-map-detail {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
-  z-index: 80;
+  position: sticky;
+  top: 0.75rem;
   display: block;
-  width: min(320px, calc(100% - 1.3rem));
-  max-height: min(660px, calc(100vh - 1.3rem));
+  max-height: min(820px, calc(100vh - 1.5rem));
   overflow: auto;
-  padding: 0.72rem;
-  border: 1px solid rgba(12, 11, 17, 0.12);
+  padding: 0.68rem;
+  border: 1px solid var(--border);
   border-left: 3px solid var(--color-grey-300);
-  background: color-mix(in srgb, var(--color-paper-strong) 54%, transparent);
-  box-shadow: 0 1rem 2.2rem rgba(12, 11, 17, 0.14);
-  backdrop-filter: blur(8px) saturate(1.02);
+  background: var(--surface-muted);
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .plant-map-layout.editing .plant-map-detail.status-success {
@@ -2369,6 +2369,8 @@ body::before {
   border-left-color: var(--color-error);
 }
 
+.plant-map-detail.editing > .section-kicker,
+.plant-map-detail.editing > h2,
 .plant-map-detail.editing > .grid.two.compact-top,
 .plant-map-detail.editing .plant-linked-equipment,
 .plant-map-detail.editing .plant-map-detail-actions {

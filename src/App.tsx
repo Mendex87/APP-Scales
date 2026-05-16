@@ -4185,7 +4185,7 @@ function App() {
                       <Metric label="Proximo" value={selectedPlantPointStatus?.nextDueDateText || '-'} />
                     </div>
 
-                    {!isAnnualPlantPoint(selectedPlantPoint) && (
+                    {!isAnnualPlantPoint(selectedPlantPoint) && plantMapEditing && currentUser.role === 'admin' && (
                       <div className="plant-map-admin-field compact-top">
                         <label className="label">Balanza vinculada</label>
                         <select
@@ -4203,7 +4203,7 @@ function App() {
                       </div>
                     )}
 
-                    {isAnnualPlantPoint(selectedPlantPoint) && (
+                    {isAnnualPlantPoint(selectedPlantPoint) && plantMapEditing && currentUser.role === 'admin' && (
                       <div className="plant-map-admin-field compact-top">
                         <label className="label">Ultima calibracion anual</label>
                         <input
@@ -4217,23 +4217,24 @@ function App() {
                       </div>
                     )}
 
-                    <div className="plant-map-admin-field compact-top">
-                      <label className="label">Objeto 3D vinculado</label>
-                      <select
-                        className="input"
-                        value={selectedPlantPoint.objectId}
-                        onChange={(event) => handlePlantMapPointObjectChange(selectedPlantPoint.id, event.target.value)}
-                        disabled={!plantMapEditing || currentUser.role !== 'admin'}
-                      >
-                        <option value="">Punto libre en pantalla</option>
-                        {activePlantMapObjects.map((object) => (
-                          <option key={object.id} value={object.id}>{object.label}</option>
-                        ))}
-                      </select>
-                      <p className="hint compact-top">Si está vinculado, el marcador sigue al objeto 3D cuando girás la cámara o movés la planta.</p>
-                    </div>
+                    {plantMapEditing && currentUser.role === 'admin' && (
+                      <div className="plant-map-admin-field compact-top">
+                        <label className="label">Objeto 3D vinculado</label>
+                        <select
+                          className="input"
+                          value={selectedPlantPoint.objectId}
+                          onChange={(event) => handlePlantMapPointObjectChange(selectedPlantPoint.id, event.target.value)}
+                        >
+                          <option value="">Punto libre en pantalla</option>
+                          {activePlantMapObjects.map((object) => (
+                            <option key={object.id} value={object.id}>{object.label}</option>
+                          ))}
+                        </select>
+                        <p className="hint compact-top">Si está vinculado, el marcador sigue al objeto 3D cuando girás la cámara o movés la planta.</p>
+                      </div>
+                    )}
 
-                    {selectedPlantPointStatus?.equipment && (
+                    {selectedPlantPointStatus?.equipment && !plantMapEditing && (
                       <div className="plant-linked-equipment compact-top">
                         <span>Equipo vinculado</span>
                         <strong>{selectedPlantPointStatus.equipment.plant} / {selectedPlantPointStatus.equipment.line} / {selectedPlantPointStatus.equipment.beltCode}</strong>
@@ -4241,7 +4242,7 @@ function App() {
                       </div>
                     )}
 
-                    <div className="plant-map-admin-field compact-top">
+                    {plantMapEditing && currentUser.role === 'admin' && <div className="plant-map-admin-field compact-top">
                       <label className="label">Objeto 3D seleccionado</label>
                       <select
                         className="input"
@@ -4326,7 +4327,7 @@ function App() {
                           <button className="secondary small" type="button" onClick={() => rotatePlantMapObject(selectedPlantObject.id, 0.15)}>Girar +</button>
                         </div>
                       )}
-                    </div>
+                    </div>}
 
                     <div className="row compact-actions plant-map-detail-actions">
                       {selectedPlantPointStatus?.equipment && canOperate && (
