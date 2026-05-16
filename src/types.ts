@@ -20,6 +20,8 @@ export type PlantMapObjectType =
   | 'dispatch_belt'
   | 'truck'
   | 'yard'
+  | 'floor'
+  | 'zone'
   | 'marker'
 
 export type Equipment = {
@@ -187,6 +189,7 @@ export type PlantMapObject = {
   objectType: PlantMapObjectType
   x: number
   z: number
+  elevation: number
   rotationY: number
   scale: number
   width: number

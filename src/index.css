@@ -1577,6 +1577,15 @@ body::before {
   gap: 1rem;
 }
 
+.plant-map-layout.editing {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plant-map-layout.editing .plant-map-board,
+.plant-map-layout.editing .plant-map-detail {
+  width: 100%;
+}
+
 .plant-map-board {
   overflow: hidden;
 }
@@ -1647,6 +1656,11 @@ body::before {
     repeating-linear-gradient(135deg, rgba(12, 11, 17, 0.055) 0 1px, transparent 1px 18px),
     var(--surface-muted);
   isolation: isolate;
+}
+
+.plant-map-canvas.editing {
+  min-height: 820px;
+  overscroll-behavior: contain;
 }
 
 .plant-map-webgl,
@@ -2316,6 +2330,25 @@ body::before {
   border-left: 5px solid var(--color-grey-300);
 }
 
+.plant-map-layout.editing .plant-map-detail {
+  position: static;
+  display: block;
+  border-left-width: 0;
+  border-top: 5px solid var(--color-grey-300);
+}
+
+.plant-map-layout.editing .plant-map-detail.status-success {
+  border-top-color: var(--color-success);
+}
+
+.plant-map-layout.editing .plant-map-detail.status-warning {
+  border-top-color: var(--color-warning);
+}
+
+.plant-map-layout.editing .plant-map-detail.status-danger {
+  border-top-color: var(--color-error);
+}
+
 .plant-map-detail.status-success {
   border-left-color: var(--color-success);
 }
@@ -2360,6 +2393,38 @@ body::before {
 .plant-object-create-form input[type='color'] {
   min-height: 2.75rem;
   padding: 0.2rem;
+}
+
+.slider-controls {
+  align-items: end;
+}
+
+.slider-field-shell {
+  min-width: 0;
+}
+
+.slider-field {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.slider-input {
+  width: 100%;
+  accent-color: var(--color-orange);
+}
+
+.slider-number-wrap {
+  display: inline-grid;
+  grid-template-columns: minmax(4.4rem, 5.2rem) auto;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.slider-number {
+  min-height: 2.35rem;
+  padding-inline: 0.55rem;
 }
 
 .plant-linked-equipment {

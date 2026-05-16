@@ -193,6 +193,7 @@ create table if not exists public.plant_map_objects (
   object_type text not null default 'structure',
   x double precision not null default 0,
   z double precision not null default 0,
+  elevation double precision not null default 0,
   rotation_y double precision not null default 0,
   scale double precision not null default 1,
   width double precision not null default 1,
@@ -203,15 +204,17 @@ create table if not exists public.plant_map_objects (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint plant_map_objects_type_check
-    check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale', 'block', 'rectangular_silo', 'rectangular_hopper', 'belt_horizontal', 'belt_inclined', 'dispatch_belt', 'truck', 'yard', 'marker')),
+    check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale', 'block', 'rectangular_silo', 'rectangular_hopper', 'belt_horizontal', 'belt_inclined', 'dispatch_belt', 'truck', 'yard', 'floor', 'zone', 'marker')),
   constraint plant_map_objects_x_check
     check (x >= -18 and x <= 18),
   constraint plant_map_objects_z_check
     check (z >= -18 and z <= 18),
+  constraint plant_map_objects_elevation_check
+    check (elevation >= -1 and elevation <= 8),
   constraint plant_map_objects_scale_check
     check (scale >= 0.25 and scale <= 3),
   constraint plant_map_objects_dimensions_check
-    check (width >= 0.08 and width <= 12 and depth >= 0.08 and depth <= 12 and height >= 0.08 and height <= 12),
+    check (width >= 0.08 and width <= 50 and depth >= 0.08 and depth <= 50 and height >= 0.08 and height <= 12),
   constraint plant_map_objects_slope_check
     check (slope >= -1.2 and slope <= 1.2),
   constraint plant_map_objects_color_check
@@ -220,6 +223,9 @@ create table if not exists public.plant_map_objects (
 
 alter table public.plant_map_objects
   add column if not exists scale double precision not null default 1;
+
+alter table public.plant_map_objects
+  add column if not exists elevation double precision not null default 0;
 
 alter table public.plant_map_objects
   add column if not exists width double precision not null default 1;
@@ -246,6 +252,9 @@ alter table public.plant_map_objects
   drop constraint if exists plant_map_objects_z_check;
 
 alter table public.plant_map_objects
+  drop constraint if exists plant_map_objects_elevation_check;
+
+alter table public.plant_map_objects
   drop constraint if exists plant_map_objects_scale_check;
 
 alter table public.plant_map_objects
@@ -259,7 +268,7 @@ alter table public.plant_map_objects
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_type_check
-  check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale', 'block', 'rectangular_silo', 'rectangular_hopper', 'belt_horizontal', 'belt_inclined', 'dispatch_belt', 'truck', 'yard', 'marker'));
+  check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale', 'block', 'rectangular_silo', 'rectangular_hopper', 'belt_horizontal', 'belt_inclined', 'dispatch_belt', 'truck', 'yard', 'floor', 'zone', 'marker'));
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_x_check
@@ -270,12 +279,16 @@ alter table public.plant_map_objects
   check (z >= -18 and z <= 18);
 
 alter table public.plant_map_objects
+  add constraint plant_map_objects_elevation_check
+  check (elevation >= -1 and elevation <= 8);
+
+alter table public.plant_map_objects
   add constraint plant_map_objects_scale_check
   check (scale >= 0.25 and scale <= 3);
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_dimensions_check
-  check (width >= 0.08 and width <= 12 and depth >= 0.08 and depth <= 12 and height >= 0.08 and height <= 12);
+  check (width >= 0.08 and width <= 50 and depth >= 0.08 and depth <= 50 and height >= 0.08 and height <= 12);
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_slope_check
@@ -285,35 +298,44 @@ alter table public.plant_map_objects
   add constraint plant_map_objects_color_check
   check (color ~ '^#[0-9A-Fa-f]{6}$');
 
-insert into public.plant_map_objects (id, label, object_type, x, z, rotation_y, scale, width, depth, height, slope, color)
+insert into public.plant_map_objects (id, label, object_type, x, z, elevation, rotation_y, scale, width, depth, height, slope, color)
 values
-  ('stockpile-wet', 'Acopio humedo', 'stockpile', -8.1, 0.55, 0.5, 1, 2.7, 2.1, 1.45, 0, '#b87a32'),
-  ('stockpile-washed', 'Acopio lavado', 'stockpile', -6.6, -2.2, 0.5, 1, 2.7, 2.1, 1.45, 0, '#b87a32'),
-  ('mcc-room', 'Sala MCC', 'cabin', -8.9, 3.05, -0.12, 1, 1.35, 1, 1.25, 0, '#cbdde2'),
-  ('belt-cinta-23', 'Cinta 23', 'belt', -5.3, 1.3, -0.24, 1, 7.2, 0.75, 1.05, 0, '#17151a'),
-  ('belt-feed', 'Alimentacion hornos', 'belt', -2.9, -0.4, -0.62, 1, 5.4, 0.75, 1.65, 0.22, '#17151a'),
-  ('belt-transfer', 'Transferencia a silos', 'belt', 2.9, -0.15, 0.26, 1, 7.8, 0.75, 1.95, 0.18, '#17151a'),
-  ('belt-dispatch', 'Cinta despacho', 'belt', 6.5, 1.35, -0.18, 1, 5.4, 0.75, 1.2, 0, '#17151a'),
-  ('kiln-1', 'Horno 1', 'kiln', -3.4, -2.8, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
-  ('kiln-2', 'Horno 2', 'kiln', -0.65, -3.15, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
-  ('kiln-3', 'Horno 3', 'kiln', 2.1, -3.45, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
-  ('screen-house', 'Zarandas', 'structure', -0.9, 0.9, -0.16, 1, 2.65, 2.25, 1.65, 0, '#aeb6b4'),
-  ('process-cabin', 'Cabina proceso', 'cabin', 1.8, 1.1, -0.12, 1, 1.6, 1.05, 1.25, 0, '#cbdde2'),
-  ('silo-a', 'Silo A', 'silo', 4.6, -2.65, 0, 1, 1.45, 1.45, 3.8, 0, '#dfe7e1'),
-  ('silo-b', 'Silo B', 'silo', 6.1, -3.05, 0, 1, 1.45, 1.45, 4.3, 0, '#dfe7e1'),
-  ('silo-c', 'Silo C', 'silo', 7.6, -3.18, 0, 1, 1.45, 1.45, 4.1, 0, '#dfe7e1'),
-  ('silo-d', 'Silo D', 'silo', 9.1, -2.8, 0, 1, 1.45, 1.45, 3.5, 0, '#dfe7e1'),
-  ('dispatch-1', 'Despacho 1', 'dispatch_bin', 4.6, 0.55, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-2', 'Despacho 2', 'dispatch_bin', 6.15, 0.25, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-3', 'Despacho 3', 'dispatch_bin', 7.7, -0.05, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-4', 'Despacho 4', 'dispatch_bin', 9.25, 0.25, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-cabin', 'Cabina despacho', 'cabin', 9.6, 2, -0.12, 1, 1.5, 1.05, 1.25, 0, '#b8d2a7'),
-  ('truck-scale-1', 'Bascula 1', 'truck_scale', 3.4, 4.55, -0.12, 1, 4.5, 1.2, 0.22, 0, '#d6d2c8'),
-  ('truck-scale-2', 'Bascula 2', 'truck_scale', 6.75, 5.05, -0.12, 1, 4.5, 1.2, 0.22, 0, '#d6d2c8'),
-  ('scale-cabin-1', 'Cabina B1', 'cabin', 1.35, 4.05, -0.12, 1, 1.15, 0.9, 1.25, 0, '#d8dee8'),
-  ('scale-cabin-2', 'Cabina B2', 'cabin', 9.25, 4.55, -0.12, 1, 1.15, 0.9, 1.25, 0, '#d8dee8')
+  ('floor-main', 'Piso planta', 'floor', 0, 0, -0.09, 0, 1, 35, 24, 0.18, 0, '#d6d2c8'),
+  ('zone-stock', 'Zona acopios', 'zone', -7.3, -1.6, 0.03, 0, 1, 5.7, 4.8, 0.05, 0, '#c98500'),
+  ('zone-process', 'Zona proceso', 'zone', -1.6, -1.8, 0.03, 0, 1, 8, 5.6, 0.05, 0, '#ff5949'),
+  ('zone-dispatch', 'Zona despacho', 'zone', 6.3, -1.5, 0.03, 0, 1, 6.6, 5.8, 0.05, 0, '#5c9a68'),
+  ('zone-truck', 'Zona camiones', 'zone', 4.8, 4.65, 0.03, 0, 1, 9.8, 2.7, 0.05, 0, '#666a70'),
+  ('road-truck', 'Camino camiones', 'yard', 4.4, 4.95, 0.06, -0.12, 1, 20, 1.45, 0.06, 0, '#4b4c50'),
+  ('road-service', 'Camino servicio', 'yard', -1.8, 2.95, 0.06, -0.28, 1, 19, 0.78, 0.05, 0, '#4b4c50'),
+  ('road-cross', 'Camino transversal', 'yard', 7.6, 0.9, 0.06, 0.14, 1, 0.08, 17, 0.07, 0, '#4b4c50'),
+  ('stockpile-wet', 'Acopio humedo', 'stockpile', -8.1, 0.55, 0, 0.5, 1, 2.7, 2.1, 1.45, 0, '#b87a32'),
+  ('stockpile-washed', 'Acopio lavado', 'stockpile', -6.6, -2.2, 0, 0.5, 1, 2.7, 2.1, 1.45, 0, '#b87a32'),
+  ('mcc-room', 'Sala MCC', 'cabin', -8.9, 3.05, 0, -0.12, 1, 1.35, 1, 1.25, 0, '#cbdde2'),
+  ('belt-cinta-23', 'Cinta 23', 'belt', -5.3, 1.3, 0, -0.24, 1, 7.2, 0.75, 1.05, 0, '#17151a'),
+  ('belt-feed', 'Alimentacion hornos', 'belt', -2.9, -0.4, 0, -0.62, 1, 5.4, 0.75, 1.65, 0.22, '#17151a'),
+  ('belt-transfer', 'Transferencia a silos', 'belt', 2.9, -0.15, 0, 0.26, 1, 7.8, 0.75, 1.95, 0.18, '#17151a'),
+  ('belt-dispatch', 'Cinta despacho', 'belt', 6.5, 1.35, 0, -0.18, 1, 5.4, 0.75, 1.2, 0, '#17151a'),
+  ('kiln-1', 'Horno 1', 'kiln', -3.4, -2.8, 0, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
+  ('kiln-2', 'Horno 2', 'kiln', -0.65, -3.15, 0, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
+  ('kiln-3', 'Horno 3', 'kiln', 2.1, -3.45, 0, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
+  ('screen-house', 'Zarandas', 'structure', -0.9, 0.9, 0, -0.16, 1, 2.65, 2.25, 1.65, 0, '#aeb6b4'),
+  ('process-cabin', 'Cabina proceso', 'cabin', 1.8, 1.1, 0, -0.12, 1, 1.6, 1.05, 1.25, 0, '#cbdde2'),
+  ('silo-a', 'Silo A', 'silo', 4.6, -2.65, 0, 0, 1, 1.45, 1.45, 3.8, 0, '#dfe7e1'),
+  ('silo-b', 'Silo B', 'silo', 6.1, -3.05, 0, 0, 1, 1.45, 1.45, 4.3, 0, '#dfe7e1'),
+  ('silo-c', 'Silo C', 'silo', 7.6, -3.18, 0, 0, 1, 1.45, 1.45, 4.1, 0, '#dfe7e1'),
+  ('silo-d', 'Silo D', 'silo', 9.1, -2.8, 0, 0, 1, 1.45, 1.45, 3.5, 0, '#dfe7e1'),
+  ('dispatch-1', 'Despacho 1', 'dispatch_bin', 4.6, 0.55, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
+  ('dispatch-2', 'Despacho 2', 'dispatch_bin', 6.15, 0.25, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
+  ('dispatch-3', 'Despacho 3', 'dispatch_bin', 7.7, -0.05, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
+  ('dispatch-4', 'Despacho 4', 'dispatch_bin', 9.25, 0.25, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
+  ('dispatch-cabin', 'Cabina despacho', 'cabin', 9.6, 2, 0, -0.12, 1, 1.5, 1.05, 1.25, 0, '#b8d2a7'),
+  ('truck-scale-1', 'Bascula 1', 'truck_scale', 3.4, 4.55, 0, -0.12, 1, 4.5, 1.2, 0.22, 0, '#d6d2c8'),
+  ('truck-scale-2', 'Bascula 2', 'truck_scale', 6.75, 5.05, 0, -0.12, 1, 4.5, 1.2, 0.22, 0, '#d6d2c8'),
+  ('scale-cabin-1', 'Cabina B1', 'cabin', 1.35, 4.05, 0, -0.12, 1, 1.15, 0.9, 1.25, 0, '#d8dee8'),
+  ('scale-cabin-2', 'Cabina B2', 'cabin', 9.25, 4.55, 0, -0.12, 1, 1.15, 0.9, 1.25, 0, '#d8dee8')
 on conflict (id) do update
 set
+  elevation = excluded.elevation,
   width = excluded.width,
   depth = excluded.depth,
   height = excluded.height,

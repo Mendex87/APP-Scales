@@ -144,6 +144,8 @@ const PLANT_MAP_OBJECT_OPTIONS: Array<{ value: PlantMapObjectType; label: string
   { value: 'dispatch_belt', label: 'Despacho / carga' },
   { value: 'truck', label: 'Vehiculo / camion' },
   { value: 'yard', label: 'Camino / playa' },
+  { value: 'floor', label: 'Piso / base' },
+  { value: 'zone', label: 'Zona coloreada' },
   { value: 'marker', label: 'Marcador' },
   { value: 'stockpile', label: 'Acopio' },
   { value: 'belt', label: 'Cinta existente' },
@@ -204,7 +206,17 @@ function clampObjectScale(value: number) {
   return Math.min(3, Math.max(0.25, value))
 }
 
+function clampObjectElevation(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(8, Math.max(-1, value))
+}
+
 function clampObjectDimension(value: number) {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(50, Math.max(0.08, value))
+}
+
+function clampObjectHeight(value: number) {
   if (!Number.isFinite(value)) return 1
   return Math.min(12, Math.max(0.08, value))
 }
@@ -219,22 +231,32 @@ function normalizeObjectColor(value: string) {
 }
 
 function getPlantMapObjectDefaults(type: PlantMapObjectType) {
-  if (type === 'stockpile') return { width: 2.7, depth: 2.1, height: 1.45, slope: 0, color: '#b87a32' }
-  if (type === 'belt' || type === 'belt_horizontal') return { width: 5.6, depth: 0.75, height: 0.35, slope: 0, color: '#17151a' }
-  if (type === 'belt_inclined') return { width: 5.6, depth: 0.75, height: 0.35, slope: 0.38, color: '#17151a' }
-  if (type === 'dispatch_bin' || type === 'dispatch_belt') return { width: 2.1, depth: 0.85, height: 0.45, slope: 0.22, color: '#5c9a68' }
-  if (type === 'kiln') return { width: 4.5, depth: 1.45, height: 1.5, slope: 0, color: '#d85f4f' }
-  if (type === 'silo' || type === 'rectangular_silo') return { width: 1.45, depth: 1.45, height: 3.8, slope: 0, color: '#dfe7e1' }
-  if (type === 'rectangular_hopper') return { width: 1.7, depth: 1.7, height: 1.8, slope: 0, color: '#8fa094' }
-  if (type === 'cabin') return { width: 1.45, depth: 1, height: 1.25, slope: 0, color: '#cbdde2' }
-  if (type === 'truck' || type === 'truck_scale') return { width: 3.9, depth: 1.25, height: 0.7, slope: 0, color: '#d6d2c8' }
-  if (type === 'yard') return { width: 5, depth: 3.2, height: 0.08, slope: 0, color: '#4b4c50' }
-  if (type === 'marker') return { width: 0.55, depth: 0.55, height: 2, slope: 0, color: '#ff5949' }
-  return { width: 2.6, depth: 2.1, height: 1.7, slope: 0, color: '#aeb6b4' }
+  if (type === 'stockpile') return { elevation: 0, width: 2.7, depth: 2.1, height: 1.45, slope: 0, color: '#b87a32' }
+  if (type === 'belt' || type === 'belt_horizontal') return { elevation: 0, width: 5.6, depth: 0.75, height: 0.35, slope: 0, color: '#17151a' }
+  if (type === 'belt_inclined') return { elevation: 0, width: 5.6, depth: 0.75, height: 0.35, slope: 0.38, color: '#17151a' }
+  if (type === 'dispatch_bin' || type === 'dispatch_belt') return { elevation: 0, width: 2.1, depth: 0.85, height: 0.45, slope: 0.22, color: '#5c9a68' }
+  if (type === 'kiln') return { elevation: 0, width: 4.5, depth: 1.45, height: 1.5, slope: 0, color: '#d85f4f' }
+  if (type === 'silo' || type === 'rectangular_silo') return { elevation: 0, width: 1.45, depth: 1.45, height: 3.8, slope: 0, color: '#dfe7e1' }
+  if (type === 'rectangular_hopper') return { elevation: 0, width: 1.7, depth: 1.7, height: 1.8, slope: 0, color: '#8fa094' }
+  if (type === 'cabin') return { elevation: 0, width: 1.45, depth: 1, height: 1.25, slope: 0, color: '#cbdde2' }
+  if (type === 'truck' || type === 'truck_scale') return { elevation: 0, width: 3.9, depth: 1.25, height: 0.7, slope: 0, color: '#d6d2c8' }
+  if (type === 'yard') return { elevation: 0, width: 5, depth: 3.2, height: 0.08, slope: 0, color: '#4b4c50' }
+  if (type === 'floor') return { elevation: -0.09, width: 35, depth: 24, height: 0.18, slope: 0, color: '#d6d2c8' }
+  if (type === 'zone') return { elevation: 0.03, width: 5.8, depth: 4.8, height: 0.05, slope: 0, color: '#c98500' }
+  if (type === 'marker') return { elevation: 0, width: 0.55, depth: 0.55, height: 2, slope: 0, color: '#ff5949' }
+  return { elevation: 0, width: 2.6, depth: 2.1, height: 1.7, slope: 0, color: '#aeb6b4' }
 }
 
 function plantMapObjectTypeLabel(type: PlantMapObjectType) {
   return PLANT_MAP_OBJECT_OPTIONS.find((option) => option.value === type)?.label || 'Objeto 3D'
+}
+
+function radiansToDegrees(value: number) {
+  return (value * 180) / Math.PI
+}
+
+function degreesToRadians(value: number) {
+  return (value * Math.PI) / 180
 }
 
 function addDateKeyDays(dateKey: string, days: number) {
@@ -1849,6 +1871,24 @@ function App() {
   }, [activePlantMapObjects])
 
   useEffect(() => {
+    if (!plantMapEditing) return
+    window.setTimeout(() => {
+      plantMapCanvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 0)
+  }, [plantMapEditing])
+
+  useEffect(() => {
+    if (!plantMapEditing) return undefined
+    const canvas = plantMapCanvasRef.current
+    if (!canvas) return undefined
+    const preventPageWheel = (event: WheelEvent) => {
+      event.preventDefault()
+    }
+    canvas.addEventListener('wheel', preventPageWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', preventPageWheel)
+  }, [plantMapEditing])
+
+  useEffect(() => {
     if (selectedPlantPointId && activePlantMapPoints.some((point) => point.id === selectedPlantPointId)) return
     setSelectedPlantPointId(activePlantMapPoints[0]?.id || '')
   }, [activePlantMapPoints, selectedPlantPointId])
@@ -2028,7 +2068,7 @@ function App() {
     updatePlantMapDraftObject(objectId, { x: round(clampSceneCoordinate(x), 2), z: round(clampSceneCoordinate(z), 2) })
   }
 
-  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'rotationY' | 'scale' | 'width' | 'depth' | 'height' | 'slope', value: string) {
+  function handlePlantMapObjectFieldChange(objectId: string, field: 'x' | 'z' | 'elevation' | 'rotationY' | 'scale' | 'width' | 'depth' | 'height' | 'slope', value: string) {
     if (!plantMapEditing || currentUser?.role !== 'admin') return
     const parsed = toNumber(value, Number.NaN)
     if (!Number.isFinite(parsed)) return
@@ -2039,10 +2079,22 @@ function App() {
           ? round(clampObjectScale(parsed), 2)
           : field === 'slope'
             ? round(clampObjectSlope(parsed), 3)
-            : field === 'width' || field === 'depth' || field === 'height'
-              ? round(clampObjectDimension(parsed), 2)
+            : field === 'elevation'
+              ? round(clampObjectElevation(parsed), 2)
+            : field === 'height'
+              ? round(clampObjectHeight(parsed), 2)
+              : field === 'width' || field === 'depth'
+                ? round(clampObjectDimension(parsed), 2)
               : round(clampSceneCoordinate(parsed), 2),
     })
+  }
+
+  function handlePlantMapObjectSliderChange(objectId: string, field: 'elevation' | 'height' | 'scale' | 'width' | 'x' | 'z' | 'depth', value: number) {
+    handlePlantMapObjectFieldChange(objectId, field, String(value))
+  }
+
+  function handlePlantMapObjectDegreesChange(objectId: string, field: 'rotationY' | 'slope', value: number) {
+    handlePlantMapObjectFieldChange(objectId, field, String(degreesToRadians(value)))
   }
 
   function handlePlantMapObjectLabelChange(objectId: string, label: string) {
@@ -2080,6 +2132,7 @@ function App() {
       objectType: plantMapObjectForm.objectType,
       x: 0,
       z: 0,
+      elevation: defaults.elevation,
       rotationY: 0,
       scale: 1,
       width: defaults.width,
@@ -4032,7 +4085,7 @@ function App() {
         )}
 
         {screen === 'mapa' && (
-          <section className="stack screen-shell plant-map-screen">
+          <section className={`stack screen-shell plant-map-screen ${plantMapEditing ? 'editing' : ''}`}>
             <div className="screen-banner plant-map-banner">
               <div>
                 <span className="section-kicker">Mapa operativo</span>
@@ -4057,7 +4110,7 @@ function App() {
               <div className="notice plant-map-notice" role="status">Mapa usando datos locales. Si la tabla nueva todavia no fue aplicada en el servidor online, la app sigue funcionando sin romper el resto.</div>
             )}
 
-            <div className="plant-map-layout">
+            <div className={`plant-map-layout ${plantMapEditing ? 'editing' : ''}`}>
               <div className="card plant-map-board">
                 <div className="row wrap plant-map-board-head">
                   <div>
@@ -4233,7 +4286,7 @@ function App() {
                           </div>
                         </form>
                       )}
-                      {selectedPlantObject && (
+                      {selectedPlantObject && plantMapEditing && currentUser.role === 'admin' && (
                         <>
                           <div className="grid two compact-top plant-object-controls">
                             <Field label="Nombre" value={selectedPlantObject.label} onChange={(value) => handlePlantMapObjectLabelChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
@@ -4252,17 +4305,18 @@ function App() {
                               ))}
                             </select>
                           </div>
-                          <div className="grid four compact-top plant-object-controls">
-                            <Field label="X" type="number" value={String(selectedPlantObject.x)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'x', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Z" type="number" value={String(selectedPlantObject.z)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'z', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Rotacion" type="number" value={String(selectedPlantObject.rotationY)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'rotationY', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Tamaño" type="number" value={String(selectedPlantObject.scale)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'scale', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          <div className="grid two compact-top plant-object-controls slider-controls">
+                            <SliderField label="X" value={selectedPlantObject.x} min={-18} max={18} step={0.1} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'x', value)} />
+                            <SliderField label="Z" value={selectedPlantObject.z} min={-18} max={18} step={0.1} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'z', value)} />
+                            <SliderField label="Altura" value={selectedPlantObject.elevation} min={-1} max={8} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'elevation', value)} />
+                            <SliderField label="Rotacion" value={radiansToDegrees(selectedPlantObject.rotationY)} min={-180} max={180} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'rotationY', value)} />
                           </div>
-                          <div className="grid four compact-top plant-object-controls">
-                            <Field label="Largo" type="number" value={String(selectedPlantObject.width)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'width', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Ancho" type="number" value={String(selectedPlantObject.depth)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'depth', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Alto" type="number" value={String(selectedPlantObject.height)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'height', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
-                            <Field label="Inclinacion" type="number" value={String(selectedPlantObject.slope)} onChange={(value) => handlePlantMapObjectFieldChange(selectedPlantObject.id, 'slope', value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} />
+                          <div className="grid two compact-top plant-object-controls slider-controls">
+                            <SliderField label="Tamaño" value={selectedPlantObject.scale} min={0.25} max={3} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'scale', value)} />
+                            <SliderField label="Largo" value={selectedPlantObject.width} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'width', value)} />
+                            <SliderField label="Ancho" value={selectedPlantObject.depth} min={0.08} max={40} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'depth', value)} />
+                            <SliderField label="Alto" value={selectedPlantObject.height} min={0.08} max={12} step={0.05} onChange={(value) => handlePlantMapObjectSliderChange(selectedPlantObject.id, 'height', value)} />
+                            <SliderField label="Inclinacion" value={radiansToDegrees(selectedPlantObject.slope)} min={-70} max={70} step={1} suffix="°" onChange={(value) => handlePlantMapObjectDegreesChange(selectedPlantObject.id, 'slope', value)} />
                           </div>
                         </>
                       )}
@@ -5310,6 +5364,42 @@ function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldP
       <label className="label" htmlFor={id}>{label}</label>
       <input id={id} className="input" type={inputType} inputMode={inputMode} value={inputValue} onChange={(event) => handleChange(event.target.value)} onFocus={handleFocus} onBlur={handleBlur} disabled={disabled} />
       {hint && <p className="hint compact-top">{hint}</p>}
+    </div>
+  )
+}
+
+type SliderFieldProps = {
+  label: string
+  value: number
+  min: number
+  max: number
+  onChange: (value: number) => void
+  disabled?: boolean
+  step?: number
+  suffix?: string
+}
+
+function SliderField({ label, value, min, max, onChange, disabled, step = 0.1, suffix = '' }: SliderFieldProps) {
+  const id = useId()
+  const safeValue = Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min
+  const displayValue = String(round(safeValue, step >= 1 ? 0 : 2))
+
+  const updateValue = (rawValue: string) => {
+    const parsed = toNumber(normalizeDecimalInput(rawValue), Number.NaN)
+    if (!Number.isFinite(parsed)) return
+    onChange(round(Math.min(max, Math.max(min, parsed)), step >= 1 ? 0 : 2))
+  }
+
+  return (
+    <div className="field-shell slider-field-shell">
+      <label className="label" htmlFor={id}>{label}</label>
+      <div className="slider-field">
+        <input id={id} className="slider-input" type="range" min={min} max={max} step={step} value={safeValue} onChange={(event) => updateValue(event.target.value)} disabled={disabled} />
+        <div className="slider-number-wrap">
+          <input className="input slider-number" type="text" inputMode="decimal" value={displayValue} onChange={(event) => updateValue(event.target.value)} disabled={disabled} />
+          {suffix && <span>{suffix}</span>}
+        </div>
+      </div>
     </div>
   )
 }

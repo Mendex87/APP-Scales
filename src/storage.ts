@@ -6,6 +6,7 @@ const CHAINS_KEY = 'balanzas-chains-v1'
 const EVENTS_KEY = 'balanzas-events-v2'
 const PLANT_MAP_POINTS_KEY = 'calibracinta:plant-map-points:v1'
 const PLANT_MAP_OBJECTS_KEY = 'calibracinta:plant-map-objects:v1'
+const PLANT_MAP_INFRASTRUCTURE_KEY = 'calibracinta:plant-map-infrastructure:v1'
 const PLANT_MAP_POINT_TYPES = new Set<PlantMapPointType>(['belt_scale', 'kiln_scale', 'dispatch_scale', 'truck_scale'])
 const PLANT_MAP_OBJECT_TYPES = new Set<PlantMapObjectType>([
   'stockpile',
@@ -24,9 +25,12 @@ const PLANT_MAP_OBJECT_TYPES = new Set<PlantMapObjectType>([
   'dispatch_belt',
   'truck',
   'yard',
+  'floor',
+  'zone',
   'marker',
 ])
 const DEFAULT_PLANT_MAP_CREATED_AT = '2026-01-01T00:00:00.000Z'
+const INFRASTRUCTURE_OBJECT_IDS = new Set(['floor-main', 'zone-stock', 'zone-process', 'zone-dispatch', 'zone-truck', 'road-truck', 'road-service', 'road-cross'])
 
 export const DEFAULT_PLANT_MAP_POINTS: PlantMapPoint[] = [
   { id: 'cinta-23', label: 'Cinta 23', zone: 'Transporte principal', pointType: 'belt_scale', x: 30, y: 57, equipmentId: '', objectId: 'belt-cinta-23', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
@@ -41,7 +45,15 @@ export const DEFAULT_PLANT_MAP_POINTS: PlantMapPoint[] = [
   { id: 'bascula-2', label: 'Báscula 2', zone: 'Egreso camiones', pointType: 'truck_scale', x: 78, y: 82, equipmentId: '', objectId: 'truck-scale-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
 ]
 
-const DEFAULT_PLANT_MAP_OBJECT_SEEDS: Array<Omit<PlantMapObject, 'width' | 'depth' | 'height' | 'slope' | 'color'>> = [
+const DEFAULT_PLANT_MAP_OBJECT_SEEDS: Array<Partial<PlantMapObject> & Pick<PlantMapObject, 'createdAt' | 'id' | 'label' | 'objectType' | 'rotationY' | 'scale' | 'updatedAt' | 'x' | 'z'>> = [
+  { id: 'floor-main', label: 'Piso planta', objectType: 'floor', x: 0, z: 0, elevation: -0.09, rotationY: 0, scale: 1, width: 35, depth: 24, height: 0.18, color: '#d6d2c8', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'zone-stock', label: 'Zona acopios', objectType: 'zone', x: -7.3, z: -1.6, elevation: 0.03, rotationY: 0, scale: 1, width: 5.7, depth: 4.8, height: 0.05, color: '#c98500', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'zone-process', label: 'Zona proceso', objectType: 'zone', x: -1.6, z: -1.8, elevation: 0.03, rotationY: 0, scale: 1, width: 8, depth: 5.6, height: 0.05, color: '#ff5949', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'zone-dispatch', label: 'Zona despacho', objectType: 'zone', x: 6.3, z: -1.5, elevation: 0.03, rotationY: 0, scale: 1, width: 6.6, depth: 5.8, height: 0.05, color: '#5c9a68', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'zone-truck', label: 'Zona camiones', objectType: 'zone', x: 4.8, z: 4.65, elevation: 0.03, rotationY: 0, scale: 1, width: 9.8, depth: 2.7, height: 0.05, color: '#666a70', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'road-truck', label: 'Camino camiones', objectType: 'yard', x: 4.4, z: 4.95, elevation: 0.06, rotationY: -0.12, scale: 1, width: 20, depth: 1.45, height: 0.06, color: '#4b4c50', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'road-service', label: 'Camino servicio', objectType: 'yard', x: -1.8, z: 2.95, elevation: 0.06, rotationY: -0.28, scale: 1, width: 19, depth: 0.78, height: 0.05, color: '#4b4c50', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'road-cross', label: 'Camino transversal', objectType: 'yard', x: 7.6, z: 0.9, elevation: 0.06, rotationY: 0.14, scale: 1, width: 0.08, depth: 17, height: 0.07, color: '#4b4c50', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
   { id: 'stockpile-wet', label: 'Acopio humedo', objectType: 'stockpile', x: -8.1, z: 0.55, rotationY: 0.5, scale: 1, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
   { id: 'stockpile-washed', label: 'Acopio lavado', objectType: 'stockpile', x: -6.6, z: -2.2, rotationY: 0.5, scale: 1, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
   { id: 'mcc-room', label: 'Sala MCC', objectType: 'cabin', x: -8.9, z: 3.05, rotationY: -0.12, scale: 1, createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
@@ -119,7 +131,12 @@ export function savePlantMapPoints(items: PlantMapPoint[]) {
 export function loadPlantMapObjects(): PlantMapObject[] {
   const stored = parseStorage<PlantMapObject[]>(PLANT_MAP_OBJECTS_KEY, [])
   const source = stored.length > 0 ? stored : DEFAULT_PLANT_MAP_OBJECTS
-  return source.map(normalizePlantMapObject)
+  const normalized = source.map(normalizePlantMapObject)
+  const migrated = withInfrastructureObjects(normalized)
+  if (migrated !== normalized) {
+    localStorage.setItem(PLANT_MAP_OBJECTS_KEY, JSON.stringify(migrated.map(normalizePlantMapObject)))
+  }
+  return migrated
 }
 
 export function savePlantMapObjects(items: PlantMapObject[]) {
@@ -163,11 +180,12 @@ function normalizePlantMapObject(item: Partial<PlantMapObject>): PlantMapObject 
     objectType,
     x: clampSceneCoordinate(item.x ?? 0),
     z: clampSceneCoordinate(item.z ?? 0),
+    elevation: clampObjectElevation(item.elevation ?? defaults.elevation),
     rotationY: Number.isFinite(item.rotationY ?? Number.NaN) ? item.rotationY! : 0,
     scale: clampObjectScale(item.scale ?? 1),
     width: clampObjectDimension(item.width ?? defaults.width),
     depth: clampObjectDimension(item.depth ?? defaults.depth),
-    height: clampObjectDimension(item.height ?? defaults.height),
+    height: clampObjectHeight(item.height ?? defaults.height),
     slope: clampObjectSlope(item.slope ?? defaults.slope),
     color: normalizeColor(item.color || defaults.color),
     createdAt: item.createdAt || now,
@@ -176,18 +194,28 @@ function normalizePlantMapObject(item: Partial<PlantMapObject>): PlantMapObject 
 }
 
 function getDefaultObjectShape(type: PlantMapObjectType) {
-  if (type === 'stockpile') return { width: 2.7, depth: 2.1, height: 1.45, slope: 0, color: '#b87a32' }
-  if (type === 'belt' || type === 'belt_horizontal') return { width: 5.6, depth: 0.75, height: 0.35, slope: 0, color: '#17151a' }
-  if (type === 'belt_inclined') return { width: 5.6, depth: 0.75, height: 0.35, slope: 0.38, color: '#17151a' }
-  if (type === 'dispatch_bin' || type === 'dispatch_belt') return { width: 2.1, depth: 0.85, height: 0.45, slope: 0.22, color: '#5c9a68' }
-  if (type === 'kiln') return { width: 4.5, depth: 1.45, height: 1.5, slope: 0, color: '#d85f4f' }
-  if (type === 'silo' || type === 'rectangular_silo') return { width: 1.45, depth: 1.45, height: 3.8, slope: 0, color: '#dfe7e1' }
-  if (type === 'rectangular_hopper') return { width: 1.7, depth: 1.7, height: 1.8, slope: 0, color: '#8fa094' }
-  if (type === 'cabin') return { width: 1.45, depth: 1, height: 1.25, slope: 0, color: '#cbdde2' }
-  if (type === 'truck' || type === 'truck_scale') return { width: 3.9, depth: 1.25, height: 0.7, slope: 0, color: '#d6d2c8' }
-  if (type === 'yard') return { width: 5, depth: 3.2, height: 0.08, slope: 0, color: '#4b4c50' }
-  if (type === 'marker') return { width: 0.55, depth: 0.55, height: 2, slope: 0, color: '#ff5949' }
-  return { width: 2.6, depth: 2.1, height: 1.7, slope: 0, color: '#aeb6b4' }
+  if (type === 'stockpile') return { elevation: 0, width: 2.7, depth: 2.1, height: 1.45, slope: 0, color: '#b87a32' }
+  if (type === 'belt' || type === 'belt_horizontal') return { elevation: 0, width: 5.6, depth: 0.75, height: 0.35, slope: 0, color: '#17151a' }
+  if (type === 'belt_inclined') return { elevation: 0, width: 5.6, depth: 0.75, height: 0.35, slope: 0.38, color: '#17151a' }
+  if (type === 'dispatch_bin' || type === 'dispatch_belt') return { elevation: 0, width: 2.1, depth: 0.85, height: 0.45, slope: 0.22, color: '#5c9a68' }
+  if (type === 'kiln') return { elevation: 0, width: 4.5, depth: 1.45, height: 1.5, slope: 0, color: '#d85f4f' }
+  if (type === 'silo' || type === 'rectangular_silo') return { elevation: 0, width: 1.45, depth: 1.45, height: 3.8, slope: 0, color: '#dfe7e1' }
+  if (type === 'rectangular_hopper') return { elevation: 0, width: 1.7, depth: 1.7, height: 1.8, slope: 0, color: '#8fa094' }
+  if (type === 'cabin') return { elevation: 0, width: 1.45, depth: 1, height: 1.25, slope: 0, color: '#cbdde2' }
+  if (type === 'truck' || type === 'truck_scale') return { elevation: 0, width: 3.9, depth: 1.25, height: 0.7, slope: 0, color: '#d6d2c8' }
+  if (type === 'yard') return { elevation: 0, width: 5, depth: 3.2, height: 0.08, slope: 0, color: '#4b4c50' }
+  if (type === 'floor') return { elevation: -0.09, width: 35, depth: 24, height: 0.18, slope: 0, color: '#d6d2c8' }
+  if (type === 'zone') return { elevation: 0.03, width: 5.8, depth: 4.8, height: 0.05, slope: 0, color: '#c98500' }
+  if (type === 'marker') return { elevation: 0, width: 0.55, depth: 0.55, height: 2, slope: 0, color: '#ff5949' }
+  return { elevation: 0, width: 2.6, depth: 2.1, height: 1.7, slope: 0, color: '#aeb6b4' }
+}
+
+function withInfrastructureObjects(items: PlantMapObject[]) {
+  if (localStorage.getItem(PLANT_MAP_INFRASTRUCTURE_KEY) === 'done') return items
+  const currentIds = new Set(items.map((item) => item.id))
+  const missing = DEFAULT_PLANT_MAP_OBJECTS.filter((item) => INFRASTRUCTURE_OBJECT_IDS.has(item.id) && !currentIds.has(item.id))
+  localStorage.setItem(PLANT_MAP_INFRASTRUCTURE_KEY, 'done')
+  return missing.length > 0 ? [...missing, ...items] : items
 }
 
 function clampPercent(value: number) {
@@ -205,7 +233,17 @@ function clampObjectScale(value: number) {
   return Math.min(3, Math.max(0.25, value))
 }
 
+function clampObjectElevation(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(8, Math.max(-1, value))
+}
+
 function clampObjectDimension(value: number) {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(50, Math.max(0.08, value))
+}
+
+function clampObjectHeight(value: number) {
   if (!Number.isFinite(value)) return 1
   return Math.min(12, Math.max(0.08, value))
 }

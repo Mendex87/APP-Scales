@@ -79,6 +79,7 @@ type PlantMapObjectRow = {
   object_type: PlantMapObject['objectType']
   x: number
   z: number
+  elevation?: number
   rotation_y: number
   scale?: number
   width?: number
@@ -145,13 +146,14 @@ export async function loadAppData() {
   saveEvents(events)
   savePlantMapPoints(plantMapPoints)
   savePlantMapObjects(plantMapObjects)
+  const hydratedPlantMapObjects = loadPlantMapObjects()
 
   return {
     equipment,
     chains,
     events,
     plantMapPoints,
-    plantMapObjects,
+    plantMapObjects: hydratedPlantMapObjects,
     plantMapSource,
     source: 'supabase' as const,
   }
@@ -531,6 +533,7 @@ function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
     objectType: row.object_type,
     x: row.x,
     z: row.z,
+    elevation: row.elevation ?? 0,
     rotationY: row.rotation_y,
     scale: row.scale ?? 1,
     width: row.width ?? 1,
@@ -550,6 +553,7 @@ function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
     object_type: item.objectType,
     x: item.x,
     z: item.z,
+    elevation: item.elevation,
     rotation_y: item.rotationY,
     scale: item.scale,
     width: item.width,

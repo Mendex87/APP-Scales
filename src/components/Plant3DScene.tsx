@@ -90,6 +90,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       const group = groupsRef.current.get(object.id)
       if (!group) return
       group.position.x = object.x
+      group.position.y = object.elevation
       group.position.z = object.z
       group.rotation.y = object.rotationY
       applyObjectScale(group, object, object.id === selectedObjectIdRef.current)
@@ -266,7 +267,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
 
       function createObjectGroup(object: PlantMapObject) {
         const group = new THREE.Group()
-        group.position.set(object.x, 0, object.z)
+        group.position.set(object.x, object.elevation, object.z)
         group.rotation.y = object.rotationY
         applyObjectScale(group, object, object.id === selectedObjectIdRef.current)
         group.userData.objectId = object.id
@@ -283,6 +284,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const height = object.height || spec.height || 0.9
         const beltMaterial = objectMaterial(object, 0x17151a, { roughness: 0.5, metalness: 0.16 })
         const deck = new THREE.Group()
+        deck.position.y = Math.abs(Math.sin(object.slope || 0) * length * 0.5) + 0.03
         deck.rotation.z = object.slope || 0
         group.add(deck)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length, 0.28, depth)), beltMaterial), deck, object.id).position.set(0, height, 0)
@@ -420,6 +422,21 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         addLabel(object.label, 0, 0.75, 0, 0.5, group)
       }
 
+      function addFloor(object: PlantMapObject) {
+        const group = createObjectGroup(object)
+        const isZone = object.objectType === 'zone'
+        const floorMat = objectMaterial(object, isZone ? 0xc98500 : 0xd6d2c8, {
+          roughness: isZone ? 0.9 : 0.78,
+          metalness: 0.02,
+          transparent: isZone,
+          opacity: isZone ? 0.28 : 1,
+        })
+        const mesh = new THREE.Mesh(geometry(new THREE.BoxGeometry(object.width || 5, object.height || 0.08, object.depth || 3.2)), floorMat)
+        mesh.position.y = (object.height || 0.08) / 2
+        addMesh(mesh, group, object.id)
+        if (isZone) addLabel(object.label, 0, 0.45, 0, 0.48, group)
+      }
+
       function addMarker(object: PlantMapObject) {
         const group = createObjectGroup(object)
         const height = object.height || 2
@@ -439,21 +456,14 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         else if (object.objectType === 'rectangular_hopper') addHopper(object)
         else if (object.objectType === 'truck') addTruck(object)
         else if (object.objectType === 'yard') addYard(object)
+        else if (object.objectType === 'floor' || object.objectType === 'zone') addFloor(object)
         else if (object.objectType === 'marker') addMarker(object)
         else addStructure(object)
       }
 
-      addBox(35, 0.18, 24, 0, 0, concrete, 0, -0.09)
       const grid = new THREE.GridHelper(35, 35, 0xb9b2a8, 0xd9d3c9)
       grid.position.y = 0.025
       plant.add(grid)
-      addZone(5.7, 4.8, -7.3, -1.6, amberZone)
-      addZone(8, 5.6, -1.6, -1.8, orangeZone)
-      addZone(6.6, 5.8, 6.3, -1.5, greenZone)
-      addZone(9.8, 2.7, 4.8, 4.65, greyZone)
-      addBox(20, 0.06, 1.45, 4.4, 4.95, asphalt, -0.12, 0.06)
-      addBox(19, 0.05, 0.78, -1.8, 2.95, asphalt, -0.28, 0.06)
-      addBox(0.08, 0.07, 17, 7.6, 0.9, asphalt, 0.14, 0.07)
       objects.forEach(addEditableObject)
       addLabel('Planta de secado y despacho', -2.4, 5.7, -5.55, 0.95)
 
