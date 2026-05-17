@@ -135,7 +135,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.24'
+const APP_VERSION = 'v4.0.25'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -184,12 +184,14 @@ const CLOSED_MODULE_TRUCK_MODEL_PATH = '/models/plant/camion-chasis-doble-caja.g
 const FRONT_CAB_TRUCK_MODEL_PATH = '/models/plant/camion-caja-cabina-frontal.glb'
 const LONG_DOUBLE_BOX_TRUCK_MODEL_PATH = '/models/plant/camion-doble-caja-largo.glb'
 const GALPON_MODEL_PATH = '/models/plant/Galpon.glb'
+const TOLVA_MODEL_PATH = '/models/plant/tolva.glb'
 
 const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
   { value: '', label: 'Sin modelo importado', description: 'Usa la geometria editable generada por la app' },
   { value: '/models/plant/silo.glb', label: 'Silo', description: 'Modelo GLB de silo' },
   { value: '/models/plant/cinta.glb', label: 'Cinta', description: 'Modelo GLB de cinta transportadora' },
   { value: '/models/plant/cinta-balanza.glb', label: 'Cinta con balanza', description: 'Modelo GLB de cinta con bascula' },
+  { value: TOLVA_MODEL_PATH, label: 'Tolva', description: 'Modelo GLB de tolva industrial' },
   { value: GALPON_MODEL_PATH, label: 'Galpon', description: 'Modelo GLB de galpon industrial' },
   { value: '/models/plant/persona-durmiendo-carretilla.glb', label: 'Persona durmiendo', description: 'Modelo GLB de persona durmiendo en carretilla' },
   { value: CLOSED_MODULE_TRUCK_MODEL_PATH, label: 'Camion termo cerrado', description: 'Modelo GLB de camion frontal con modulo de carga cerrado' },
@@ -200,6 +202,9 @@ const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
 function getPlantMapModelDefaults(modelPath: string): Partial<PlantMapObject> {
   if (modelPath === GALPON_MODEL_PATH) {
     return { objectType: 'structure', width: 7, depth: 4, height: 2.6, elevation: 0, scale: 1, color: '#d6d2c8' }
+  }
+  if (modelPath === TOLVA_MODEL_PATH) {
+    return { objectType: 'rectangular_hopper', width: 1.8, depth: 1.8, height: 2, elevation: 0, scale: 1, color: '#8fa094' }
   }
   if (modelPath === CLOSED_MODULE_TRUCK_MODEL_PATH) {
     return { objectType: 'truck', width: 7.5, depth: 2.35, height: 2.5, elevation: 0, scale: 1, color: '#d6d2c8' }

@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.25 - Modelo GLB de tolva
+
+- Se agrega `tolva.glb` a los modelos publicos de planta para la preview.
+- El selector de modelos 3D de `/mapa` suma `Tolva` con defaults de tolva rectangular.
+
 ## v4.0.24 - Usuarios por fetch autenticado
 
 - La carga de usuarios llama a `manage-users` por `fetch` directo con `Authorization` y `apikey` explicitos para evitar que el SDK omita headers.
