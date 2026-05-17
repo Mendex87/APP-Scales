@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.13 - Fallback de modelos importados
+
+- Los objetos con modelo `.glb` seleccionado ya no muestran un cubo temporal si el modelo tarda o falla al cargar.
+- Si un modelo importado no carga, el mapa muestra un marcador pequeño de error en lugar de confundirlo con un bloque.
+
 ## v4.0.12 - Modelo adicional del mapa
 
 - El selector de modelos 3D del mapa suma `Persona durmiendo`, cargado desde `public/models/plant/persona-durmiendo-carretilla.glb`.

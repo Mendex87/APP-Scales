@@ -510,15 +510,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, initialView, 
         const modelPath = getModelPath(object)
         if (!modelPath) return false
         const group = createObjectGroup(object)
-        const width = object.width || 1.5
-        const depth = object.depth || 1.5
-        const height = object.height || 1.5
-        const placeholder = new THREE.Mesh(
-          geometry(new THREE.BoxGeometry(width, height, depth)),
-          objectMaterial(object, 0xaeb6b4, { transparent: true, opacity: 0.24 }),
-        )
-        placeholder.position.y = height / 2
-        addMesh(placeholder, group, object.id)
 
         modelLoader.load(
           modelPath,
@@ -527,7 +518,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, initialView, 
               disposeLoadedModel(gltf.scene)
               return
             }
-            group.remove(placeholder)
             fitLoadedModel(gltf.scene, object)
             registerLoadedModel(gltf.scene, object.id)
             group.add(gltf.scene)
@@ -535,6 +525,14 @@ export function Plant3DScene({ objects, editing, selectedObjectId, initialView, 
           undefined,
           (error) => {
             console.warn(`No se pudo cargar el modelo 3D ${modelPath}:`, error)
+            if (disposed) return
+            const marker = new THREE.Mesh(
+              geometry(new THREE.ConeGeometry(0.28, 0.62, 4)),
+              objectMaterial(object, 0xff5949, { roughness: 0.42, metalness: 0.08 }),
+            )
+            marker.position.y = 0.34
+            marker.rotation.y = Math.PI / 4
+            addMesh(marker, group, object.id)
           },
         )
         return true
