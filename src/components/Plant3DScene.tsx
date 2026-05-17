@@ -10,9 +10,23 @@ type Plant3DSceneProps = {
   objects: PlantMapObject[]
   editing: boolean
   selectedObjectId: string
+  initialView?: PlantMapCameraView
+  viewCommand?: PlantMapViewCommand | null
   onObjectMove: (objectId: string, x: number, z: number) => void
   onObjectSelect: (objectId: string) => void
   onObjectScreenPositionsChange?: (positions: Record<string, { x: number; y: number }>) => void
+  onViewChange?: (view: PlantMapCameraView) => void
+}
+
+export type PlantMapCameraView = {
+  position: [number, number, number]
+  target: [number, number, number]
+  zoom?: number
+}
+
+export type PlantMapViewCommand = {
+  id: number
+  view: PlantMapCameraView
 }
 
 const OBJECT_SPECS: Record<string, { length?: number; width?: number; depth?: number; height?: number; scaleX?: number; scaleZ?: number; tone?: 'default' | 'process' | 'dispatch' | 'scale' }> = {
@@ -37,6 +51,27 @@ const OBJECT_SPECS: Record<string, { length?: number; width?: number; depth?: nu
 }
 
 const SCENE_LIMIT = 18
+const DEFAULT_CAMERA_VIEW: PlantMapCameraView = { position: [28, 20, 31], target: [0, 0, 0], zoom: 1 }
+
+function applyCameraView(camera: THREE.PerspectiveCamera, controls: OrbitControls, view: PlantMapCameraView) {
+  camera.position.set(...view.position)
+  camera.zoom = view.zoom ?? 1
+  camera.updateProjectionMatrix()
+  controls.target.set(...view.target)
+  controls.update()
+}
+
+function readCameraView(camera: THREE.PerspectiveCamera, controls: OrbitControls): PlantMapCameraView {
+  return {
+    position: [roundCameraValue(camera.position.x), roundCameraValue(camera.position.y), roundCameraValue(camera.position.z)],
+    target: [roundCameraValue(controls.target.x), roundCameraValue(controls.target.y), roundCameraValue(controls.target.z)],
+    zoom: roundCameraValue(camera.zoom),
+  }
+}
+
+function roundCameraValue(value: number) {
+  return Math.round(value * 1000) / 1000
+}
 
 function getObjectScale(object: PlantMapObject) {
   if (!Number.isFinite(object.scale)) return 1
@@ -55,8 +90,10 @@ function getObjectColor(object: PlantMapObject, fallback: number) {
   }
 }
 
-export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove, onObjectSelect, onObjectScreenPositionsChange }: Plant3DSceneProps) {
+export function Plant3DScene({ objects, editing, selectedObjectId, initialView, viewCommand, onObjectMove, onObjectSelect, onObjectScreenPositionsChange, onViewChange }: Plant3DSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const controlsRef = useRef<OrbitControls | null>(null)
   const groupsRef = useRef(new Map<string, THREE.Group>())
   const pickTargetsRef = useRef<THREE.Object3D[]>([])
   const editingRef = useRef(editing)
@@ -64,6 +101,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
   const onObjectMoveRef = useRef(onObjectMove)
   const onObjectSelectRef = useRef(onObjectSelect)
   const onObjectScreenPositionsChangeRef = useRef(onObjectScreenPositionsChange)
+  const onViewChangeRef = useRef(onViewChange)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
@@ -84,7 +122,14 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
     onObjectMoveRef.current = onObjectMove
     onObjectSelectRef.current = onObjectSelect
     onObjectScreenPositionsChangeRef.current = onObjectScreenPositionsChange
-  }, [onObjectMove, onObjectScreenPositionsChange, onObjectSelect])
+    onViewChangeRef.current = onViewChange
+  }, [onObjectMove, onObjectScreenPositionsChange, onObjectSelect, onViewChange])
+
+  useEffect(() => {
+    if (!viewCommand || !cameraRef.current || !controlsRef.current) return
+    applyCameraView(cameraRef.current, controlsRef.current, viewCommand.view)
+    onViewChangeRef.current?.(readCameraView(cameraRef.current, controlsRef.current))
+  }, [viewCommand])
 
   useEffect(() => {
     objects.forEach((object) => {
@@ -112,7 +157,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
     let lastDragPosition = new THREE.Vector3()
     const geometries: THREE.BufferGeometry[] = []
     const materials: MeshMaterial[] = []
-    const textures: THREE.Texture[] = []
     const raycaster = new THREE.Raycaster()
     const pointer = new THREE.Vector2()
     const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
@@ -140,8 +184,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 120)
       const modelLoader = new GLTFLoader()
-      camera.position.set(28, 20, 31)
-      camera.lookAt(0, 0, 0)
+      cameraRef.current = camera
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' })
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
@@ -152,16 +195,28 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       mount.appendChild(renderer.domElement)
 
       controls = new OrbitControls(camera, renderer.domElement)
-      controls.target.set(0, 0, 0)
+      controlsRef.current = controls
       controls.enableDamping = true
-      controls.dampingFactor = 0.08
-      controls.enablePan = false
+      controls.dampingFactor = 0.07
+      controls.enablePan = true
       controls.rotateSpeed = 0.55
       controls.zoomSpeed = 0.65
-      controls.minDistance = 10
-      controls.maxDistance = 72
-      controls.minPolarAngle = 0.42
-      controls.maxPolarAngle = Math.PI / 2.12
+      controls.panSpeed = 0.58
+      controls.screenSpacePanning = true
+      controls.minDistance = 8
+      controls.maxDistance = 90
+      controls.minPolarAngle = 0.08
+      controls.maxPolarAngle = Math.PI / 2.08
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      }
+      controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      }
+      applyCameraView(camera, controls, initialView || DEFAULT_CAMERA_VIEW)
 
       const plant = new THREE.Group()
       plant.rotation.y = -0.15
@@ -269,40 +324,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         root.position.set(-center.x * modelScale, -box.min.y * modelScale, -center.z * modelScale)
       }
 
-      function addLabel(text: string, x: number, y: number, z: number, scale = 1, parent = plant) {
-        const canvas = document.createElement('canvas')
-        const context = canvas.getContext('2d')
-        if (!context) return
-        const pixelRatio = 2
-        const fontSize = 24
-        const paddingX = 14
-        const paddingY = 7
-        context.font = `700 ${fontSize}px Arial, sans-serif`
-        const textWidth = Math.ceil(context.measureText(text).width)
-        canvas.width = (textWidth + paddingX * 2) * pixelRatio
-        canvas.height = (fontSize + paddingY * 2) * pixelRatio
-        context.scale(pixelRatio, pixelRatio)
-        context.font = `700 ${fontSize}px Arial, sans-serif`
-        context.fillStyle = 'rgba(12, 11, 17, 0.66)'
-        context.fillRect(0, 0, canvas.width / pixelRatio, canvas.height / pixelRatio)
-        context.strokeStyle = 'rgba(255, 89, 73, 0.62)'
-        context.lineWidth = 1
-        context.strokeRect(1, 1, canvas.width / pixelRatio - 2, canvas.height / pixelRatio - 2)
-        context.fillStyle = '#f8f6ef'
-        context.textBaseline = 'middle'
-        context.fillText(text, paddingX, canvas.height / pixelRatio / 2)
-        const texture = new THREE.CanvasTexture(canvas)
-        texture.colorSpace = THREE.SRGBColorSpace
-        textures.push(texture)
-        const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false })
-        materials.push(spriteMaterial)
-        const sprite = new THREE.Sprite(spriteMaterial)
-        sprite.position.set(x, y, z)
-        sprite.scale.set((canvas.width / pixelRatio / 130) * scale, (canvas.height / pixelRatio / 130) * scale, 1)
-        sprite.renderOrder = 10
-        parent.add(sprite)
-      }
-
       function addBox(width: number, height: number, depth: number, x: number, z: number, meshMaterial: THREE.Material, rotationY = 0, y = height / 2) {
         const mesh = new THREE.Mesh(geometry(new THREE.BoxGeometry(width, height, depth)), meshMaterial)
         mesh.position.set(x, y, z)
@@ -348,7 +369,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
           addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(0.12, height, 0.12)), darkSteel), group, object.id).position.set(supportX, height / 2, -depth * 0.34)
           addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(0.12, height, 0.12)), darkSteel), group, object.id).position.set(supportX, height / 2, depth * 0.34)
         }
-        addLabel(object.label, 0, height + 0.95, 0, 0.72, group)
       }
 
       function addKiln(object: PlantMapObject) {
@@ -369,7 +389,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         rightCap.rotation.z = Math.PI / 2
         addMesh(rightCap, group, object.id)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length + 0.6, 0.14, radius * 2 + 0.2)), darkSteel), group, object.id).position.set(0, 0.47, 0)
-        addLabel(object.label, 0, body.position.y + radius + 0.8, 0, 0.78, group)
       }
 
       function addSilo(object: PlantMapObject) {
@@ -382,7 +401,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width + 0.16, 0.18, depth + 0.16)), steel), group, object.id).position.y = 0.75 + height + 0.12
         addMesh(new THREE.Mesh(geometry(new THREE.ConeGeometry(Math.max(width, depth) * 0.55, 0.9, 4)), hopperMat), group, object.id).position.y = 0.42
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width + 0.25, 0.16, depth + 0.25)), concrete), group, object.id).position.y = 0.05
-        addLabel(object.label, 0, height + 1.85, 0, 0.65, group)
       }
 
       function addCabin(object: PlantMapObject) {
@@ -400,7 +418,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         addMesh(roof, group, object.id)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width * 0.32, height * 0.3, 0.04)), steel), group, object.id).position.set(-width * 0.18, height * 0.68, depth / 2 + 0.025)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width * 0.32, height * 0.3, 0.04)), steel), group, object.id).position.set(width * 0.22, height * 0.68, depth / 2 + 0.025)
-        addLabel(object.label, 0, height + 0.95, 0, 0.58, group)
       }
 
       function addStockpile(object: PlantMapObject) {
@@ -412,7 +429,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         pile.scale.set(object.width / 2 || spec.scaleX || 1.3, 1, object.depth / 2 || spec.scaleZ || 1)
         pile.rotation.y = 0.5
         addMesh(pile, group, object.id)
-        addLabel(object.label, 0, (object.height || 1.45) + 0.55, 0, 0.58, group)
       }
 
       function addDispatchBin(object: PlantMapObject) {
@@ -426,7 +442,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length, object.height || 0.22, depth)), concrete), group, object.id).position.y = (object.height || 0.22) / 2
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length - 0.4, 0.08, 0.08)), steel), group, object.id).position.set(0, (object.height || 0.22) + 0.12, -depth * 0.38)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(length - 0.4, 0.08, 0.08)), steel), group, object.id).position.set(0, (object.height || 0.22) + 0.12, depth * 0.38)
-        addLabel(object.label, 0, 1.3, 0, 0.65, group)
       }
 
       function addStructure(object: PlantMapObject) {
@@ -436,7 +451,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const height = object.height || spec.height || 1.65
         const depth = object.depth || spec.depth || 2.25
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width, height, depth)), objectMaterial(object, 0xaeb6b4, { roughness: 0.52, metalness: 0.12 })), group, object.id).position.y = height / 2
-        addLabel(object.label, 0, height + 0.9, 0, 0.68, group)
       }
 
       function addHopper(object: PlantMapObject) {
@@ -450,7 +464,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         hopper.rotation.y = Math.PI / 4
         addMesh(hopper, group, object.id)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(width, 0.18, depth)), darkSteel), group, object.id).position.y = height + 0.12
-        addLabel(object.label, 0, height + 0.9, 0, 0.55, group)
       }
 
       function addTruck(object: PlantMapObject) {
@@ -465,13 +478,11 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
           addMesh(new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.2, 0.2, 0.18, 20)), darkSteel), group, object.id).position.set(wheelX, 0.22, -depth * 0.48)
           addMesh(new THREE.Mesh(geometry(new THREE.CylinderGeometry(0.2, 0.2, 0.18, 20)), darkSteel), group, object.id).position.set(wheelX, 0.22, depth * 0.48)
         }
-        addLabel(object.label, 0, height + 1.1, 0, 0.58, group)
       }
 
       function addYard(object: PlantMapObject) {
         const group = createObjectGroup(object)
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(object.width || 5, object.height || 0.08, object.depth || 3.2)), objectMaterial(object, 0x4b4c50, { roughness: 0.82, metalness: 0.02 })), group, object.id).position.y = (object.height || 0.08) / 2
-        addLabel(object.label, 0, 0.75, 0, 0.5, group)
       }
 
       function addFloor(object: PlantMapObject) {
@@ -486,7 +497,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const mesh = new THREE.Mesh(geometry(new THREE.BoxGeometry(object.width || 5, object.height || 0.08, object.depth || 3.2)), floorMat)
         mesh.position.y = (object.height || 0.08) / 2
         addMesh(mesh, group, object.id)
-        if (isZone) addLabel(object.label, 0, 0.45, 0, 0.48, group)
       }
 
       function addMarker(object: PlantMapObject) {
@@ -494,7 +504,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const height = object.height || 2
         addMesh(new THREE.Mesh(geometry(new THREE.CylinderGeometry((object.width || 0.55) * 0.2, (object.width || 0.55) * 0.2, height, 20)), objectMaterial(object, 0xff5949, { roughness: 0.4, metalness: 0.1 })), group, object.id).position.y = height / 2
         addMesh(new THREE.Mesh(geometry(new THREE.BoxGeometry(object.width || 0.55, (object.width || 0.55) * 0.42, object.depth || 0.55)), objectMaterial(object, 0xff5949, { roughness: 0.4, metalness: 0.1 })), group, object.id).position.y = height + 0.22
-        addLabel(object.label, 0, height + 0.9, 0, 0.48, group)
       }
 
       function addModelObject(object: PlantMapObject) {
@@ -510,7 +519,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         )
         placeholder.position.y = height / 2
         addMesh(placeholder, group, object.id)
-        addLabel(object.label, 0, height + 0.9, 0, 0.58, group)
 
         modelLoader.load(
           modelPath,
@@ -553,7 +561,6 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       grid.position.y = 0.025
       plant.add(grid)
       objects.forEach(addEditableObject)
-      addLabel('Planta de secado y despacho', -2.4, 5.7, -5.55, 0.95)
 
       const handlePointerDown = (event: PointerEvent) => {
         if (!renderer) return
@@ -630,6 +637,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const elapsed = performance.now() / 1000
         keyLight.position.x = -8 + Math.sin(elapsed * 0.28) * 0.35
         controls?.update()
+        if (cameraRef.current && controlsRef.current) onViewChangeRef.current?.(readCameraView(cameraRef.current, controlsRef.current))
         reportObjectScreenPositions()
         renderer?.render(scene, camera)
         frameId = window.requestAnimationFrame(render)
@@ -658,10 +666,11 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         if (frameId) window.cancelAnimationFrame(frameId)
         resizeObserver?.disconnect()
         controls?.dispose()
+        cameraRef.current = null
+        controlsRef.current = null
         if (renderer?.domElement.parentElement === mount) mount.removeChild(renderer.domElement)
         geometries.forEach((item) => item.dispose())
         materials.forEach((item) => item.dispose())
-        textures.forEach((item) => item.dispose())
         renderer?.dispose()
         groupsRef.current.clear()
         pickTargetsRef.current = []
@@ -676,10 +685,11 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
       if (frameId) window.cancelAnimationFrame(frameId)
       resizeObserver?.disconnect()
       controls?.dispose()
+      cameraRef.current = null
+      controlsRef.current = null
       if (renderer?.domElement.parentElement === mount) mount.removeChild(renderer.domElement)
       geometries.forEach((item) => item.dispose())
       materials.forEach((item) => item.dispose())
-      textures.forEach((item) => item.dispose())
       renderer?.dispose()
       groupsRef.current.clear()
       pickTargetsRef.current = []

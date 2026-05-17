@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.10 - Navegacion y estado del mapa
+
+- El mapa 3D conserva la camara al crear objetos o editar dimensiones/modelos, evitando volver al punto inicial.
+- La navegacion suma paneo y presets de vista para general, despachos y superior.
+- La vista normal muestra el estado de la balanza seleccionada dentro del mapa y retira los nombres flotantes de objetos 3D.
+
 ## v4.0.9 - Etiquetas compactas del mapa
 
 - El mapa 3D reduce el tamaño y contraste de los nombres de objetos para que no tapen la planta.

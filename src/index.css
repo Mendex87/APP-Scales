@@ -1727,6 +1727,124 @@ body::before {
   height: 100%;
 }
 
+.plant-map-view-controls {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 46;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: min(28rem, calc(100% - 1.5rem));
+}
+
+.plant-map-view-controls button {
+  min-height: 2rem;
+  padding: 0.28rem 0.58rem;
+  border: 1px solid rgba(12, 11, 17, 0.14);
+  border-radius: 999px;
+  background: rgba(250, 249, 246, 0.88);
+  color: var(--color-ink);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 0.55rem 1.15rem rgba(12, 11, 17, 0.1);
+}
+
+.plant-map-view-controls button:hover,
+.plant-map-view-controls button:focus-visible {
+  border-color: rgba(255, 89, 73, 0.55);
+  background: var(--color-paper-strong);
+}
+
+.plant-map-status-card {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 45;
+  width: min(420px, calc(100% - 2rem));
+  padding: 0.85rem;
+  border: 1px solid rgba(12, 11, 17, 0.13);
+  border-left: 5px solid var(--color-grey-300);
+  border-radius: calc(var(--radius) * 0.82);
+  background: color-mix(in srgb, var(--color-paper-strong) 90%, transparent);
+  box-shadow: 0 1.2rem 2.8rem rgba(12, 11, 17, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.plant-map-status-card.status-success {
+  border-left-color: var(--color-success);
+}
+
+.plant-map-status-card.status-warning {
+  border-left-color: var(--color-warning);
+}
+
+.plant-map-status-card.status-danger {
+  border-left-color: var(--color-error);
+}
+
+.plant-map-status-card h3 {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  line-height: 0.95;
+}
+
+.plant-map-status-card p {
+  margin: 0.35rem 0 0;
+  color: var(--color-grey-500);
+  font-size: 0.86rem;
+}
+
+.plant-map-status-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+}
+
+.plant-map-status-card-grid span,
+.plant-map-status-equipment {
+  display: block;
+  padding: 0.48rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.58);
+  background: color-mix(in srgb, var(--surface-muted) 72%, transparent);
+}
+
+.plant-map-status-card-grid small,
+.plant-map-status-equipment span {
+  display: block;
+  color: var(--color-grey-500);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.plant-map-status-card-grid strong,
+.plant-map-status-equipment strong {
+  display: block;
+  margin-top: 0.12rem;
+  color: var(--color-ink);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 0.96rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.plant-map-status-equipment {
+  margin-top: 0.55rem;
+}
+
+.plant-map-status-equipment p {
+  margin-top: 0.18rem;
+  font-size: 0.78rem;
+}
+
 .plant-map-webgl-fallback {
   display: grid;
   place-items: center;
@@ -4692,6 +4810,32 @@ body::before {
     min-height: 580px;
     margin-inline: -0.35rem;
     border-radius: 0.22rem;
+  }
+
+  .plant-map-view-controls {
+    top: 0.55rem;
+    left: 0.55rem;
+    max-width: calc(100% - 1.1rem);
+  }
+
+  .plant-map-view-controls button {
+    min-height: 1.85rem;
+    padding-inline: 0.45rem;
+    font-size: 0.68rem;
+  }
+
+  .plant-map-status-card {
+    right: 0.55rem;
+    bottom: 0.55rem;
+    left: 0.55rem;
+    width: auto;
+    max-height: 45%;
+    overflow: auto;
+    padding: 0.68rem;
+  }
+
+  .plant-map-status-card-grid {
+    gap: 0.32rem;
   }
 
   .plant-map-point {
