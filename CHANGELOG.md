@@ -1,5 +1,12 @@
 # Changelog
 
+## v4.0.20 - Estados con fondo diagonal
+
+- Las tarjetas de balanzas e historial refuerzan el estado con fondos diagonales en verde, naranja, rojo o gris.
+- La tarjeta de estado dentro de `/mapa` usa el mismo color activo en borde, fondo, grilla de datos y sombra.
+- La cola de accion adopta el mismo patron diagonal para advertencias y vencidos.
+- El contraste se mantiene compatible con modo claro y oscuro usando variables de color por estado.
+
 ## v4.0.19 - Edicion global del mapa
 
 - El editor de `/mapa` suma un ajuste global para desplazar todos los objetos 3D juntos por eje X/Z.
