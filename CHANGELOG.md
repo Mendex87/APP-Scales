@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.0.18 - Modelos visibles en selector
+
+- El selector de modelos 3D suma `Galpon`, `Camion cabina frontal` y `Camion doble caja largo`.
+- Se actualiza el GLB local de `Galpon` y se sube el nuevo camion largo para que queden disponibles en la preview.
+- Los nuevos modelos aplican dimensiones iniciales acordes al objeto para evitar escalas deformadas.
+- El espacio de trabajo del mapa queda mas alto y se retiran las franjas rojas laterales del marco.
+- Se eliminan los rotulos flotantes de zona `Secado`, `Despacho` y `Camiones`.
+
 ## v4.0.17 - Entorno tecnico del mapa
 
 - La pantalla `/mapa` suma una ambientacion de plano tecnico industrial alrededor de la planta 3D.

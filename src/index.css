@@ -1705,10 +1705,6 @@ body::before {
   display: none;
 }
 
-.plant-map-screen.editing .plant-map-blueprint-tags {
-  display: none;
-}
-
 .plant-map-screen.editing .plant-map-canvas {
   margin-top: 0;
 }
@@ -1824,7 +1820,7 @@ body::before {
 
 .plant-map-canvas {
   position: relative;
-  min-height: clamp(820px, 76vh, 1040px);
+  min-height: clamp(920px, 84vh, 1180px);
   margin-top: 0.65rem;
   overflow: hidden;
   border: 1px solid rgba(12, 11, 17, 0.24);
@@ -1855,65 +1851,22 @@ body::before {
 .plant-map-canvas::before {
   border: 1px solid rgba(12, 11, 17, 0.1);
   background:
-    linear-gradient(90deg, rgba(255, 89, 73, 0.34) 0 4.8rem, transparent 4.8rem calc(100% - 4.8rem), rgba(255, 89, 73, 0.26) calc(100% - 4.8rem)),
-    linear-gradient(180deg, rgba(12, 11, 17, 0.16) 0 1px, transparent 1px calc(100% - 1px), rgba(12, 11, 17, 0.12) calc(100% - 1px));
-  opacity: 0.42;
+    linear-gradient(180deg, rgba(12, 11, 17, 0.12) 0 1px, transparent 1px calc(100% - 1px), rgba(12, 11, 17, 0.1) calc(100% - 1px));
+  opacity: 0.34;
 }
 
 .plant-map-canvas::after {
-  border-top: 0.25rem solid rgba(255, 89, 73, 0.42);
+  border-top: 0.18rem solid rgba(12, 11, 17, 0.1);
   border-right: 0.25rem solid transparent;
-  border-bottom: 0.25rem solid rgba(12, 11, 17, 0.16);
+  border-bottom: 0.18rem solid rgba(12, 11, 17, 0.1);
   border-left: 0.25rem solid transparent;
   mix-blend-mode: multiply;
-  opacity: 0.44;
+  opacity: 0.28;
 }
 
 .plant-map-canvas.editing {
-  min-height: 820px;
+  min-height: 900px;
   overscroll-behavior: contain;
-}
-
-.plant-map-blueprint-tags {
-  position: absolute;
-  inset: 0;
-  z-index: 7;
-  pointer-events: none;
-}
-
-.plant-map-blueprint-tags span {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.5rem;
-  padding: 0.18rem 0.55rem;
-  border: 1px solid rgba(12, 11, 17, 0.12);
-  border-radius: 999px;
-  background: rgba(250, 249, 246, 0.44);
-  color: rgba(12, 11, 17, 0.36);
-  font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.plant-map-blueprint-tags .process {
-  left: 28%;
-  top: 30%;
-  transform: rotate(-8deg);
-}
-
-.plant-map-blueprint-tags .dispatch {
-  right: 18%;
-  top: 42%;
-  transform: rotate(-5deg);
-}
-
-.plant-map-blueprint-tags .trucks {
-  right: 12%;
-  bottom: 19%;
-  transform: rotate(-9deg);
 }
 
 .plant-map-webgl,
@@ -5058,13 +5011,9 @@ body::before {
   }
 
   .plant-map-canvas {
-    min-height: 580px;
+    min-height: 660px;
     margin-inline: -0.35rem;
     border-radius: 0.22rem;
-  }
-
-  .plant-map-blueprint-tags {
-    display: none;
   }
 
   .plant-map-context-rail {

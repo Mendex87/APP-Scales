@@ -148,7 +148,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.17'
+const APP_VERSION = 'v4.0.18'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -206,19 +206,34 @@ const PLANT_MAP_OBJECT_PRESETS: PlantMapObjectPreset[] = [
 ]
 
 const CLOSED_MODULE_TRUCK_MODEL_PATH = '/models/plant/camion-chasis-doble-caja.glb'
+const FRONT_CAB_TRUCK_MODEL_PATH = '/models/plant/camion-caja-cabina-frontal.glb'
+const LONG_DOUBLE_BOX_TRUCK_MODEL_PATH = '/models/plant/camion-doble-caja-largo.glb'
+const GALPON_MODEL_PATH = '/models/plant/Galpon.glb'
 
 const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
   { value: '', label: 'Sin modelo importado', description: 'Usa la geometria editable generada por la app' },
   { value: '/models/plant/silo.glb', label: 'Silo', description: 'Modelo GLB de silo' },
   { value: '/models/plant/cinta.glb', label: 'Cinta', description: 'Modelo GLB de cinta transportadora' },
   { value: '/models/plant/cinta-balanza.glb', label: 'Cinta con balanza', description: 'Modelo GLB de cinta con bascula' },
+  { value: GALPON_MODEL_PATH, label: 'Galpon', description: 'Modelo GLB de galpon industrial' },
   { value: '/models/plant/persona-durmiendo-carretilla.glb', label: 'Persona durmiendo', description: 'Modelo GLB de persona durmiendo en carretilla' },
   { value: CLOSED_MODULE_TRUCK_MODEL_PATH, label: 'Camion termo cerrado', description: 'Modelo GLB de camion frontal con modulo de carga cerrado' },
+  { value: FRONT_CAB_TRUCK_MODEL_PATH, label: 'Camion cabina frontal', description: 'Modelo GLB de camion con cabina frontal y caja cerrada' },
+  { value: LONG_DOUBLE_BOX_TRUCK_MODEL_PATH, label: 'Camion doble caja largo', description: 'Modelo GLB de camion largo con doble caja de carga' },
 ]
 
 function getPlantMapModelDefaults(modelPath: string): Partial<PlantMapObject> {
+  if (modelPath === GALPON_MODEL_PATH) {
+    return { objectType: 'structure', width: 7, depth: 4, height: 2.6, elevation: 0, scale: 1, color: '#d6d2c8' }
+  }
   if (modelPath === CLOSED_MODULE_TRUCK_MODEL_PATH) {
     return { objectType: 'truck', width: 7.5, depth: 2.35, height: 2.5, elevation: 0, scale: 1, color: '#d6d2c8' }
+  }
+  if (modelPath === FRONT_CAB_TRUCK_MODEL_PATH) {
+    return { objectType: 'truck', width: 9.6, depth: 3, height: 3.25, elevation: 0, scale: 1, color: '#d6d2c8' }
+  }
+  if (modelPath === LONG_DOUBLE_BOX_TRUCK_MODEL_PATH) {
+    return { objectType: 'truck', width: 11.7, depth: 3, height: 3.35, elevation: 0, scale: 1, color: '#d6d2c8' }
   }
   return {}
 }
@@ -4284,12 +4299,6 @@ function App() {
                       onViewChange={handlePlantMapViewChange}
                     />
                   </Suspense>
-
-                  <div className="plant-map-blueprint-tags" aria-hidden="true">
-                    <span className="process">Secado</span>
-                    <span className="dispatch">Despacho</span>
-                    <span className="trucks">Camiones</span>
-                  </div>
 
                   <div className="plant-map-view-controls" aria-label="Vistas del mapa">
                     {PLANT_MAP_CAMERA_PRESETS.map((preset) => (
