@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.22 - Diagnostico de usuarios
+
+- Las acciones de usuarios leen el cuerpo de error de la Edge Function `manage-users` y muestran el motivo real en lugar del mensaje generico de non-2xx.
+- El diagnostico ahora permite distinguir si falta configurar `SERVICE_ROLE_KEY`, si el usuario no es admin o si falla una tabla/accion especifica.
+
 ## v4.0.21 - Seleccion de objetos sin escala
 
 - Al seleccionar un objeto 3D en `/mapa`, el modelo conserva su tamaño configurado y ya no se agranda visualmente.

@@ -135,7 +135,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.21'
+const APP_VERSION = 'v4.0.22'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -317,6 +317,33 @@ function getPlantMapObjectDefaults(type: PlantMapObjectType) {
 
 function plantMapObjectTypeLabel(type: PlantMapObjectType) {
   return PLANT_MAP_OBJECT_OPTIONS.find((option) => option.value === type)?.label || 'Objeto 3D'
+}
+
+async function getEdgeFunctionErrorMessage(error: unknown, fallback: string) {
+  const context = (error as { context?: Response | { clone?: () => Response; json?: () => Promise<unknown>; text?: () => Promise<string>; status?: number } } | null)?.context
+  if (context) {
+    const response = typeof context.clone === 'function' ? context.clone() : context
+    try {
+      const body = await response.json?.()
+      if (body && typeof body === 'object') {
+        const message = (body as { message?: unknown; error?: unknown; details?: unknown }).message
+          || (body as { message?: unknown; error?: unknown; details?: unknown }).error
+          || (body as { message?: unknown; error?: unknown; details?: unknown }).details
+        if (typeof message === 'string' && message.trim()) return message.trim()
+      }
+    } catch {
+      try {
+        const textResponse = typeof context.clone === 'function' ? context.clone() : context
+        const text = await textResponse.text?.()
+        if (text?.trim()) return text.trim()
+      } catch {
+        // Fall through to the generic error message.
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) return error.message
+  return fallback
 }
 
 function radiansToDegrees(value: number) {
@@ -3637,7 +3664,7 @@ function App() {
       if (error) throw error
       setManagedUsers((data?.users || []) as ManagedUser[])
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudieron cargar los usuarios.'
+      const message = await getEdgeFunctionErrorMessage(error, 'No se pudieron cargar los usuarios.')
       setSyncNotice(`Error de usuarios: ${message}`)
     } finally {
       setUserManagementLoading(false)
@@ -3697,7 +3724,7 @@ function App() {
           setSessionLogs([])
           setSyncNotice(`Registros de sesiones eliminados (${data.deleted || 0}).`)
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'No se pudieron borrar las sesiones.'
+          const message = await getEdgeFunctionErrorMessage(error, 'No se pudieron borrar las sesiones.')
           setSyncNotice(`Error de sesiones: ${message}`)
         } finally {
           setUserManagementLoading(false)
@@ -3720,7 +3747,7 @@ function App() {
       setSyncNotice(`Usuario ${userForm.email} creado.`)
       await loadManagedUsers()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo crear el usuario.'
+      const message = await getEdgeFunctionErrorMessage(error, 'No se pudo crear el usuario.')
       setSyncNotice(`Error al crear usuario: ${message}`)
     } finally {
       setUserManagementLoading(false)
@@ -3749,7 +3776,7 @@ function App() {
           setSyncNotice(`Usuario ${user.email} eliminado.`)
           await loadManagedUsers()
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'No se pudo eliminar el usuario.'
+          const message = await getEdgeFunctionErrorMessage(error, 'No se pudo eliminar el usuario.')
           setSyncNotice(`Error al eliminar usuario: ${message}`)
         } finally {
           setUserManagementLoading(false)
