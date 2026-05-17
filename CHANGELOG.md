@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.14 - Camion doble caja del mapa
+
+- Se agrega `Camion doble caja` al selector de modelos 3D del mapa, con chasis largo, cabina, ruedas y dos cajas de carga.
+- Al seleccionar este modelo, el editor ajusta dimensiones iniciales de camion para que no aparezca aplastado.
+
 ## v4.0.13 - Fallback de modelos importados
 
 - Los objetos con modelo `.glb` seleccionado ya no muestran un cubo temporal si el modelo tarda o falla al cargar.
