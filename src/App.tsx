@@ -148,7 +148,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.14'
+const APP_VERSION = 'v4.0.15'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -205,7 +205,7 @@ const PLANT_MAP_OBJECT_PRESETS: PlantMapObjectPreset[] = [
   { label: 'Marcador', description: 'Referencia vertical', objectType: 'marker', width: 0.55, depth: 0.55, height: 2, color: '#ff5949' },
 ]
 
-const DOUBLE_BOX_TRUCK_MODEL_PATH = '/models/plant/camion-chasis-doble-caja.glb'
+const CLOSED_MODULE_TRUCK_MODEL_PATH = '/models/plant/camion-chasis-doble-caja.glb'
 
 const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
   { value: '', label: 'Sin modelo importado', description: 'Usa la geometria editable generada por la app' },
@@ -213,12 +213,12 @@ const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
   { value: '/models/plant/cinta.glb', label: 'Cinta', description: 'Modelo GLB de cinta transportadora' },
   { value: '/models/plant/cinta-balanza.glb', label: 'Cinta con balanza', description: 'Modelo GLB de cinta con bascula' },
   { value: '/models/plant/persona-durmiendo-carretilla.glb', label: 'Persona durmiendo', description: 'Modelo GLB de persona durmiendo en carretilla' },
-  { value: DOUBLE_BOX_TRUCK_MODEL_PATH, label: 'Camion doble caja', description: 'Modelo GLB de camion con chasis largo y dos cajas de carga' },
+  { value: CLOSED_MODULE_TRUCK_MODEL_PATH, label: 'Camion termo cerrado', description: 'Modelo GLB de camion frontal con modulo de carga cerrado' },
 ]
 
 function getPlantMapModelDefaults(modelPath: string): Partial<PlantMapObject> {
-  if (modelPath === DOUBLE_BOX_TRUCK_MODEL_PATH) {
-    return { objectType: 'truck', width: 9.1, depth: 2.35, height: 2.25, elevation: 0, scale: 1, color: '#d6d2c8' }
+  if (modelPath === CLOSED_MODULE_TRUCK_MODEL_PATH) {
+    return { objectType: 'truck', width: 7.5, depth: 2.35, height: 2.5, elevation: 0, scale: 1, color: '#d6d2c8' }
   }
   return {}
 }

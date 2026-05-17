@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.15 - Camion termo cerrado
+
+- Se reemplaza el camion doble caja por un modelo mas simple: cabina frontal sin trompa y un unico modulo cerrado tipo termo.
+- El selector lo muestra como `Camion termo cerrado` y ajusta dimensiones iniciales mas cortas.
+
 ## v4.0.14 - Camion doble caja del mapa
 
 - Se agrega `Camion doble caja` al selector de modelos 3D del mapa, con chasis largo, cabina, ruedas y dos cajas de carga.
