@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.24 - Usuarios por fetch autenticado
+
+- La carga de usuarios llama a `manage-users` por `fetch` directo con `Authorization` y `apikey` explicitos para evitar que el SDK omita headers.
+- La Edge Function valida el token recibido con el cliente service role y devuelve mensajes mas precisos si falta o expiro la sesion.
+
 ## v4.0.23 - Token explicito en usuarios
 
 - Las llamadas a la Edge Function `manage-users` ahora envian explicitamente el token de sesion del usuario autenticado.

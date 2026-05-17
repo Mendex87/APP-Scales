@@ -37,7 +37,7 @@ import {
   updateCalibrationEventSync,
 } from './repository'
 import { loadChains, loadEquipment, loadEvents, loadPlantMapObjects, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
-import { isSupabaseConfigured, supabase } from './supabase'
+import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
 import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapObject, PlantMapObjectType, PlantMapPoint, SpeedSource } from './types'
 import {
@@ -135,7 +135,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.23'
+const APP_VERSION = 'v4.0.24'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -3705,11 +3705,26 @@ function App() {
     const accessToken = sessionData.session?.access_token
     if (!accessToken) throw new Error('Sesion online expirada. Cerra sesion e ingresa nuevamente.')
 
-    const { data, error } = await supabase.functions.invoke('manage-users', {
-      body,
-      headers: { Authorization: `Bearer ${accessToken}` },
+    const response = await fetch(`${supabaseUrl}/functions/v1/manage-users`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     })
-    if (error) throw error
+
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      const message = data && typeof data === 'object'
+        ? (data as { message?: unknown; error?: unknown; details?: unknown }).message
+          || (data as { message?: unknown; error?: unknown; details?: unknown }).error
+          || (data as { message?: unknown; error?: unknown; details?: unknown }).details
+        : null
+      throw new Error(typeof message === 'string' && message.trim() ? message.trim() : `Error de usuarios (${response.status}).`)
+    }
+
     return data
   }
 

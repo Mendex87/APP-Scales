@@ -20,5 +20,5 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy sync-sheets-event
-        run: supabase functions deploy sync-sheets-event --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Deploy manage-users
+        run: supabase functions deploy manage-users --project-ref "$SUPABASE_PROJECT_ID"

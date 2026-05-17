@@ -14,28 +14,30 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')
 
-    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey) {
       throw new Error('Missing Supabase environment variables.')
     }
 
     const authHeader = req.headers.get('Authorization') || ''
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    })
     const adminClient = createClient(supabaseUrl, serviceRoleKey)
+    const accessToken = authHeader.replace(/^Bearer\s+/i, '').trim()
 
-    const { data: authData, error: authError } = await userClient.auth.getUser()
-    if (authError || !authData.user) {
-      throw new Error('Unauthorized.')
+    if (!accessToken) {
+      throw new Error('Unauthorized: missing session token.')
+    }
+
+    const { data: authData, error: authError } = await adminClient.auth.getUser(accessToken)
+    const authUser = authData.user
+    if (authError || !authUser) {
+      throw new Error(`Unauthorized: ${authError?.message || 'invalid session token'}.`)
     }
 
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
       .select('role')
-      .eq('id', authData.user.id)
+      .eq('id', authUser.id)
       .single()
 
     if (profileError || profile?.role !== 'admin') {
@@ -98,7 +100,7 @@ Deno.serve(async (req) => {
     if (action === 'delete') {
       const userId = String(body.userId || '')
       if (!userId) throw new Error('Missing userId.')
-      if (userId === authData.user.id) throw new Error('You cannot delete your own active user.')
+      if (userId === authUser.id) throw new Error('You cannot delete your own active user.')
 
       const { error } = await adminClient.auth.admin.deleteUser(userId)
       if (error) throw error
