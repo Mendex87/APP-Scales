@@ -135,7 +135,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.22'
+const APP_VERSION = 'v4.0.23'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -3658,10 +3658,7 @@ function App() {
     if (!supabase || !canManageUsers) return
     setUserManagementLoading(true)
     try {
-      const { data, error } = await supabase.functions.invoke('manage-users', {
-        body: { action: 'list' },
-      })
-      if (error) throw error
+      const data = await invokeManageUsers({ action: 'list' })
       setManagedUsers((data?.users || []) as ManagedUser[])
     } catch (error) {
       const message = await getEdgeFunctionErrorMessage(error, 'No se pudieron cargar los usuarios.')
@@ -3701,9 +3698,23 @@ function App() {
     }
   }
 
+  async function invokeManageUsers(body: Record<string, unknown>) {
+    if (!supabase) throw new Error('Servidor online no configurado.')
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) throw sessionError
+    const accessToken = sessionData.session?.access_token
+    if (!accessToken) throw new Error('Sesion online expirada. Cerra sesion e ingresa nuevamente.')
+
+    const { data, error } = await supabase.functions.invoke('manage-users', {
+      body,
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (error) throw error
+    return data
+  }
+
   async function handleClearSessionLogs() {
     if (!supabase || !canManageUsers) return
-    const client = supabase
 
     setConfirmDialog({
       title: 'Borrar registros de sesiones',
@@ -3713,11 +3724,7 @@ function App() {
       onConfirm: async () => {
         setUserManagementLoading(true)
         try {
-          const { data, error } = await client.functions.invoke('manage-users', {
-            body: { action: 'clear_sessions' },
-          })
-
-          if (error) throw error
+          const data = await invokeManageUsers({ action: 'clear_sessions' })
           if (!data?.ok) throw new Error(String(data?.message || 'No se pudieron borrar las sesiones.'))
 
           localStorage.removeItem(SESSION_LOG_ID_KEY)
@@ -3739,10 +3746,7 @@ function App() {
 
     setUserManagementLoading(true)
     try {
-      const { error } = await supabase.functions.invoke('manage-users', {
-        body: { action: 'create', ...userForm },
-      })
-      if (error) throw error
+      await invokeManageUsers({ action: 'create', ...userForm })
       setUserForm({ email: '', username: '', password: '', role: 'viewer' })
       setSyncNotice(`Usuario ${userForm.email} creado.`)
       await loadManagedUsers()
@@ -3756,7 +3760,6 @@ function App() {
 
   async function handleDeleteUser(user: ManagedUser) {
     if (!supabase || !canManageUsers) return
-    const client = supabase
     if (user.id === currentUser?.id) {
       setSyncNotice('No podés eliminar tu propio usuario activo.')
       return
@@ -3769,10 +3772,7 @@ function App() {
       onConfirm: async () => {
         setUserManagementLoading(true)
         try {
-          const { error } = await client.functions.invoke('manage-users', {
-            body: { action: 'delete', userId: user.id },
-          })
-          if (error) throw error
+          await invokeManageUsers({ action: 'delete', userId: user.id })
           setSyncNotice(`Usuario ${user.email} eliminado.`)
           await loadManagedUsers()
         } catch (error) {

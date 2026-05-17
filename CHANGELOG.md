@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.23 - Token explicito en usuarios
+
+- Las llamadas a la Edge Function `manage-users` ahora envian explicitamente el token de sesion del usuario autenticado.
+- Si la sesion online ya no existe, Usuarios muestra una indicacion para cerrar sesion e ingresar nuevamente en lugar de fallar como `Unauthorized`.
+
 ## v4.0.22 - Diagnostico de usuarios
 
 - Las acciones de usuarios leen el cuerpo de error de la Edge Function `manage-users` y muestran el motivo real en lugar del mensaje generico de non-2xx.
