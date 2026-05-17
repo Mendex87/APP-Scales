@@ -78,8 +78,8 @@ function getObjectScale(object: PlantMapObject) {
   return Math.min(3, Math.max(0.25, object.scale))
 }
 
-function applyObjectScale(group: THREE.Group, object: PlantMapObject, selected: boolean) {
-  group.scale.setScalar(getObjectScale(object) * (selected ? 1.08 : 1))
+function applyObjectScale(group: THREE.Group, object: PlantMapObject) {
+  group.scale.setScalar(getObjectScale(object))
 }
 
 function getObjectColor(object: PlantMapObject, fallback: number) {
@@ -113,8 +113,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, initialView, 
     groupsRef.current.forEach((group, objectId) => {
       const object = objects.find((item) => item.id === objectId)
       if (!object) return
-      const selected = objectId === selectedObjectId
-      applyObjectScale(group, object, selected)
+      applyObjectScale(group, object)
     })
   }, [objects, selectedObjectId])
 
@@ -139,7 +138,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, initialView, 
       group.position.y = object.elevation
       group.position.z = object.z
       group.rotation.y = object.rotationY
-      applyObjectScale(group, object, object.id === selectedObjectIdRef.current)
+      applyObjectScale(group, object)
     })
   }, [objects])
 
@@ -342,7 +341,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, initialView, 
         const group = new THREE.Group()
         group.position.set(object.x, object.elevation, object.z)
         group.rotation.y = object.rotationY
-        applyObjectScale(group, object, object.id === selectedObjectIdRef.current)
+        applyObjectScale(group, object)
         group.userData.objectId = object.id
         plant.add(group)
         groupsRef.current.set(object.id, group)

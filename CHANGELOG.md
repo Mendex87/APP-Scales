@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.21 - Seleccion de objetos sin escala
+
+- Al seleccionar un objeto 3D en `/mapa`, el modelo conserva su tamaño configurado y ya no se agranda visualmente.
+- La seleccion sigue funcionando para editar, mover o vincular puntos sin alterar la escala percibida del layout.
+
 ## v4.0.20 - Estados con fondo diagonal
 
 - Las tarjetas de balanzas e historial refuerzan el estado con fondos diagonales en verde, naranja, rojo o gris.
