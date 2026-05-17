@@ -148,7 +148,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.11'
+const APP_VERSION = 'v4.0.12'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -210,6 +210,7 @@ const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
   { value: '/models/plant/silo.glb', label: 'Silo', description: 'Modelo GLB de silo' },
   { value: '/models/plant/cinta.glb', label: 'Cinta', description: 'Modelo GLB de cinta transportadora' },
   { value: '/models/plant/cinta-balanza.glb', label: 'Cinta con balanza', description: 'Modelo GLB de cinta con bascula' },
+  { value: '/models/plant/persona-durmiendo-carretilla.glb', label: 'Persona durmiendo', description: 'Modelo GLB de persona durmiendo en carretilla' },
 ]
 
 const DEFAULT_PLANT_MAP_CAMERA_VIEW: PlantMapCameraView = { position: [28, 20, 31], target: [0, 0, 0], zoom: 1 }

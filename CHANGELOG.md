@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.0.12 - Modelo adicional del mapa
+
+- El selector de modelos 3D del mapa suma `Persona durmiendo`, cargado desde `public/models/plant/persona-durmiendo-carretilla.glb`.
+
 ## v4.0.11 - Banda compacta del mapa
 
 - La tarjeta de estado del mapa pasa arriba como banda horizontal compacta de ancho completo.
