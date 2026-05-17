@@ -119,6 +119,15 @@ type PlantMapCameraPreset = {
   view: PlantMapCameraView
 }
 
+type PlantMapPlantId = 'secado' | 'lavado'
+
+type PlantMapPlantOption = {
+  value: PlantMapPlantId
+  label: string
+  description: string
+  available: boolean
+}
+
 type ObjectScreenPosition = { x: number; y: number }
 
 type ManagedUser = AuthUser & {
@@ -135,7 +144,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.25'
+const APP_VERSION = 'v4.0.26'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -150,6 +159,11 @@ const PLANT_MAP_SCENE_LIMIT = 18
 const PLANT_MAP_PERCENT_PER_SCENE_UNIT = 100 / (PLANT_MAP_SCENE_LIMIT * 2)
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 const Plant3DScene = lazy(() => import('./components/Plant3DScene').then((module) => ({ default: module.Plant3DScene })))
+
+const PLANT_MAP_PLANT_OPTIONS: PlantMapPlantOption[] = [
+  { value: 'secado', label: 'Secado', description: 'Mapa 3D cargado actualmente.', available: true },
+  { value: 'lavado', label: 'Lavado', description: 'Mapa pendiente de construir.', available: false },
+]
 
 const PLANT_MAP_OBJECT_OPTIONS: Array<{ value: PlantMapObjectType; label: string }> = [
   { value: 'block', label: 'Bloque / edificio' },
@@ -1314,6 +1328,7 @@ function App() {
   const [plantMapSource, setPlantMapSource] = useState<'local' | 'supabase'>('local')
   const [selectedPlantPointId, setSelectedPlantPointId] = useState('')
   const [selectedPlantObjectId, setSelectedPlantObjectId] = useState('')
+  const [selectedPlantMapPlant, setSelectedPlantMapPlant] = useState<PlantMapPlantId>('secado')
   const [plantMapCreateOpen, setPlantMapCreateOpen] = useState(false)
   const [plantMapObjectForm, setPlantMapObjectForm] = useState<PlantMapObjectForm>(DEFAULT_PLANT_MAP_OBJECT_FORM)
   const [plantMapGlobalMoveStep, setPlantMapGlobalMoveStep] = useState('1')
@@ -2057,6 +2072,7 @@ function App() {
   const selectedPlantPoint = activePlantMapPoints.find((point) => point.id === selectedPlantPointId) || activePlantMapPoints[0]
   const selectedPlantPointStatus = selectedPlantPoint ? plantMapStatusById.get(selectedPlantPoint.id) : undefined
   const selectedPlantObject = activePlantMapObjects.find((object) => object.id === selectedPlantObjectId) || activePlantMapObjects[0]
+  const selectedPlantMapOption = PLANT_MAP_PLANT_OPTIONS.find((option) => option.value === selectedPlantMapPlant) || PLANT_MAP_PLANT_OPTIONS[0]
   const freePlantMapPointCount = useMemo(() => activePlantMapPoints.filter((point) => !point.objectId).length, [activePlantMapPoints])
   const plantMapStatusCounts = useMemo(() => {
     return activePlantMapPoints.reduce(
@@ -4279,8 +4295,8 @@ function App() {
             <div className="screen-banner plant-map-banner">
               <div>
                 <span className="section-kicker">Mapa operativo</span>
-                <h2>Planta de secado y despacho</h2>
-                <p>Vista isometrica de puntos de balanzas y basculas. Los colores indican estado actual, vencimiento o falta de vinculacion.</p>
+                <h2>Mapa operativo de planta</h2>
+                <p>Vista isometrica de puntos de balanzas y basculas. Selecciona la planta para consultar el layout disponible.</p>
               </div>
               <div className="row compact-actions plant-map-banner-actions">
                 <button className="secondary" type="button" onClick={() => setScreen('dashboard')}>Volver al inicio</button>
@@ -4303,10 +4319,21 @@ function App() {
             <div className={`plant-map-layout ${plantMapEditing ? 'editing' : ''}`}>
               <div className="card plant-map-board">
                 <div className="row wrap plant-map-board-head">
-                  <div>
-                    <span className="section-kicker">Layout Noviembre 2024</span>
-                    <h2>Mapa fijo de sectores principales</h2>
-                    <p className="hint">Preview 3D de planta: sectores, despachos y puntos operativos interactivos.</p>
+                  <div className="plant-map-plant-picker">
+                    <span className="section-kicker">Planta seleccionada</span>
+                    <label className="label" htmlFor="plant-map-plant-select">Mapa disponible</label>
+                    <select
+                      id="plant-map-plant-select"
+                      className="input plant-map-plant-select"
+                      value={selectedPlantMapPlant}
+                      onChange={(event) => setSelectedPlantMapPlant(event.target.value as PlantMapPlantId)}
+                      disabled={plantMapEditing}
+                    >
+                      {PLANT_MAP_PLANT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value} disabled={!option.available}>{option.label}{option.available ? '' : ' (pendiente)'}</option>
+                      ))}
+                    </select>
+                    <p className="hint">{selectedPlantMapOption.description}</p>
                   </div>
                   <div className="plant-map-legend" aria-label="Leyenda de estados">
                     <span className="plant-status-key success">Al dia</span>

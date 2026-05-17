@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.26 - Selector de planta en mapa
+
+- Se reemplaza el texto fijo `Layout Noviembre 2024` / `Mapa fijo de sectores principales` por un selector de planta.
+- El mapa actual queda identificado como `Secado` y `Lavado` aparece preparado como planta pendiente de construir.
+- El encabezado principal de `/mapa` queda mas generico para soportar multiples plantas.
+
 ## v4.0.25 - Modelo GLB de tolva
 
 - Se agrega `tolva.glb` a los modelos publicos de planta para la preview.
