@@ -274,18 +274,19 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         const context = canvas.getContext('2d')
         if (!context) return
         const pixelRatio = 2
-        const paddingX = 22
-        const paddingY = 12
-        context.font = '700 34px Arial, sans-serif'
+        const fontSize = 24
+        const paddingX = 14
+        const paddingY = 7
+        context.font = `700 ${fontSize}px Arial, sans-serif`
         const textWidth = Math.ceil(context.measureText(text).width)
         canvas.width = (textWidth + paddingX * 2) * pixelRatio
-        canvas.height = (34 + paddingY * 2) * pixelRatio
+        canvas.height = (fontSize + paddingY * 2) * pixelRatio
         context.scale(pixelRatio, pixelRatio)
-        context.font = '700 34px Arial, sans-serif'
-        context.fillStyle = 'rgba(12, 11, 17, 0.82)'
+        context.font = `700 ${fontSize}px Arial, sans-serif`
+        context.fillStyle = 'rgba(12, 11, 17, 0.66)'
         context.fillRect(0, 0, canvas.width / pixelRatio, canvas.height / pixelRatio)
-        context.strokeStyle = 'rgba(255, 89, 73, 0.95)'
-        context.lineWidth = 2
+        context.strokeStyle = 'rgba(255, 89, 73, 0.62)'
+        context.lineWidth = 1
         context.strokeRect(1, 1, canvas.width / pixelRatio - 2, canvas.height / pixelRatio - 2)
         context.fillStyle = '#f8f6ef'
         context.textBaseline = 'middle'
@@ -297,7 +298,7 @@ export function Plant3DScene({ objects, editing, selectedObjectId, onObjectMove,
         materials.push(spriteMaterial)
         const sprite = new THREE.Sprite(spriteMaterial)
         sprite.position.set(x, y, z)
-        sprite.scale.set((canvas.width / pixelRatio / 85) * scale, (canvas.height / pixelRatio / 85) * scale, 1)
+        sprite.scale.set((canvas.width / pixelRatio / 130) * scale, (canvas.height / pixelRatio / 130) * scale, 1)
         sprite.renderOrder = 10
         parent.add(sprite)
       }

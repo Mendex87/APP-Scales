@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.9 - Etiquetas compactas del mapa
+
+- El mapa 3D reduce el tamaño y contraste de los nombres de objetos para que no tapen la planta.
+- Los puntos de balanza usan marcador y etiqueta mas compactos, manteniendo la seleccion y el estado visual.
+
 ## v4.0.8 - Selector de modelos del mapa
 
 - El editor de mapa reemplaza la carga manual de ruta `.glb` por un desplegable con modelos 3D disponibles: silo, cinta y cinta con balanza.

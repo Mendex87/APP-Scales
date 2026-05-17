@@ -2238,8 +2238,8 @@ body::before {
   z-index: 20;
   display: grid;
   justify-items: center;
-  gap: 0.25rem;
-  min-width: 7.2rem;
+  gap: 0.16rem;
+  min-width: 5.4rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2282,43 +2282,43 @@ body::before {
 
 .plant-map-point.linked-object .plant-point-dot {
   box-shadow:
-    0 0 0 0.35rem var(--point-bg),
-    0 0 0 0.62rem rgba(255, 89, 73, 0.18),
-    0 0.65rem 1.1rem rgba(12, 11, 17, 0.22);
+    0 0 0 0.24rem var(--point-bg),
+    0 0 0 0.42rem rgba(255, 89, 73, 0.16),
+    0 0.45rem 0.8rem rgba(12, 11, 17, 0.2);
 }
 
 .plant-point-dot {
-  width: 1.35rem;
-  height: 1.35rem;
-  border: 3px solid var(--color-paper-strong);
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-paper-strong);
   border-radius: 999px;
   background: var(--point-color);
-  box-shadow: 0 0 0 0.35rem var(--point-bg), 0 0.65rem 1.1rem rgba(12, 11, 17, 0.22);
+  box-shadow: 0 0 0 0.24rem var(--point-bg), 0 0.45rem 0.8rem rgba(12, 11, 17, 0.2);
 }
 
 .plant-map-point.selected .plant-point-dot {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 0.22rem;
+  outline: 1px solid var(--color-ink);
+  outline-offset: 0.2rem;
 }
 
 .plant-point-label {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.6rem;
-  padding: 0.18rem 0.5rem;
+  min-height: 1.25rem;
+  padding: 0.12rem 0.36rem;
   border: 1px solid rgba(12, 11, 17, 0.16);
   border-radius: 999px;
-  background: rgba(250, 249, 246, 0.92);
+  background: rgba(250, 249, 246, 0.82);
   color: var(--color-ink);
   font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.64rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.035em;
   line-height: 1;
   text-transform: uppercase;
   white-space: nowrap;
-  box-shadow: 0 0.45rem 0.9rem rgba(12, 11, 17, 0.1);
+  box-shadow: 0 0.3rem 0.65rem rgba(12, 11, 17, 0.08);
 }
 
 .plant-map-footer {
@@ -4695,16 +4695,17 @@ body::before {
   }
 
   .plant-map-point {
-    min-width: 5.6rem;
+    min-width: 4.8rem;
   }
 
   .plant-point-dot {
-    width: 1.15rem;
-    height: 1.15rem;
+    width: 0.95rem;
+    height: 0.95rem;
   }
 
   .plant-point-label {
-    max-width: 6.8rem;
+    max-width: 5.8rem;
+    font-size: 0.58rem;
     white-space: normal;
     text-align: center;
   }
