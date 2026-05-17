@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.8 - Selector de modelos del mapa
+
+- El editor de mapa reemplaza la carga manual de ruta `.glb` por un desplegable con modelos 3D disponibles: silo, cinta y cinta con balanza.
+- Los objetos conservan internamente `model_path`, pero el administrador ya no necesita ver ni pegar rutas para probar modelos importados.
+
 ## v4.0.7 - Mapa normal ampliado
 
 - La vista normal de `/mapa` usa el ancho completo para la planta 3D y mueve el detalle del punto debajo, dejando el panel lateral reservado para modo edicion.

@@ -119,6 +119,12 @@ type PlantMapObjectPreset = {
   slope?: number
 }
 
+type PlantMapModelOption = {
+  value: string
+  label: string
+  description: string
+}
+
 type ObjectScreenPosition = { x: number; y: number }
 
 type ManagedUser = AuthUser & {
@@ -135,7 +141,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.7'
+const APP_VERSION = 'v4.0.8'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -190,6 +196,13 @@ const PLANT_MAP_OBJECT_PRESETS: PlantMapObjectPreset[] = [
   { label: 'Zona operativa', description: 'Area coloreada editable', objectType: 'zone', width: 5.8, depth: 4.8, height: 0.05, elevation: 0.03, color: '#c98500' },
   { label: 'Piso/base', description: 'Plataforma principal', objectType: 'floor', width: 14, depth: 8, height: 0.12, elevation: -0.06, color: '#d6d2c8' },
   { label: 'Marcador', description: 'Referencia vertical', objectType: 'marker', width: 0.55, depth: 0.55, height: 2, color: '#ff5949' },
+]
+
+const PLANT_MAP_MODEL_OPTIONS: PlantMapModelOption[] = [
+  { value: '', label: 'Sin modelo importado', description: 'Usa la geometria editable generada por la app' },
+  { value: '/models/plant/silo.glb', label: 'Silo', description: 'Modelo GLB de silo' },
+  { value: '/models/plant/cinta.glb', label: 'Cinta', description: 'Modelo GLB de cinta transportadora' },
+  { value: '/models/plant/cinta-balanza.glb', label: 'Cinta con balanza', description: 'Modelo GLB de cinta con bascula' },
 ]
 
 function getToastTone(message: string): ToastTone {
@@ -4401,7 +4414,23 @@ function App() {
                               </select>
                             </div>
                             <div className="compact-top">
-                              <Field label="Modelo .glb" value={selectedPlantObject.modelPath} onChange={(value) => handlePlantMapObjectModelPathChange(selectedPlantObject.id, value)} disabled={!plantMapEditing || currentUser.role !== 'admin'} hint="Ejemplo: /models/plant/silo.glb" />
+                              <label className="label">Modelo 3D</label>
+                              <select
+                                className="input"
+                                value={selectedPlantObject.modelPath}
+                                onChange={(event) => handlePlantMapObjectModelPathChange(selectedPlantObject.id, event.target.value)}
+                                disabled={!plantMapEditing || currentUser.role !== 'admin'}
+                              >
+                                {selectedPlantObject.modelPath && !PLANT_MAP_MODEL_OPTIONS.some((option) => option.value === selectedPlantObject.modelPath) && (
+                                  <option value={selectedPlantObject.modelPath}>Modelo personalizado actual</option>
+                                )}
+                                {PLANT_MAP_MODEL_OPTIONS.map((option) => (
+                                  <option key={option.value || 'none'} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                              <p className="hint compact-top">
+                                {PLANT_MAP_MODEL_OPTIONS.find((option) => option.value === selectedPlantObject.modelPath)?.description || 'Modelo importado desde la carpeta de modelos de planta.'}
+                              </p>
                             </div>
                           </PlantEditorSection>
 
