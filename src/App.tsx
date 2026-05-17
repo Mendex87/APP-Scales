@@ -148,7 +148,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.15'
+const APP_VERSION = 'v4.0.16'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -2060,6 +2060,11 @@ function App() {
     setPlantMapDraftPoints((current) => current.map((point) => (point.id === pointId ? { ...point, ...changes } : point)))
   }
 
+  function handlePlantMapPointLabelChange(pointId: string, label: string) {
+    if (!plantMapEditing || currentUser?.role !== 'admin') return
+    updatePlantMapDraftPoint(pointId, { label })
+  }
+
   function updatePlantMapDraftObject(objectId: string, changes: Partial<PlantMapObject>) {
     setPlantMapDraftObjects((current) => current.map((object) => (object.id === objectId ? { ...object, ...changes } : object)))
   }
@@ -2069,7 +2074,7 @@ function App() {
     setPlantMapSaving(true)
     try {
       const savedAt = new Date().toISOString()
-      const nextPoints = plantMapDraftPoints.map((point) => ({ ...point, updatedAt: savedAt }))
+      const nextPoints = plantMapDraftPoints.map((point) => ({ ...point, label: point.label.trim() || 'Punto operativo', updatedAt: savedAt }))
       const nextObjects = plantMapDraftObjects.map((object) => ({ ...object, updatedAt: savedAt }))
       const [pointsResult, objectsResult] = await Promise.all([
         savePlantMapPointsRecord(nextPoints),
@@ -4377,6 +4382,17 @@ function App() {
                         />
                         <p className="hint compact-top">Alerta amarilla a {ANNUAL_SCALE_WARNING_DAYS} dias del vencimiento anual.</p>
                       </div>
+                    )}
+
+                    {plantMapEditing && currentUser.role === 'admin' && (
+                      <PlantEditorSection title="Punto" hint="nombre visible" defaultOpen>
+                        <Field
+                          label="Nombre visible en mapa"
+                          value={selectedPlantPoint.label}
+                          onChange={(value) => handlePlantMapPointLabelChange(selectedPlantPoint.id, value)}
+                          hint="Renombra la etiqueta del punto; no cambia la balanza vinculada."
+                        />
+                      </PlantEditorSection>
                     )}
 
                     {plantMapEditing && currentUser.role === 'admin' && (

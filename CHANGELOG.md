@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.16 - Nombres editables de puntos
+
+- El editor admin del mapa permite cambiar el nombre visible de cada punto operativo sin modificar la balanza vinculada ni el objeto 3D.
+- La etiqueta actualizada se refleja en el marcador del mapa y en la banda de estado al guardar la edicion.
+
 ## v4.0.15 - Camion termo cerrado
 
 - Se reemplaza el camion doble caja por un modelo mas simple: cabina frontal sin trompa y un unico modulo cerrado tipo termo.
