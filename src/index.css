@@ -2730,8 +2730,7 @@ body::before {
 
 .plant-map-detail.editing .plant-map-admin-field,
 .plant-map-detail.editing .plant-object-create-form,
-.plant-map-detail.editing .plant-map-admin-field.nested,
-.plant-map-detail.editing .plant-map-presets {
+.plant-map-detail.editing .plant-map-admin-field.nested {
   padding: 0.42rem;
   border-color: rgba(12, 11, 17, 0.11);
   border-radius: calc(var(--radius) * 0.62);
@@ -2899,88 +2898,41 @@ body::before {
   justify-content: flex-start;
 }
 
-.plant-map-presets {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0.65rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--color-paper-strong);
+.plant-global-controls {
+  align-items: end;
 }
 
-.plant-map-presets-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
+.plant-map-detail.editing .plant-global-controls .check-field {
+  min-height: 1.95rem;
+  padding: 0.28rem 0.45rem;
+  gap: 0.45rem;
+  border-radius: calc(var(--radius) * 0.48);
+  background: color-mix(in srgb, var(--color-paper-strong) 72%, transparent);
+  font-size: 0.76rem;
 }
 
-.plant-map-presets-head span,
-.plant-map-preset strong {
-  font-family: "Barlow Condensed", Inter, sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
+.plant-map-detail.editing .plant-global-controls .check-field input {
+  width: 16px;
+  height: 16px;
 }
 
-.plant-map-presets-head small,
-.plant-map-preset small {
-  color: var(--color-grey-500);
-  font-size: 0.72rem;
-}
-
-.plant-map-preset-grid {
+.plant-map-nudge-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.38rem;
+  gap: 0.3rem;
 }
 
-.plant-map-preset {
-  min-height: 3.5rem;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  align-items: center;
-  gap: 0.1rem 0.42rem;
-  padding: 0.46rem;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) * 0.72);
-  background: var(--surface-muted);
-  color: var(--color-ink);
-  text-align: left;
-  cursor: pointer;
-  transition: transform var(--motion-fast) var(--ease-industrial), border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+.plant-map-nudge-grid button,
+.plant-editor-wide-action {
+  width: 100%;
+  justify-content: center;
 }
 
-.plant-map-preset:hover,
-.plant-map-preset:focus-visible {
-  transform: translateY(-1px);
-  border-color: var(--color-orange);
-  background: color-mix(in srgb, var(--color-orange) 8%, var(--surface-muted));
-}
-
-.plant-map-preset-swatch {
-  grid-row: 1 / span 2;
-  width: 0.82rem;
-  height: 2.2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(12, 11, 17, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
-}
-
-.plant-map-preset strong,
-.plant-map-preset small {
-  min-width: 0;
-}
-
-.plant-map-detail.editing .plant-map-preset {
-  min-height: 3rem;
-  padding: 0.36rem;
-}
-
-.plant-map-detail.editing .plant-map-preset small,
-.plant-map-detail.editing .plant-map-presets-head small {
-  font-size: 0.66rem;
+.plant-map-editor-note {
+  margin: 0.38rem 0 0;
+  color: var(--color-grey-500);
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .plant-object-controls .field-shell {

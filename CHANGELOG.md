@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.0.19 - Edicion global del mapa
+
+- El editor de `/mapa` suma un ajuste global para desplazar todos los objetos 3D juntos por eje X/Z.
+- Se agrega la opcion de mover puntos libres junto con el ajuste global, manteniendo los puntos vinculados siguiendo a su objeto.
+- El menu admin del mapa separa ajuste global, creacion de objetos, edicion del objeto seleccionado y acciones destructivas.
+- Se retira la seccion de presets industriales del menu; los objetos existentes del mapa se conservan sin cambios.
+- La creacion de objetos permite elegir modelo 3D desde el inicio, ademas de nombre, tipo y color.
+
 ## v4.0.18 - Modelos visibles en selector
 
 - El selector de modelos 3D suma `Galpon`, `Camion cabina frontal` y `Camion doble caja largo`.
