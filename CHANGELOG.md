@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.17 - Entorno tecnico del mapa
+
+- La pantalla `/mapa` suma una ambientacion de plano tecnico industrial alrededor de la planta 3D.
+- El board incorpora una barra compacta con fuente de datos, ultima actualizacion, puntos vinculados y alertas.
+- El canvas agrega rotulos de zonas y un marco visual mas integrado para que el mapa no se perciba vacio.
+
 ## v4.0.16 - Nombres editables de puntos
 
 - El editor admin del mapa permite cambiar el nombre visible de cada punto operativo sin modificar la balanza vinculada ni el objeto 3D.

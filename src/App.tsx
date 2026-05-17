@@ -148,7 +148,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.16'
+const APP_VERSION = 'v4.0.17'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -2038,6 +2038,13 @@ function App() {
       { success: 0, warning: 0, danger: 0, neutral: 0 },
     )
   }, [activePlantMapPoints, plantMapStatusById])
+  const plantMapLinkedEquipmentCount = useMemo(() => activePlantMapPoints.filter((point) => Boolean(point.equipmentId)).length, [activePlantMapPoints])
+  const plantMapLastUpdatedText = useMemo(() => {
+    const timestamps = [...activePlantMapPoints.map((point) => point.updatedAt), ...activePlantMapObjects.map((object) => object.updatedAt)].filter(Boolean)
+    if (!timestamps.length) return '-'
+    const latest = timestamps.reduce((currentLatest, item) => (new Date(item).getTime() > new Date(currentLatest).getTime() ? item : currentLatest), timestamps[0])
+    return formatDateTime(latest)
+  }, [activePlantMapObjects, activePlantMapPoints])
 
   function startPlantMapEditing() {
     if (currentUser?.role !== 'admin') return
@@ -4255,6 +4262,13 @@ function App() {
                   </div>
                 </div>
 
+                <div className="plant-map-context-rail" aria-label="Contexto operativo del mapa">
+                  <div><span>Fuente</span><strong>{plantMapSource === 'supabase' ? 'Servidor online' : 'Datos locales'}</strong></div>
+                  <div><span>Actualizado</span><strong>{plantMapLastUpdatedText}</strong></div>
+                  <div><span>Balanzas vinculadas</span><strong>{plantMapLinkedEquipmentCount}/{activePlantMapPoints.length}</strong></div>
+                  <div><span>Alertas</span><strong>{plantMapStatusCounts.warning + plantMapStatusCounts.danger}</strong></div>
+                </div>
+
                 <div className={`plant-map-canvas ${plantMapEditing ? 'editing' : ''}`} ref={plantMapCanvasRef}>
                   <Suspense fallback={<div className="plant-map-webgl-fallback">Cargando modelo 3D...</div>}>
                     <Plant3DScene
@@ -4270,6 +4284,12 @@ function App() {
                       onViewChange={handlePlantMapViewChange}
                     />
                   </Suspense>
+
+                  <div className="plant-map-blueprint-tags" aria-hidden="true">
+                    <span className="process">Secado</span>
+                    <span className="dispatch">Despacho</span>
+                    <span className="trucks">Camiones</span>
+                  </div>
 
                   <div className="plant-map-view-controls" aria-label="Vistas del mapa">
                     {PLANT_MAP_CAMERA_PRESETS.map((preset) => (
