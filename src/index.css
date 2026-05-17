@@ -1573,9 +1573,34 @@ body::before {
 .plant-map-layout {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 1rem;
+}
+
+.plant-map-layout:not(.editing) .plant-map-board {
+  width: 100%;
+}
+
+.plant-map-layout:not(.editing) .plant-map-detail {
+  position: static;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.plant-map-layout:not(.editing) .plant-map-detail > .section-kicker,
+.plant-map-layout:not(.editing) .plant-map-detail > h2,
+.plant-map-layout:not(.editing) .plant-map-detail > p.hint {
+  grid-column: 1;
+}
+
+.plant-map-layout:not(.editing) .plant-map-detail > .grid.two.compact-top,
+.plant-map-layout:not(.editing) .plant-map-detail .plant-linked-equipment,
+.plant-map-layout:not(.editing) .plant-map-detail .plant-map-detail-actions,
+.plant-map-layout:not(.editing) .plant-map-detail .empty-state {
+  grid-column: 2;
 }
 
 .plant-map-layout.editing {
@@ -1658,7 +1683,7 @@ body::before {
 
 .plant-map-canvas {
   position: relative;
-  min-height: 760px;
+  min-height: clamp(820px, 76vh, 1040px);
   margin-top: 1rem;
   overflow: hidden;
   border: 1px solid var(--border-strong);
@@ -4329,6 +4354,20 @@ body::before {
 
   .plant-map-detail {
     position: static;
+  }
+
+  .plant-map-layout:not(.editing) .plant-map-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .plant-map-layout:not(.editing) .plant-map-detail > .section-kicker,
+  .plant-map-layout:not(.editing) .plant-map-detail > h2,
+  .plant-map-layout:not(.editing) .plant-map-detail > p.hint,
+  .plant-map-layout:not(.editing) .plant-map-detail > .grid.two.compact-top,
+  .plant-map-layout:not(.editing) .plant-map-detail .plant-linked-equipment,
+  .plant-map-layout:not(.editing) .plant-map-detail .plant-map-detail-actions,
+  .plant-map-layout:not(.editing) .plant-map-detail .empty-state {
+    grid-column: auto;
   }
 
   .primary-dashboard-card {

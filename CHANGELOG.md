@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.7 - Mapa normal ampliado
+
+- La vista normal de `/mapa` usa el ancho completo para la planta 3D y mueve el detalle del punto debajo, dejando el panel lateral reservado para modo edicion.
+- El canvas 3D normal aumenta su altura para que el mapa de planta sea el foco principal fuera de la edicion.
+
 ## v4.0.6 - Guardado de puntos libres del mapa
 
 - El guardado del mapa conserva `object_id` como texto vacio cuando un punto operativo no esta vinculado a un objeto 3D, evitando errores de restriccion en el servidor online.
