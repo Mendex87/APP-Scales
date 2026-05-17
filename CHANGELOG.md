@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.11 - Banda compacta del mapa
+
+- La tarjeta de estado del mapa pasa arriba como banda horizontal compacta de ancho completo.
+- Los controles de vista quedan mas chicos y ubicados abajo para no competir con los datos operativos.
+- La vista normal elimina el panel de detalle externo; las acciones rapidas quedan dentro del mapa.
+
 ## v4.0.10 - Navegacion y estado del mapa
 
 - El mapa 3D conserva la camara al crear objetos o editar dimensiones/modelos, evitando volver al punto inicial.

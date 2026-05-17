@@ -148,7 +148,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.10'
+const APP_VERSION = 'v4.0.11'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -4283,10 +4283,12 @@ function App() {
                   })}
 
                   {selectedPlantPoint && selectedPlantPointStatus && !plantMapEditing && (
-                    <div className={`plant-map-status-card status-${selectedPlantPointStatus.rowClass || 'neutral'}`} role="status" aria-live="polite">
-                      <span className="section-kicker">{plantMapPointTypeLabel(selectedPlantPoint.pointType)}</span>
-                      <h3>{selectedPlantPoint.label}</h3>
-                      <p>{selectedPlantPoint.zone} · {selectedPlantPointStatus.detail || 'Sin estado disponible.'}</p>
+                    <div className={`plant-map-status-card status-${selectedPlantPointStatus.rowClass || 'neutral'} ${selectedPlantPointStatus.equipment ? 'has-equipment' : 'no-equipment'}`} role="status" aria-live="polite">
+                      <div className="plant-map-status-heading">
+                        <span className="section-kicker">{plantMapPointTypeLabel(selectedPlantPoint.pointType)}</span>
+                        <h3>{selectedPlantPoint.label}</h3>
+                        <p>{selectedPlantPoint.zone} · {selectedPlantPointStatus.detail || 'Sin estado disponible.'}</p>
+                      </div>
                       <div className="plant-map-status-card-grid">
                         <span><small>Estado</small><strong>{selectedPlantPointStatus.label || '-'}</strong></span>
                         <span><small>Dias</small><strong>{selectedPlantPointStatus.daysText || '-'}</strong></span>
@@ -4298,6 +4300,12 @@ function App() {
                           <span>Equipo vinculado</span>
                           <strong>{selectedPlantPointStatus.equipment.plant} / {selectedPlantPointStatus.equipment.line} / {selectedPlantPointStatus.equipment.beltCode}</strong>
                           <p>{selectedPlantPointStatus.equipment.scaleName}</p>
+                        </div>
+                      )}
+                      {selectedPlantPointStatus.equipment && (
+                        <div className="plant-map-status-actions">
+                          {canOperate && <button className="primary small" type="button" onClick={() => primeEventForm(selectedPlantPointStatus.equipment!)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva</button>}
+                          <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(selectedPlantPointStatus.equipment!.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
                         </div>
                       )}
                     </div>
@@ -4314,7 +4322,7 @@ function App() {
                 {plantMapEditing && <p className="hint compact-top">Modo edicion activo: arrastra puntos, ajusta vinculos o fechas y confirma con Guardar edicion.</p>}
               </div>
 
-              <aside className={`card plant-map-detail ${plantMapEditing ? 'editing' : ''} status-${selectedPlantPointStatus?.rowClass || 'neutral'}`}>
+              {plantMapEditing && <aside className={`card plant-map-detail ${plantMapEditing ? 'editing' : ''} status-${selectedPlantPointStatus?.rowClass || 'neutral'}`}>
                 {selectedPlantPoint ? (
                   <>
                     <span className="section-kicker">{plantMapPointTypeLabel(selectedPlantPoint.pointType)}</span>
@@ -4529,7 +4537,7 @@ function App() {
                 ) : (
                   <div className="empty-state">No hay puntos de mapa cargados.</div>
                 )}
-              </aside>
+              </aside>}
             </div>
           </section>
         )}
