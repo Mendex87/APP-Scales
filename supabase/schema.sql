@@ -178,37 +178,6 @@ update public.plant_map_points
 set object_id = ''
 where object_id is null;
 
-insert into public.plant_map_points (id, label, zone, point_type, x, y, object_id)
-values
-  ('cinta-23', 'Cinta 23', 'Transporte principal', 'belt_scale', 30, 57, 'belt-cinta-23'),
-  ('horno-1', 'Horno 1', 'Secado', 'kiln_scale', 36, 40, 'kiln-1'),
-  ('horno-2', 'Horno 2', 'Secado', 'kiln_scale', 47, 37, 'kiln-2'),
-  ('horno-3', 'Horno 3', 'Secado', 'kiln_scale', 58, 34, 'kiln-3'),
-  ('despacho-1', 'Despacho 1', 'Despacho', 'dispatch_scale', 68, 57, 'dispatch-1'),
-  ('despacho-2', 'Despacho 2', 'Despacho', 'dispatch_scale', 75, 53, 'dispatch-2'),
-  ('despacho-3', 'Despacho 3', 'Despacho', 'dispatch_scale', 82, 49, 'dispatch-3'),
-  ('despacho-4', 'Despacho 4', 'Despacho', 'dispatch_scale', 89, 45, 'dispatch-4'),
-  ('bascula-1', 'Báscula 1', 'Ingreso camiones', 'truck_scale', 66, 78, 'truck-scale-1'),
-  ('bascula-2', 'Báscula 2', 'Egreso camiones', 'truck_scale', 78, 82, 'truck-scale-2')
-on conflict (id) do nothing;
-
-update public.plant_map_points
-set object_id = seed.object_id
-from (values
-  ('cinta-23', 'belt-cinta-23'),
-  ('horno-1', 'kiln-1'),
-  ('horno-2', 'kiln-2'),
-  ('horno-3', 'kiln-3'),
-  ('despacho-1', 'dispatch-1'),
-  ('despacho-2', 'dispatch-2'),
-  ('despacho-3', 'dispatch-3'),
-  ('despacho-4', 'dispatch-4'),
-  ('bascula-1', 'truck-scale-1'),
-  ('bascula-2', 'truck-scale-2')
-) as seed(id, object_id)
-where public.plant_map_points.id = seed.id
-  and public.plant_map_points.object_id = '';
-
 create table if not exists public.plant_map_objects (
   id text primary key,
   label text not null default '',
@@ -323,54 +292,6 @@ alter table public.plant_map_objects
 alter table public.plant_map_objects
   add constraint plant_map_objects_color_check
   check (color ~ '^#[0-9A-Fa-f]{6}$');
-
-insert into public.plant_map_objects (id, label, object_type, x, z, elevation, rotation_y, scale, width, depth, height, slope, color)
-values
-  ('floor-main', 'Piso planta', 'floor', 0, 0, -0.09, 0, 1, 35, 24, 0.18, 0, '#d6d2c8'),
-  ('zone-stock', 'Zona acopios', 'zone', -7.3, -1.6, 0.03, 0, 1, 5.7, 4.8, 0.05, 0, '#c98500'),
-  ('zone-process', 'Zona proceso', 'zone', -1.6, -1.8, 0.03, 0, 1, 8, 5.6, 0.05, 0, '#ff5949'),
-  ('zone-dispatch', 'Zona despacho', 'zone', 6.3, -1.5, 0.03, 0, 1, 6.6, 5.8, 0.05, 0, '#5c9a68'),
-  ('zone-truck', 'Zona camiones', 'zone', 4.8, 4.65, 0.03, 0, 1, 9.8, 2.7, 0.05, 0, '#666a70'),
-  ('road-truck', 'Camino camiones', 'yard', 4.4, 4.95, 0.06, -0.12, 1, 20, 1.45, 0.06, 0, '#4b4c50'),
-  ('road-service', 'Camino servicio', 'yard', -1.8, 2.95, 0.06, -0.28, 1, 19, 0.78, 0.05, 0, '#4b4c50'),
-  ('road-cross', 'Camino transversal', 'yard', 7.6, 0.9, 0.06, 0.14, 1, 0.08, 17, 0.07, 0, '#4b4c50'),
-  ('stockpile-wet', 'Acopio humedo', 'stockpile', -8.1, 0.55, 0, 0.5, 1, 2.7, 2.1, 1.45, 0, '#b87a32'),
-  ('stockpile-washed', 'Acopio lavado', 'stockpile', -6.6, -2.2, 0, 0.5, 1, 2.7, 2.1, 1.45, 0, '#b87a32'),
-  ('mcc-room', 'Sala MCC', 'cabin', -8.9, 3.05, 0, -0.12, 1, 1.35, 1, 1.25, 0, '#cbdde2'),
-  ('belt-cinta-23', 'Cinta 23', 'belt', -5.3, 1.3, 0, -0.24, 1, 7.2, 0.75, 1.05, 0, '#17151a'),
-  ('belt-feed', 'Alimentacion hornos', 'belt', -2.9, -0.4, 0, -0.62, 1, 5.4, 0.75, 1.65, 0.22, '#17151a'),
-  ('belt-transfer', 'Transferencia a silos', 'belt', 2.9, -0.15, 0, 0.26, 1, 7.8, 0.75, 1.95, 0.18, '#17151a'),
-  ('belt-dispatch', 'Cinta despacho', 'belt', 6.5, 1.35, 0, -0.18, 1, 5.4, 0.75, 1.2, 0, '#17151a'),
-  ('kiln-1', 'Horno 1', 'kiln', -3.4, -2.8, 0, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
-  ('kiln-2', 'Horno 2', 'kiln', -0.65, -3.15, 0, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
-  ('kiln-3', 'Horno 3', 'kiln', 2.1, -3.45, 0, -0.12, 1, 4.5, 1.45, 1.5, 0, '#d85f4f'),
-  ('screen-house', 'Zarandas', 'structure', -0.9, 0.9, 0, -0.16, 1, 2.65, 2.25, 1.65, 0, '#aeb6b4'),
-  ('process-cabin', 'Cabina proceso', 'cabin', 1.8, 1.1, 0, -0.12, 1, 1.6, 1.05, 1.25, 0, '#cbdde2'),
-  ('silo-a', 'Silo A', 'silo', 4.6, -2.65, 0, 0, 1, 1.45, 1.45, 3.8, 0, '#dfe7e1'),
-  ('silo-b', 'Silo B', 'silo', 6.1, -3.05, 0, 0, 1, 1.45, 1.45, 4.3, 0, '#dfe7e1'),
-  ('silo-c', 'Silo C', 'silo', 7.6, -3.18, 0, 0, 1, 1.45, 1.45, 4.1, 0, '#dfe7e1'),
-  ('silo-d', 'Silo D', 'silo', 9.1, -2.8, 0, 0, 1, 1.45, 1.45, 3.5, 0, '#dfe7e1'),
-  ('dispatch-1', 'Despacho 1', 'dispatch_bin', 4.6, 0.55, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-2', 'Despacho 2', 'dispatch_bin', 6.15, 0.25, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-3', 'Despacho 3', 'dispatch_bin', 7.7, -0.05, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-4', 'Despacho 4', 'dispatch_bin', 9.25, 0.25, 0, 0, 1, 2.1, 0.85, 0.65, 0.22, '#5c9a68'),
-  ('dispatch-cabin', 'Cabina despacho', 'cabin', 9.6, 2, 0, -0.12, 1, 1.5, 1.05, 1.25, 0, '#b8d2a7'),
-  ('truck-scale-1', 'Bascula 1', 'truck_scale', 3.4, 4.55, 0, -0.12, 1, 4.5, 1.2, 0.22, 0, '#d6d2c8'),
-  ('truck-scale-2', 'Bascula 2', 'truck_scale', 6.75, 5.05, 0, -0.12, 1, 4.5, 1.2, 0.22, 0, '#d6d2c8'),
-  ('scale-cabin-1', 'Cabina B1', 'cabin', 1.35, 4.05, 0, -0.12, 1, 1.15, 0.9, 1.25, 0, '#d8dee8'),
-  ('scale-cabin-2', 'Cabina B2', 'cabin', 9.25, 4.55, 0, -0.12, 1, 1.15, 0.9, 1.25, 0, '#d8dee8')
-on conflict (id) do update
-set
-  elevation = excluded.elevation,
-  width = excluded.width,
-  depth = excluded.depth,
-  height = excluded.height,
-  slope = excluded.slope,
-  color = excluded.color
-where public.plant_map_objects.width = 1
-  and public.plant_map_objects.depth = 1
-  and public.plant_map_objects.height = 1
-  and public.plant_map_objects.color = '#aeb6b4';
 
 alter table public.calibration_events
   add column if not exists precheck jsonb not null default '{}'::jsonb;
