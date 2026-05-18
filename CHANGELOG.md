@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.28 - Mapa sin vistas preestablecidas
+
+- Se retiran los botones de cámara `General`, `Despachos` y `Superior` del mapa para dejar la navegación manual como control principal.
+- Se limpia el estilo asociado a esas vistas preestablecidas.
+
 ## v4.0.27 - Conteo separado de básculas anuales
 
 - El resumen de `/mapa` deja de contar las básculas camioneras dentro de `Balanzas app`, porque se gestionan como controles anuales independientes.

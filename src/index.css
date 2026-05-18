@@ -1936,39 +1936,6 @@ body::before {
   height: 100%;
 }
 
-.plant-map-view-controls {
-  position: absolute;
-  right: 0.75rem;
-  bottom: 0.75rem;
-  z-index: 46;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  max-width: min(24rem, calc(100% - 1.5rem));
-}
-
-.plant-map-view-controls button {
-  min-height: 1.62rem;
-  padding: 0.18rem 0.48rem;
-  border: 1px solid rgba(12, 11, 17, 0.14);
-  border-radius: 999px;
-  background: rgba(250, 249, 246, 0.88);
-  color: var(--color-ink);
-  font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  box-shadow: 0 0.45rem 0.9rem rgba(12, 11, 17, 0.1);
-}
-
-.plant-map-view-controls button:hover,
-.plant-map-view-controls button:focus-visible {
-  border-color: rgba(255, 89, 73, 0.55);
-  background: var(--color-paper-strong);
-}
-
 .plant-map-status-card {
   --status-accent: var(--color-grey-300);
   --status-rgb: var(--status-neutral-rgb);
@@ -5020,18 +4987,6 @@ body::before {
 
   .plant-map-context-rail div {
     padding: 0.42rem 0.5rem;
-  }
-
-  .plant-map-view-controls {
-    right: 0.55rem;
-    bottom: 0.55rem;
-    max-width: calc(100% - 1.1rem);
-  }
-
-  .plant-map-view-controls button {
-    min-height: 1.45rem;
-    padding-inline: 0.45rem;
-    font-size: 0.6rem;
   }
 
   .plant-map-status-card {

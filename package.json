@@ -1,7 +1,7 @@
 {
   "name": "balanzas-calibracion",
   "private": true,
-  "version": "4.0.27",
+  "version": "4.0.28",
   "type": "module",
   "scripts": {
     "dev": "vite",

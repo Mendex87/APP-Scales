@@ -22,7 +22,7 @@ import {
 import { EquipmentPhoto } from './components/EquipmentPhoto'
 import { HistoryPager } from './components/HistoryPager'
 import { Metric } from './components/Metric'
-import type { PlantMapCameraView, PlantMapViewCommand } from './components/Plant3DScene'
+import type { PlantMapCameraView } from './components/Plant3DScene'
 import {
   deleteCalibrationEventRecord,
   deleteChainRecord,
@@ -113,12 +113,6 @@ type PlantMapModelOption = {
   description: string
 }
 
-type PlantMapCameraPreset = {
-  key: string
-  label: string
-  view: PlantMapCameraView
-}
-
 type PlantMapPlantId = 'secado' | 'lavado'
 
 type PlantMapPlantOption = {
@@ -144,7 +138,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.27'
+const APP_VERSION = 'v4.0.28'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -233,11 +227,6 @@ function getPlantMapModelDefaults(modelPath: string): Partial<PlantMapObject> {
 }
 
 const DEFAULT_PLANT_MAP_CAMERA_VIEW: PlantMapCameraView = { position: [28, 20, 31], target: [0, 0, 0], zoom: 1 }
-const PLANT_MAP_CAMERA_PRESETS: PlantMapCameraPreset[] = [
-  { key: 'general', label: 'General', view: DEFAULT_PLANT_MAP_CAMERA_VIEW },
-  { key: 'dispatch', label: 'Despachos', view: { position: [14, 12, 16], target: [6.6, 0.5, 0.8], zoom: 1 } },
-  { key: 'top', label: 'Superior', view: { position: [0.2, 58, 0.2], target: [0, 0, 0], zoom: 1 } },
-]
 
 function getToastTone(message: string): ToastTone {
   if (/^error|fallo|incorrect|invalid|invalido|inválido|no se pudo/i.test(message)) return 'error'
@@ -1335,8 +1324,6 @@ function App() {
   const [plantMapMoveFreePoints, setPlantMapMoveFreePoints] = useState(false)
   const [plantObjectScreenPositions, setPlantObjectScreenPositions] = useState<Record<string, ObjectScreenPosition>>({})
   const plantMapCameraViewRef = useRef<PlantMapCameraView>(DEFAULT_PLANT_MAP_CAMERA_VIEW)
-  const plantMapViewCommandIdRef = useRef(0)
-  const [plantMapViewCommand, setPlantMapViewCommand] = useState<PlantMapViewCommand | null>(null)
   const [plantMapEditing, setPlantMapEditing] = useState(false)
   const [plantMapSaving, setPlantMapSaving] = useState(false)
   const [draggingPlantPointId, setDraggingPlantPointId] = useState('')
@@ -2378,12 +2365,6 @@ function App() {
 
   function handlePlantMapViewChange(view: PlantMapCameraView) {
     plantMapCameraViewRef.current = view
-  }
-
-  function applyPlantMapCameraView(view: PlantMapCameraView) {
-    plantMapCameraViewRef.current = view
-    plantMapViewCommandIdRef.current += 1
-    setPlantMapViewCommand({ id: plantMapViewCommandIdRef.current, view })
   }
 
   function getPlantMapPointStyle(point: PlantMapPoint): CSSProperties {
@@ -4361,19 +4342,12 @@ function App() {
                       objects={activePlantMapObjects}
                       selectedObjectId={selectedPlantObjectId}
                       initialView={plantMapCameraViewRef.current}
-                      viewCommand={plantMapViewCommand}
                       onObjectMove={handlePlantMapObjectMove}
                       onObjectSelect={setSelectedPlantObjectId}
                       onObjectScreenPositionsChange={handlePlantObjectScreenPositionsChange}
                       onViewChange={handlePlantMapViewChange}
                     />
                   </Suspense>
-
-                  <div className="plant-map-view-controls" aria-label="Vistas del mapa">
-                    {PLANT_MAP_CAMERA_PRESETS.map((preset) => (
-                      <button key={preset.key} type="button" onClick={() => applyPlantMapCameraView(preset.view)}>{preset.label}</button>
-                    ))}
-                  </div>
 
                   {activePlantMapPoints.map((point) => {
                     const status = plantMapStatusById.get(point.id)
