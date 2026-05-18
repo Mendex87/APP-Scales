@@ -1779,7 +1779,7 @@ body::before {
   position: relative;
   z-index: 4;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(8.8rem, 1fr));
   gap: 0.45rem;
   margin-top: 0.55rem;
 }

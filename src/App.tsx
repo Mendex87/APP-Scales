@@ -144,7 +144,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.0.26'
+const APP_VERSION = 'v4.0.27'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -2084,7 +2084,9 @@ function App() {
       { success: 0, warning: 0, danger: 0, neutral: 0 },
     )
   }, [activePlantMapPoints, plantMapStatusById])
-  const plantMapLinkedEquipmentCount = useMemo(() => activePlantMapPoints.filter((point) => Boolean(point.equipmentId)).length, [activePlantMapPoints])
+  const plantMapLinkablePoints = useMemo(() => activePlantMapPoints.filter((point) => !isAnnualPlantPoint(point)), [activePlantMapPoints])
+  const plantMapAnnualPointCount = useMemo(() => activePlantMapPoints.filter(isAnnualPlantPoint).length, [activePlantMapPoints])
+  const plantMapLinkedEquipmentCount = useMemo(() => plantMapLinkablePoints.filter((point) => Boolean(point.equipmentId)).length, [plantMapLinkablePoints])
   const plantMapLastUpdatedText = useMemo(() => {
     const timestamps = [...activePlantMapPoints.map((point) => point.updatedAt), ...activePlantMapObjects.map((object) => object.updatedAt)].filter(Boolean)
     if (!timestamps.length) return '-'
@@ -4346,7 +4348,8 @@ function App() {
                 <div className="plant-map-context-rail" aria-label="Contexto operativo del mapa">
                   <div><span>Fuente</span><strong>{plantMapSource === 'supabase' ? 'Servidor online' : 'Datos locales'}</strong></div>
                   <div><span>Actualizado</span><strong>{plantMapLastUpdatedText}</strong></div>
-                  <div><span>Balanzas vinculadas</span><strong>{plantMapLinkedEquipmentCount}/{activePlantMapPoints.length}</strong></div>
+                  <div><span>Balanzas app</span><strong>{plantMapLinkedEquipmentCount}/{plantMapLinkablePoints.length}</strong></div>
+                  <div><span>Básculas anuales</span><strong>{plantMapAnnualPointCount}</strong></div>
                   <div><span>Alertas</span><strong>{plantMapStatusCounts.warning + plantMapStatusCounts.danger}</strong></div>
                 </div>
 

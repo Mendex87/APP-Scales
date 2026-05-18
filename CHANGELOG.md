@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.0.27 - Conteo separado de básculas anuales
+
+- El resumen de `/mapa` deja de contar las básculas camioneras dentro de `Balanzas app`, porque se gestionan como controles anuales independientes.
+- Se agrega la métrica `Básculas anuales` para mantener visibles esos puntos y sus alertas de calibración anual.
+
 ## v4.0.26 - Selector de planta en mapa
 
 - Se reemplaza el texto fijo `Layout Noviembre 2024` / `Mapa fijo de sectores principales` por un selector de planta.
