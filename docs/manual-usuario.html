@@ -513,13 +513,13 @@
       <div>
         <span class="kicker">Manual de administrador</span>
         <h1>Calibra Cinta</h1>
-        <p class="subtitle">Guia completa para administracion y supervision integral de balanzas dinamicas, cadenas patron, calibraciones, controles preventivos, historial, reportes, herramientas tecnicas y usuarios.</p>
+        <p class="subtitle">Guia completa para administracion y supervision integral de balanzas dinamicas, cadenas patron, calibraciones, controles preventivos, mapa operativo de planta, historial, reportes, herramientas tecnicas y usuarios.</p>
         <div class="manual-actions">
           <button type="button" onclick="window.print()">Imprimir o guardar PDF</button>
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v4.0.2</strong></div>
+        <div><span>Version documentada</span><strong>v4.1.0</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -534,6 +534,7 @@
           <li><a href="#roles">Roles y permisos</a></li>
           <li><a href="#inicio">Ingreso y pantalla inicial</a></li>
           <li><a href="#balanzas">Gestion de balanzas</a></li>
+          <li><a href="#mapa-planta">Mapa operativo de planta</a></li>
           <li><a href="#cadenas">Gestion de cadenas patron</a></li>
           <li><a href="#nueva-calibracion">Nueva calibracion paso a paso</a></li>
           <li><a href="#controles-preventivos">Controles preventivos con material</a></li>
@@ -574,6 +575,8 @@
       <p>Es un evento donde la balanza ya tiene calibracion previa y se verifica con material real. Si la primera pasada esta dentro de tolerancia y no se modifica el factor, el resultado queda como <strong>Control conforme</strong>.</p>
       <h3>Pasadas con material</h3>
       <p>Son comparaciones entre el peso obtenido en una balanza de piso certificada y el peso indicado por el controlador. La app toma la ultima pasada completa como resultado final del evento.</p>
+      <h3>Mapa operativo de planta</h3>
+      <p>Es la vista 3D de referencia para ubicar puntos operativos de balanzas y basculas. El mapa separa las balanzas vinculadas a equipos de la app de las basculas camioneras con control anual, que no cuentan como balanzas de calibracion dentro del flujo principal.</p>
     </section>
 
     <section id="roles" class="page-break">
@@ -593,7 +596,7 @@
     <section id="inicio">
       <h2>4. Ingreso y pantalla inicial</h2>
       <div class="step"><div class="step-number">1</div><div><h4>Ingreso</h4><p>Acceder con email y contrasena asignados por el administrador. La app valida la sesion contra el servidor de usuarios y consulta el perfil para conocer el rol. Si se olvida la contrasena, usar <strong>Olvidé mi contraseña</strong> para recibir un link de recuperacion en el email registrado.</p></div></div>
-      <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior muestra las secciones disponibles para el rol actual: balanzas, nueva calibracion, herramientas, historial y usuarios.</p></div></div>
+      <div class="step"><div class="step-number">2</div><div><h4>Navegacion</h4><p>La barra inferior y los accesos rapidos muestran las secciones disponibles para el rol actual: balanzas, nueva calibracion, mapa de planta, herramientas, historial y usuarios.</p></div></div>
       <div class="step"><div class="step-number">3</div><div><h4>Estado de conexion</h4><p>La app puede trabajar con servidor online o en modo local si no hay configuracion remota. Los avisos aparecen como notificaciones temporales.</p></div></div>
       <div class="callout"><strong>Unidades visibles:</strong> el switch <strong>Metrico / Imperial</strong> de la cabecera cambia formularios, herramientas, historial y reportes. Los datos guardados se conservan internamente en metrico para trazabilidad y se convierten solo al mostrar o cargar valores.</div>
       <div class="callout"><strong>Decimales:</strong> los campos numericos aceptan coma o punto decimal. Mientras se escribe, la app permite valores intermedios como <code>1.</code>, <code>1,</code> o <code>.5</code> y normaliza el dato al guardar.</div>
@@ -629,8 +632,42 @@
       <p>Los administradores pueden editar y eliminar balanzas. La baja es destructiva y debe usarse con cuidado, porque puede afectar eventos asociados en el servidor online. Los tecnicos pueden crear equipos, pero la modificacion administrativa de equipos existentes queda reservada a administradores.</p>
     </section>
 
+    <section id="mapa-planta">
+      <h2>6. Mapa operativo de planta</h2>
+      <p>El acceso <strong>Mapa planta</strong> abre la vista 3D operativa. Sirve para ubicar balanzas, revisar estado visualmente y entrar rapido a nueva calibracion o historial cuando el punto esta vinculado a un equipo.</p>
+      <div class="grid four">
+        <div class="metric"><span>Planta activa</span><strong>Secado</strong></div>
+        <div class="metric"><span>Pendiente</span><strong>Lavado</strong></div>
+        <div class="metric"><span>Control app</span><strong>Balanzas vinculadas</strong></div>
+        <div class="metric"><span>Control anual</span><strong>Basculas camioneras</strong></div>
+      </div>
+      <h3>Selector de planta</h3>
+      <p>El selector muestra <strong>Secado</strong> como mapa disponible. <strong>Lavado</strong> aparece como pendiente y queda deshabilitado hasta que exista un layout operativo para esa planta.</p>
+      <h3>Lectura de indicadores</h3>
+      <table>
+        <thead><tr><th>Indicador</th><th>Que muestra</th><th>Como usarlo</th></tr></thead>
+        <tbody>
+          <tr><td>Fuente</td><td>Servidor online o datos locales.</td><td>Confirmar que el mapa este respaldado en el servidor online antes de tomarlo como referencia compartida.</td></tr>
+          <tr><td>Balanzas app</td><td>Puntos vinculados a equipos de calibracion sobre el total vinculable.</td><td>No incluye basculas camioneras.</td></tr>
+          <tr><td>Basculas anuales</td><td>Cantidad de basculas camioneras con seguimiento anual.</td><td>Se gestionan por fecha de ultima calibracion anual, no por wizard de calibracion de cinta.</td></tr>
+          <tr><td>Alertas</td><td>Puntos proximos a vencer o vencidos.</td><td>Priorizar revision operativa o historial segun corresponda.</td></tr>
+        </tbody>
+      </table>
+      <h3>Navegacion y consulta</h3>
+      <ul>
+        <li>La camara se maneja de forma manual con mouse o tactil: rotar, desplazar y hacer zoom segun necesidad.</li>
+        <li>Ya no hay botones de vistas preestablecidas; no buscar accesos <strong>General</strong>, <strong>Despachos</strong> o <strong>Superior</strong>.</li>
+        <li>Al seleccionar un punto se muestra su estado, dias restantes, ultimo control valido y proximo vencimiento.</li>
+        <li>Si el punto esta vinculado a una balanza, desde la tarjeta se puede abrir <strong>Nueva calibracion</strong> o <strong>Historial</strong>.</li>
+      </ul>
+      <h3>Edicion administrativa</h3>
+      <p>Solo administradores pueden activar <strong>Editar mapa</strong>. En ese modo se pueden arrastrar puntos, vincularlos con balanzas, asignar fecha anual a basculas camioneras, mover el layout completo, crear objetos, duplicarlos, borrarlos y ajustar posicion, rotacion, tamano o modelo.</p>
+      <p>Los modelos 3D disponibles incluyen geometria generada por la app y archivos importados como silo, cinta, cinta con balanza, tolva, galpon y camiones. El modelo <strong>Tolva</strong> usa el archivo GLB de tolva industrial registrado para el mapa.</p>
+      <div class="callout warning"><strong>Guardar edicion:</strong> los cambios del mapa quedan en borrador hasta tocar <strong>Guardar edicion</strong>. <strong>Cancelar</strong> descarta lo modificado durante esa sesion.</div>
+    </section>
+
     <section id="cadenas">
-      <h2>6. Gestion de cadenas patron</h2>
+      <h2>7. Gestion de cadenas patron</h2>
       <p>Las cadenas son datos maestros reutilizables. Una cadena bien cargada evita errores de peso lineal y acelera la calibracion.</p>
       <h3>Alta de cadena</h3>
       <ol>
@@ -652,7 +689,7 @@
     </section>
 
     <section id="nueva-calibracion" class="page-break">
-      <h2>7. Nueva calibracion paso a paso</h2>
+      <h2>8. Nueva calibracion paso a paso</h2>
       <p>El flujo esta organizado como wizard de 8 pasos. La navegacion permite avanzar, retroceder o tocar directamente un paso. El evento se guarda solo desde el cierre.</p>
       <div class="grid four">
         <div class="metric"><span>Paso 1</span><strong>Contexto operativo</strong></div>
@@ -704,7 +741,7 @@
     </section>
 
     <section id="controles-preventivos">
-      <h2>8. Controles preventivos con material</h2>
+      <h2>9. Controles preventivos con material</h2>
       <p>Una balanza con calibracion previa puede revisarse sin repetir todo el procedimiento de cadena y acumulado. Este modo sirve para mantenimiento preventivo y controles rutinarios.</p>
       <h3>Reglas de resultado</h3>
       <table>
@@ -720,7 +757,7 @@
     </section>
 
     <section id="borradores">
-      <h2>9. Borradores locales</h2>
+      <h2>10. Borradores locales</h2>
       <p>El wizard permite guardar un borrador local en el dispositivo. Es util si se interrumpe el trabajo de campo o si se debe cerrar la app antes de terminar.</p>
       <h3>Guardar borrador</h3>
       <ol>
@@ -734,7 +771,7 @@
     </section>
 
     <section id="herramientas" class="page-break">
-      <h2>10. Herramientas tecnicas</h2>
+      <h2>11. Herramientas tecnicas</h2>
       <p>La seccion herramientas permite hacer calculos rapidos y trasladar resultados al evento activo cuando el usuario tiene permiso operativo.</p>
       <h3>Velocidad por RPM</h3>
       <p>Calcula velocidad de cinta a partir de RPM y diametro del rolo. Entrega resultados en el sistema de unidades visible y diferencia contra velocidad indicada.</p>
@@ -750,7 +787,7 @@
     </section>
 
     <section id="historial">
-      <h2>11. Historial y reportes</h2>
+      <h2>12. Historial y reportes</h2>
       <p>El historial muestra eventos guardados, ordenados por fecha descendente. Permite filtrar por balanza, revisar detalle, imprimir reporte y, para administradores, eliminar eventos. La trazabilidad vigente queda en el servidor online, el historial interno y los reportes PDF.</p>
       <h3>Lectura de tarjetas</h3>
       <table>
@@ -775,7 +812,7 @@
     </section>
 
     <section id="usuarios">
-      <h2>12. Usuarios y permisos</h2>
+      <h2>13. Usuarios y permisos</h2>
       <p>Solo administradores ven la seccion usuarios. La gestion usa el servidor de usuarios para credenciales y perfiles para rol visible dentro de la app.</p>
       <h3>Crear usuario</h3>
       <ol>
@@ -791,7 +828,7 @@
     </section>
 
     <section id="datos" class="page-break">
-      <h2>13. Persistencia y sincronizacion</h2>
+      <h2>14. Persistencia y sincronizacion</h2>
       <p>La app usa un servidor online como base de datos en la nube para equipos, cadenas, eventos y perfiles. Si el servidor online no esta configurado o no responde, conserva modo local para contingencia.</p>
       <div class="callout"><strong>Servidor online:</strong> significa que los datos se guardan en una base de datos en la nube, protegida con permisos por usuario y respaldo remoto. Esto permite conservar la trazabilidad aunque se cambie de dispositivo. El modo local sirve solo como contingencia temporal.</div>
       <h3>Que se guarda en el servidor online</h3>
@@ -799,6 +836,7 @@
         <li>Equipos en <code>equipments</code>.</li>
         <li>Cadenas en <code>chains</code>.</li>
         <li>Eventos en <code>calibration_events</code>.</li>
+        <li>Puntos y objetos del mapa en <code>plant_map_points</code> y <code>plant_map_objects</code>.</li>
         <li>Perfiles de usuario en <code>profiles</code>.</li>
         <li>Fotos de balanzas en Storage, bucket <code>equipment-photos</code>.</li>
       </ul>
@@ -811,7 +849,7 @@
     </section>
 
     <section id="buenas-practicas">
-      <h2>14. Buenas practicas de campo</h2>
+      <h2>15. Buenas practicas de campo</h2>
       <div class="checklist">
         <h3>Antes de empezar</h3>
         <ul>
@@ -845,7 +883,7 @@
     </section>
 
     <section id="problemas">
-      <h2>15. Problemas frecuentes</h2>
+      <h2>16. Problemas frecuentes</h2>
       <h3>No puedo guardar como tecnico por permisos</h3>
       <p>Confirmar que la app este en la version vigente o superior. El guardado de eventos no debe actualizar datos administrativos de equipos; esa actualizacion queda reservada a administradores.</p>
       <h3>No aparece una cadena para una balanza externa</h3>
@@ -865,7 +903,7 @@
     </section>
 
     <section id="glosario">
-      <h2>16. Glosario</h2>
+      <h2>17. Glosario</h2>
       <table>
         <thead><tr><th>Termino</th><th>Definicion</th></tr></thead>
         <tbody>

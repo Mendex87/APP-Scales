@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.0 - Manuales y mapa operativo actualizados
+
+- Se actualizan los manuales de administrador/usuario y tecnico de campo con el mapa operativo de planta.
+- Se documenta la navegacion manual del mapa sin vistas preestablecidas, el selector Secado/Lavado pendiente y los conteos separados de balanzas app y basculas anuales.
+- Se sube la version visible de la app a `v4.1.0`.
+
 ## v4.0.28 - Mapa sin vistas preestablecidas
 
 - Se retiran los botones de cámara `General`, `Despachos` y `Superior` del mapa para dejar la navegación manual como control principal.

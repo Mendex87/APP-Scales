@@ -490,13 +490,13 @@
       <div>
         <span class="kicker">Manual tecnico de campo</span>
         <h1>Calibra Cinta</h1>
-        <p class="subtitle">Guia operativa para realizar controles y calibraciones en campo. Este documento se enfoca en el procedimiento tecnico: preparar el equipo, registrar datos confiables, interpretar tolerancias y cerrar el trabajo correctamente.</p>
+        <p class="subtitle">Guia operativa para realizar controles y calibraciones en campo. Este documento se enfoca en el procedimiento tecnico: preparar el equipo, usar el mapa de planta como ayuda visual, registrar datos confiables, interpretar tolerancias y cerrar el trabajo correctamente.</p>
         <div class="manual-actions">
           <button type="button" onclick="window.print()">Imprimir o guardar PDF</button>
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v4.0.2</strong></div>
+        <div><span>Version documentada</span><strong>v4.1.0</strong></div>
         <div><span>Alcance</span><strong>Uso en campo</strong></div>
         <div><span>Usuario</span><strong>Tecnico</strong></div>
       </div>
@@ -508,6 +508,7 @@
         <ol>
           <li>Antes de salir a campo</li>
           <li>Identificacion del equipo</li>
+          <li>Uso del mapa de planta</li>
           <li>Checklist previo</li>
           <li>Cero de la balanza</li>
           <li>Calibracion completa con cadena</li>
@@ -539,6 +540,7 @@
         <h3>Preparacion minima</h3>
         <ul>
           <li>Confirmar el equipo a intervenir: planta, linea, cinta y nombre.</li>
+          <li>Si esta disponible, abrir <strong>Mapa planta</strong> para ubicar el punto operativo antes de iniciar el evento.</li>
           <li>Confirmar si es una primera calibracion, recalibracion o control preventivo.</li>
           <li>Verificar que la cadena patron este disponible cuando el trabajo la requiera.</li>
           <li>Verificar que el material real pueda pesarse en balanza certificada.</li>
@@ -565,8 +567,28 @@
       <p>Si hay cadenas de la misma planta, usar una de esas cadenas. Si la balanza pertenece a una planta sin cadenas cargadas, se puede elegir una cadena disponible de otra planta, dejando claro en observaciones si corresponde.</p>
     </section>
 
+    <section id="mapa">
+      <h2>3. Uso del mapa de planta</h2>
+      <p>El mapa de planta es una ayuda visual para ubicar puntos operativos antes de registrar una calibracion o control. No reemplaza la identificacion fisica del equipo ni el procedimiento aprobado de planta.</p>
+      <div class="grid">
+        <div class="metric"><span>Mapa activo</span><strong>Secado</strong><p>Layout 3D disponible para consulta.</p></div>
+        <div class="metric"><span>Pendiente</span><strong>Lavado</strong><p>Aparece deshabilitado hasta que se construya el mapa.</p></div>
+        <div class="metric"><span>Balanzas app</span><strong>Equipos vinculados</strong><p>Permiten abrir nueva calibracion o historial.</p></div>
+        <div class="metric"><span>Basculas anuales</span><strong>Control anual</strong><p>Se siguen por fecha anual, fuera del wizard de cintas.</p></div>
+      </div>
+      <h3>Como usarlo en campo</h3>
+      <ol>
+        <li>Desde el inicio, abrir <strong>Mapa planta</strong>.</li>
+        <li>Confirmar que el selector este en <strong>Secado</strong> si ese es el sector a intervenir.</li>
+        <li>Rotar, desplazar o acercar la camara manualmente para ubicar el punto. No hay botones de vista <strong>General</strong>, <strong>Despachos</strong> o <strong>Superior</strong>.</li>
+        <li>Tocar el punto para ver estado, ultimo valido, proximo vencimiento y dias restantes.</li>
+        <li>Si el punto corresponde a la balanza correcta, abrir <strong>Nueva calibracion</strong> o <strong>Historial</strong> desde la tarjeta.</li>
+      </ol>
+      <div class="callout warning"><strong>Confirmacion obligatoria:</strong> si el mapa, la foto o el nombre visible no coinciden con el equipo fisico, detener la carga y confirmar con supervision antes de guardar datos.</div>
+    </section>
+
     <section id="precheck" class="page-break">
-      <h2>3. Checklist previo</h2>
+      <h2>4. Checklist previo</h2>
       <p>La condicion mecanica determina si la medicion es confiable. Completar el chequeo antes de calibrar o controlar. Si todos los puntos cumplen, usar <strong>Marcar todo OK</strong> para acelerar la carga.</p>
       <table>
         <thead><tr><th>Punto</th><th>Condicion esperada</th><th>Riesgo si no cumple</th></tr></thead>
@@ -583,7 +605,7 @@
     </section>
 
     <section id="cero">
-      <h2>4. Cero de la balanza</h2>
+      <h2>5. Cero de la balanza</h2>
       <p>El cero se realiza antes de cualquier prueba. Debe registrarse aunque el controlador no muestre todos los datos.</p>
       <div class="step"><div class="step-number">1</div><div><h4>Preparar la banda</h4><p>Confirmar banda vacia, limpia y sin material acumulado.</p></div></div>
       <div class="step"><div class="step-number">2</div><div><h4>Ejecutar cero</h4><p>Realizar el procedimiento de cero en el controlador segun el equipo.</p></div></div>
@@ -592,7 +614,7 @@
     </section>
 
     <section id="cadena" class="page-break">
-      <h2>5. Calibracion completa con cadena</h2>
+      <h2>6. Calibracion completa con cadena</h2>
       <p>Usar este procedimiento para una primera carga de balanza, una recalibracion completa o cuando se necesite validar el span con patron.</p>
       <h3>Datos a registrar</h3>
       <table>
@@ -610,7 +632,7 @@
     </section>
 
     <section id="preventivo">
-      <h2>6. Control preventivo con material</h2>
+      <h2>7. Control preventivo con material</h2>
       <p>El control preventivo sirve para confirmar que una balanza ya calibrada sigue dentro de tolerancia. En este caso, la prueba principal es la comparacion con material real pesado en balanza certificada, usando como base el factor actual registrado en el Paso 4.</p>
       <h3>Cuando alcanza una sola pasada</h3>
       <p>Si la primera pasada con material queda dentro de tolerancia y no se cambia el factor, se puede cerrar como <strong>Control conforme</strong>.</p>
@@ -620,7 +642,7 @@
     </section>
 
     <section id="material" class="page-break">
-      <h2>7. Pasadas con material real</h2>
+      <h2>8. Pasadas con material real</h2>
       <p>Una pasada compara el peso real certificado contra el peso indicado por el controlador. La primera pasada usa el factor actual cargado en el Paso 4; si se ajusta el controlador, la pasada posterior debe registrar el factor nuevo.</p>
       <table>
         <thead><tr><th>Campo</th><th>Que cargar</th><th>Recomendacion</th></tr></thead>
@@ -644,7 +666,7 @@
     </section>
 
     <section id="cierre">
-      <h2>8. Criterio de ajuste y cierre</h2>
+      <h2>9. Criterio de ajuste y cierre</h2>
       <table>
         <thead><tr><th>Situacion</th><th>Accion</th><th>Resultado esperado</th></tr></thead>
         <tbody>
@@ -661,7 +683,7 @@
     </section>
 
     <section id="resultado">
-      <h2>9. Como interpretar el resultado</h2>
+      <h2>10. Como interpretar el resultado</h2>
       <div class="grid">
         <div class="metric"><span>Control conforme</span><strong>Sin ajuste</strong><p>La balanza estaba dentro de tolerancia. Sirve como mantenimiento preventivo.</p></div>
         <div class="metric"><span>Calibrada</span><strong>Ajuste verificado</strong><p>Se modifico el factor y una pasada posterior quedo dentro de tolerancia.</p></div>
@@ -670,7 +692,7 @@
     </section>
 
     <section id="buenas-practicas" class="page-break">
-      <h2>10. Buenas practicas</h2>
+      <h2>11. Buenas practicas</h2>
       <div class="checklist">
         <h3>Durante el trabajo</h3>
         <ul>
@@ -696,7 +718,7 @@
     </section>
 
     <section id="problemas">
-      <h2>11. Problemas frecuentes en campo</h2>
+      <h2>12. Problemas frecuentes en campo</h2>
       <h3>La balanza no tiene cadena de su planta</h3>
       <p>Se puede elegir otra cadena disponible. Registrar observacion si la seleccion no corresponde a la planta habitual.</p>
       <h3>El control pide cadena o acumulado</h3>
@@ -714,7 +736,7 @@
     </section>
 
     <section id="checklist-final">
-      <h2>12. Checklist final</h2>
+      <h2>13. Checklist final</h2>
       <table>
         <thead><tr><th>Pregunta</th><th>Debe quedar</th></tr></thead>
         <tbody>
