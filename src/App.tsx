@@ -4085,14 +4085,19 @@ function App() {
             )}
             <button className="secondary small" onClick={() => void handleLogout()}>Salir</button>
           </div>
-          <button
-            className="secondary small unit-toggle topbar-unit-toggle"
-            type="button"
-            onClick={handleUnitSystemToggle}
-            aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
-          >
-            {unitSystemName}
-          </button>
+          <div className="topbar-quick-controls">
+            <button className="secondary small topbar-unit-toggle" type="button" onClick={() => setScreen('mapa')}>
+              <Scale className="action-icon" aria-hidden="true" />Mapa planta
+            </button>
+            <button
+              className="secondary small unit-toggle topbar-unit-toggle"
+              type="button"
+              onClick={handleUnitSystemToggle}
+              aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
+            >
+              {unitSystemName}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -4241,7 +4246,6 @@ function App() {
               </div>
               <div className="row compact-actions">
                 {canOperate && <button className="primary" type="button" onClick={() => setScreen('nueva')}><ClipboardCheck className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
-                <button className="secondary" type="button" onClick={() => setScreen('mapa')}><Scale className="action-icon" aria-hidden="true" />Mapa planta</button>
                 {canReview && <button className="secondary" type="button" onClick={() => setScreen('balanzas')}><Scale className="action-icon" aria-hidden="true" />Ver balanzas</button>}
                 <button className="secondary" type="button" onClick={() => setScreen('historial')}><History className="action-icon" aria-hidden="true" />Historial</button>
                 <button className="secondary" type="button" onClick={() => setScreen('herramientas')}><Wrench className="action-icon" aria-hidden="true" />Herramientas</button>
@@ -4374,7 +4378,6 @@ function App() {
                   {selectedPlantPoint && selectedPlantPointStatus && !plantMapEditing && (
                     <div className={`plant-map-status-card status-${selectedPlantPointStatus.rowClass || 'neutral'} ${selectedPlantPointStatus.equipment ? 'has-equipment' : 'no-equipment'}`} role="status" aria-live="polite">
                       <div className="plant-map-status-heading">
-                        <span className="section-kicker">{plantMapPointTypeLabel(selectedPlantPoint.pointType)}</span>
                         <h3>{selectedPlantPoint.label}</h3>
                         <p>{selectedPlantPoint.zone} · {selectedPlantPointStatus.detail || 'Sin estado disponible.'}</p>
                       </div>
