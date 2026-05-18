@@ -988,6 +988,90 @@ body::before {
   gap: 0.55rem;
 }
 
+.event-attachments-panel {
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.event-attachments-panel h3 {
+  margin: 0.1rem 0 0;
+}
+
+.event-attachment-input {
+  width: min(100%, 20rem);
+}
+
+.event-attachment-grid,
+.event-attachment-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.7rem;
+}
+
+.event-attachment-thumb,
+.event-attachment-history-thumb {
+  overflow: hidden;
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 0.75);
+  background: var(--surface);
+}
+
+.event-attachment-thumb img,
+.event-attachment-history-thumb img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--surface-muted);
+}
+
+.event-attachment-thumb > div {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.6rem;
+}
+
+.event-attachment-thumb span,
+.event-attachment-history-thumb strong {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-attachment-history-thumb {
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.event-attachment-history-thumb:not(:disabled):hover {
+  border-color: var(--color-orange);
+}
+
+.event-attachment-history-thumb:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.event-attachment-history-thumb span {
+  display: grid;
+  min-height: 110px;
+  place-items: center;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.event-attachment-history-thumb strong {
+  padding: 0.55rem;
+}
+
 .equipment-card-head,
 .photo-field,
 .selected-equipment-visual {
@@ -3820,6 +3904,7 @@ body::before {
 .collapsible-summary:focus-visible,
 .inline-details summary:focus-visible,
 .equipment-photo:focus-visible,
+.event-attachment-history-thumb:focus-visible,
 .check-field:focus-within,
 .input:focus-visible {
   outline: 3px solid rgba(255, 89, 73, 0.45);

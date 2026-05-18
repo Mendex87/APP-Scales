@@ -108,6 +108,7 @@ create table if not exists public.calibration_events (
   material_validation jsonb not null,
   final_adjustment jsonb not null,
   approval jsonb not null,
+  attachments jsonb not null default '[]'::jsonb,
   diagnosis text not null default '',
   notes text not null default '',
   sync_status text not null default 'pendiente',
@@ -398,8 +399,15 @@ alter table public.equipments
 alter table public.equipments
   add column if not exists check_interval_days integer not null default 30;
 
+alter table public.calibration_events
+  add column if not exists attachments jsonb not null default '[]'::jsonb;
+
 insert into storage.buckets (id, name, public)
 values ('equipment-photos', 'equipment-photos', true)
+on conflict (id) do update set public = true;
+
+insert into storage.buckets (id, name, public)
+values ('calibration-event-photos', 'calibration-event-photos', true)
 on conflict (id) do update set public = true;
 
 alter table public.chains enable row level security;
@@ -415,6 +423,8 @@ drop policy if exists "profiles admin read" on public.profiles;
 drop policy if exists "profiles admin write" on public.profiles;
 drop policy if exists "equipment photos read" on storage.objects;
 drop policy if exists "equipment photos write" on storage.objects;
+drop policy if exists "calibration event photos read" on storage.objects;
+drop policy if exists "calibration event photos write" on storage.objects;
 
 drop policy if exists "public read equipments" on public.equipments;
 drop policy if exists "public insert equipments" on public.equipments;
@@ -568,3 +578,14 @@ on storage.objects for all
 to authenticated
 using (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'tecnico'))
 with check (bucket_id = 'equipment-photos' and public.current_user_role() in ('admin', 'tecnico'));
+
+create policy "calibration event photos read"
+on storage.objects for select
+to authenticated
+using (bucket_id = 'calibration-event-photos');
+
+create policy "calibration event photos write"
+on storage.objects for all
+to authenticated
+using (bucket_id = 'calibration-event-photos' and public.current_user_role() in ('admin', 'tecnico'))
+with check (bucket_id = 'calibration-event-photos' and public.current_user_role() in ('admin', 'tecnico'));

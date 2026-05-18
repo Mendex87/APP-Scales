@@ -111,7 +111,7 @@ export function saveChains(items: Chain[]) {
 }
 
 export function loadEvents(): CalibrationEvent[] {
-  return parseStorage<CalibrationEvent[]>(EVENTS_KEY, [])
+  return parseStorage<Partial<CalibrationEvent>[]>(EVENTS_KEY, []).map(normalizeEvent)
 }
 
 export function saveEvents(items: CalibrationEvent[]) {
@@ -150,6 +150,13 @@ function normalizeEquipment(item: Equipment): Equipment {
       ? item.checkIntervalDays
       : DEFAULT_CHECK_INTERVAL_DAYS,
   }
+}
+
+function normalizeEvent(item: Partial<CalibrationEvent>): CalibrationEvent {
+  return {
+    ...item,
+    attachments: Array.isArray(item.attachments) ? item.attachments : [],
+  } as CalibrationEvent
 }
 
 function normalizePlantMapPoint(item: Partial<PlantMapPoint>): PlantMapPoint {

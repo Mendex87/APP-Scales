@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, MouseEvent, PointerEvent, ReactNode } from 'react'
+import type { ChangeEvent, CSSProperties, FormEvent, MouseEvent, PointerEvent, ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -40,7 +40,7 @@ import {
 import { loadChains, loadEquipment, loadEvents, loadPlantMapObjects, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from './supabase'
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, MaterialOutcome, MaterialPass, PlantMapObject, PlantMapObjectType, PlantMapPoint, SpeedSource } from './types'
+import type { CalibrationEvent, Chain, Equipment, EventAttachment, MaterialOutcome, MaterialPass, PlantMapObject, PlantMapObjectType, PlantMapPoint, SpeedSource } from './types'
 import {
   addArgentinaDays,
   argentinaDateTimeLocalToIso,
@@ -82,6 +82,12 @@ type Toast = {
   message: string
   tone: ToastTone
   exiting?: boolean
+}
+
+type EventPhotoDraft = {
+  id: string
+  file: File
+  previewUrl: string
 }
 
 type ConfirmDialog = {
@@ -139,7 +145,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.1'
+const APP_VERSION = 'v4.1.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -152,6 +158,9 @@ const PASSWORD_RESET_COOLDOWN_MS = 60 * 1000
 const HISTORY_PAGE_SIZE = 25
 const PLANT_MAP_SCENE_LIMIT = 18
 const PLANT_MAP_PERCENT_PER_SCENE_UNIT = 100 / (PLANT_MAP_SCENE_LIMIT * 2)
+const MAX_EVENT_PHOTOS = 6
+const EQUIPMENT_PHOTOS_BUCKET = 'equipment-photos'
+const CALIBRATION_EVENT_PHOTOS_BUCKET = 'calibration-event-photos'
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 const Plant3DScene = lazy(() => import('./components/Plant3DScene').then((module) => ({ default: module.Plant3DScene })))
 
@@ -1144,6 +1153,16 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   const chainControllerReadingText = item.chainSpan.controllerReadingWeightKg
     ? optionalMeasure(item.chainSpan.controllerReadingWeightKg, 'weightKg')
     : optionalMeasure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM')
+  const eventAttachments = item.attachments || []
+  const attachmentCards = eventAttachments
+    .map((attachment, index) => {
+      const url = supabase && attachment.path ? supabase.storage.from(CALIBRATION_EVENT_PHOTOS_BUCKET).getPublicUrl(attachment.path).data.publicUrl : ''
+      return `<div class="attachment-card">
+        ${url ? `<img src="${reportValue(url)}" alt="${reportValue(attachment.name || `Foto ${index + 1}`)}" />` : '<div class="attachment-missing">Sin vista</div>'}
+        <span>${reportValue(attachment.name || `Foto ${index + 1}`)}</span>
+      </div>`
+    })
+    .join('')
   const inspectionChecks = [
     reportCheck('Banda vacia', item.precheck.beltEmpty),
     reportCheck('Banda limpia', item.precheck.beltClean),
@@ -1197,6 +1216,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .weight-grid { display: grid; grid-template-columns: 1fr 1fr 0.82fr 0.72fr; gap: 6px; }
     .weight-card { min-height: 56px; padding: 8px; border: 1px solid #d5cfc3; border-left: 6px solid #ff5949; border-radius: 7px; background: #faf8f2; }
     .weight-card strong { font-size: 24px; line-height: 0.88; letter-spacing: -0.035em; }
+    .attachment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .attachment-card { overflow: hidden; min-height: 0; padding: 0; border: 1px solid #d5cfc3; border-radius: 7px; background: #faf8f2; }
+    .attachment-card img, .attachment-missing { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #e6e0d4; }
+    .attachment-missing { display: grid; place-items: center; color: #6f6a68; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .attachment-card span { padding: 5px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: var(--report-dark-gradient); background-clip: padding-box; }
     .weight-card.main span,
     .weight-card.main strong { color: #f8f6ef; }
@@ -1261,6 +1285,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
           <tbody>${materialPassRows}</tbody>
         </table>
       </div>
+
+      ${eventAttachments.length > 0 ? `<div class="panel full"><h2>Fotos adjuntas</h2><div class="attachment-grid">${attachmentCards}</div></div>` : ''}
 
       <div class="panel">
         <h2>Controlador y parametros</h2>
@@ -1352,6 +1378,7 @@ function App() {
   const [editingEquipmentId, setEditingEquipmentId] = useState('')
   const [equipmentPhotoFile, setEquipmentPhotoFile] = useState<File | null>(null)
   const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState('')
+  const [eventPhotoDrafts, setEventPhotoDrafts] = useState<EventPhotoDraft[]>([])
   const [photoViewer, setPhotoViewer] = useState<{ src: string; title: string } | null>(null)
   const [rpmToolForm, setRpmToolForm] = useState(defaultRpmToolForm)
   const [loopToolForm, setLoopToolForm] = useState(defaultLoopToolForm)
@@ -1373,6 +1400,7 @@ function App() {
   const [loginTransitionPhase, setLoginTransitionPhase] = useState<LoginTransitionPhase>('idle')
   const equipmentFormRef = useRef<HTMLDivElement | null>(null)
   const eventSaveInFlightRef = useRef(false)
+  const eventPhotoDraftsRef = useRef<EventPhotoDraft[]>([])
   const didMountScrollRef = useRef(false)
   const navPulseTimeoutRef = useRef<number | null>(null)
   const plantMapCanvasRef = useRef<HTMLDivElement | null>(null)
@@ -1406,6 +1434,14 @@ function App() {
   useEffect(() => {
     localStorage.setItem(UNIT_SYSTEM_STORAGE_KEY, unitSystem)
   }, [unitSystem])
+
+  useEffect(() => {
+    eventPhotoDraftsRef.current = eventPhotoDrafts
+  }, [eventPhotoDrafts])
+
+  useEffect(() => () => {
+    eventPhotoDraftsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+  }, [])
 
   useEffect(() => {
     setEventForm((current) => (
@@ -2450,6 +2486,7 @@ function App() {
     if (!eventForm.zeroCompleted) addIssue('Debés registrar el cero antes de calibrar.', 2)
     if (!(calibrationFactor > 0)) addIssue('Falta el factor de calibracion actual del controlador.', 3)
     if (calibrationFactor > MAX_FACTOR_VALUE) addIssue('El factor de calibracion actual es demasiado alto; revisá el valor cargado.', 3)
+    if (eventPhotoDrafts.length > 0 && !supabase) addIssue('Las fotos adjuntas requieren servidor online.', 7)
     if (!currentUser?.username.trim()) addIssue('Falta usuario responsable logueado.', 7)
     if (requiresFullCalibration) {
       const chainTestMinutes = toNumber(eventForm.passCount)
@@ -2477,7 +2514,7 @@ function App() {
     if (!(finalFactor > 0)) addIssue('Falta el factor de calibracion final.', 7)
     if (finalFactor > MAX_FACTOR_VALUE) addIssue('El factor de calibracion final es demasiado alto; revisá el valor cargado.', 7)
     return issues
-  }, [chainControllerReadingWeightKg, chainSpanBridgeLengthM, completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment])
+  }, [chainControllerReadingWeightKg, chainSpanBridgeLengthM, completeMaterialPasses, currentUser, eventForm, eventPhotoDrafts.length, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment])
 
   const firstBlockingIssue = eventBlockingIssues[0]
 
@@ -2725,6 +2762,7 @@ function App() {
     })
     setCalibrationStep(0)
     setMaterialPassCount(1)
+    clearEventPhotoDrafts()
     setEventSubmitAttempted(false)
   }
 
@@ -2756,6 +2794,7 @@ function App() {
       setSelectedEquipmentId(draft.selectedEquipmentId || '')
       setSelectedChainId(draft.selectedChainId || '')
       setMaterialPassCount(draft.materialPassCount || 1)
+      clearEventPhotoDrafts()
       setCalibrationStep(0)
       setScreen('nueva')
       setEventDraftSavedAt(draft.savedAt || '')
@@ -3240,13 +3279,24 @@ function App() {
 
   function getEquipmentPhotoUrl(path: string) {
     if (!path || !supabase) return ''
-    return supabase.storage.from('equipment-photos').getPublicUrl(path).data.publicUrl
+    return supabase.storage.from(EQUIPMENT_PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl
+  }
+
+  function getEventAttachmentUrl(path: string) {
+    if (!path || !supabase) return ''
+    return supabase.storage.from(CALIBRATION_EVENT_PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl
   }
 
   function openEquipmentPhoto(item: Equipment) {
     const src = getEquipmentPhotoUrl(item.photoPath)
     if (!src) return
     setPhotoViewer({ src, title: `${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}` })
+  }
+
+  function openEventAttachmentPhoto(item: EventAttachment) {
+    const src = getEventAttachmentUrl(item.path)
+    if (!src) return
+    setPhotoViewer({ src, title: item.name || 'Foto adjunta' })
   }
 
   function handleConfirmDialog() {
@@ -3285,12 +3335,83 @@ function App() {
     if (!supabase) return ''
     const blob = await resizeImage(file)
     const path = `${equipmentId}/${Date.now()}.jpg`
-    const result = await supabase.storage.from('equipment-photos').upload(path, blob, {
+    const result = await supabase.storage.from(EQUIPMENT_PHOTOS_BUCKET).upload(path, blob, {
       contentType: 'image/jpeg',
       upsert: true,
     })
     if (result.error) throw result.error
     return result.data.path
+  }
+
+  function safeAttachmentFileName(name: string, index: number) {
+    const baseName = name.replace(/\.[^.]+$/, '') || `foto-${index + 1}`
+    return baseName.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 72) || `foto-${index + 1}`
+  }
+
+  async function uploadEventAttachments(eventId: string, drafts: EventPhotoDraft[]): Promise<EventAttachment[]> {
+    if (drafts.length === 0) return []
+    if (!supabase) throw new Error('Las fotos adjuntas requieren servidor online.')
+
+    const uploadedAt = new Date().toISOString()
+    const attachments: EventAttachment[] = []
+
+    for (const [index, draft] of drafts.entries()) {
+      const blob = await resizeImage(draft.file)
+      const fileName = safeAttachmentFileName(draft.file.name, index)
+      const path = `${eventId}/${Date.now()}-${index + 1}-${fileName}.jpg`
+      const result = await supabase.storage.from(CALIBRATION_EVENT_PHOTOS_BUCKET).upload(path, blob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      })
+      if (result.error) throw result.error
+
+      attachments.push({
+        id: generateId(),
+        name: draft.file.name || `Foto ${index + 1}`,
+        path: result.data.path,
+        contentType: 'image/jpeg',
+        size: blob.size,
+        uploadedAt,
+      })
+    }
+
+    return attachments
+  }
+
+  function handleEventPhotoSelection(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.currentTarget.files || []).filter((file) => file.type.startsWith('image/'))
+    event.currentTarget.value = ''
+    if (files.length === 0) return
+
+    const availableSlots = Math.max(0, MAX_EVENT_PHOTOS - eventPhotoDrafts.length)
+    const selectedFiles = files.slice(0, availableSlots)
+    if (selectedFiles.length < files.length) {
+      setSyncNotice(`Se admiten hasta ${MAX_EVENT_PHOTOS} fotos por calibracion.`)
+    }
+    if (selectedFiles.length === 0) return
+
+    setEventPhotoDrafts((current) => [
+      ...current,
+      ...selectedFiles.map((file) => ({
+        id: generateId(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+      })),
+    ])
+  }
+
+  function removeEventPhotoDraft(photoId: string) {
+    setEventPhotoDrafts((current) => {
+      const removed = current.find((item) => item.id === photoId)
+      if (removed) URL.revokeObjectURL(removed.previewUrl)
+      return current.filter((item) => item.id !== photoId)
+    })
+  }
+
+  function clearEventPhotoDrafts() {
+    eventPhotoDraftsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl))
+    eventPhotoDraftsRef.current = []
+    setEventPhotoDrafts([])
   }
 
   function applyMeasuredSpeed(speedMs: number) {
@@ -3438,9 +3559,10 @@ function App() {
 
     const isAdmin = currentUser?.role === 'admin'
     const eventDateValue = isAdmin ? argentinaDateTimeLocalToIso(eventForm.eventDate) : new Date().toISOString()
+    const eventId = generateEventCode(eventDateValue, events)
 
-    const record: CalibrationEvent = {
-      id: generateEventCode(eventDateValue, events),
+    let record: CalibrationEvent = {
+      id: eventId,
       appVersion: APP_VERSION,
       equipmentId: selectedEquipment.id,
       createdAt: new Date().toISOString(),
@@ -3538,6 +3660,7 @@ function App() {
         technician: currentUser?.username || '',
         approvedAt: eventDateValue,
       },
+      attachments: [],
       diagnosis: automaticDiagnosis.join(' '),
       notes: eventForm.notes.trim(),
       syncStatus: 'pendiente',
@@ -3568,6 +3691,8 @@ function App() {
     setEventSaving(true)
 
     try {
+      const attachments = await uploadEventAttachments(eventId, eventPhotoDrafts)
+      record = { ...record, attachments }
       const result = await saveCalibrationEventRecord(record)
       let savedRecord = record
       let notice =
@@ -4148,7 +4273,7 @@ function App() {
       {renderLoginTransition()}
 
       {photoViewer && (
-        <div className="photo-modal" role="dialog" aria-modal="true" aria-label="Foto de balanza">
+        <div className="photo-modal" role="dialog" aria-modal="true" aria-label="Foto ampliada">
           <button className="photo-modal-backdrop" type="button" onClick={() => setPhotoViewer(null)} aria-label="Cerrar foto" />
           <div className="photo-modal-card">
             <div className="row wrap">
@@ -4404,7 +4529,6 @@ function App() {
                       )}
                       {selectedPlantPointStatus.equipment && (
                         <div className="plant-map-status-actions">
-                          {canOperate && <button className="primary small" type="button" onClick={() => primeEventForm(selectedPlantPointStatus.equipment!)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva</button>}
                           <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(selectedPlantPointStatus.equipment!.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
                         </div>
                       )}
@@ -4641,9 +4765,6 @@ function App() {
                     </div>}
 
                     <div className="row compact-actions plant-map-detail-actions">
-                      {selectedPlantPointStatus?.equipment && canOperate && (
-                        <button className="primary" type="button" onClick={() => primeEventForm(selectedPlantPointStatus.equipment!)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>
-                      )}
                       {selectedPlantPointStatus?.equipment && (
                         <button className="secondary" type="button" onClick={() => { setHistoryEquipmentId(selectedPlantPointStatus.equipment!.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
                       )}
@@ -5243,6 +5364,43 @@ function App() {
                     </div>
                   )}
                 </div>
+                <div className="event-attachments-panel compact-top">
+                  <div className="row wrap">
+                    <div>
+                      <span className="section-kicker">Evidencia visual</span>
+                      <h3>Fotos adjuntas</h3>
+                      <p className="hint">Opcional. Hasta {MAX_EVENT_PHOTOS} fotos, comprimidas antes de subir al servidor online.</p>
+                    </div>
+                    <div className="event-attachment-input">
+                      <label className="label" htmlFor="event-photo-input">Agregar fotos</label>
+                      <input
+                        id="event-photo-input"
+                        className="input"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleEventPhotoSelection}
+                        disabled={eventSaving || eventPhotoDrafts.length >= MAX_EVENT_PHOTOS || !supabase}
+                      />
+                    </div>
+                  </div>
+                  {!supabase && <p className="hint compact-top">Las fotos adjuntas requieren servidor online activo.</p>}
+                  {eventPhotoDrafts.length > 0 ? (
+                    <div className="event-attachment-grid compact-top">
+                      {eventPhotoDrafts.map((photo, index) => (
+                        <div className="event-attachment-thumb" key={photo.id}>
+                          <img src={photo.previewUrl} alt={`Foto adjunta ${index + 1}`} />
+                          <div>
+                            <span>{photo.file.name || `Foto ${index + 1}`}</span>
+                            <button className="secondary small danger" type="button" onClick={() => removeEventPhotoDraft(photo.id)} disabled={eventSaving}>Quitar</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-state compact-top">Sin fotos adjuntas.</div>
+                  )}
+                </div>
                 <TextArea label="Observaciones" value={eventForm.notes} onChange={(value) => setEventForm((current) => ({ ...current, notes: value }))} />
                 {automaticDiagnosis.length > 0 && (
                   <div className="warning-panel">
@@ -5515,6 +5673,8 @@ function App() {
                     onDelete={() => handleDeleteEvent(item.id)}
                     formatDateTime={formatDateTime}
                     formatWeight={(value) => measureText(value, 'weightKg')}
+                    getAttachmentUrl={getEventAttachmentUrl}
+                    onOpenAttachment={openEventAttachmentPhoto}
                   />
                 )
               })}

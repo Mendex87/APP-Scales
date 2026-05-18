@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-18 - v4.1.2 - Fotos adjuntas a eventos
+
+- Contexto: se requiere adjuntar evidencia visual propia de cada calibracion, no solo foto maestra del equipo.
+- Cambio datos: `CalibrationEvent` incorpora `attachments` y `calibration_events` suma `attachments jsonb` con default `[]`.
+- Cambio storage: nuevo bucket `calibration-event-photos`, publico y con escritura para `admin`/`tecnico` autenticados.
+- Cambio app: Paso 8 permite seleccionar hasta 6 imagenes, comprimirlas y subirlas bajo carpeta del ID de evento.
+- Compatibilidad: si no hay fotos, la app no envia la columna `attachments` para no bloquear guardados contra bases todavia sin migrar.
+- Verificacion: `npm run build` correcto con warning esperado de chunks grandes.
+
 ## 2026-05-16 - v4.0.7 - Vista normal ampliada del mapa 3D
 
 - Contexto: fuera de modo edicion, el mapa se percibia chico porque compartia fila con el panel de detalle.

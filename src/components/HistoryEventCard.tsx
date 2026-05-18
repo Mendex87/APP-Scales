@@ -1,5 +1,5 @@
 import { Printer, Trash2 } from 'lucide-react'
-import type { CalibrationEvent, Equipment, MaterialPass } from '../types'
+import type { CalibrationEvent, Equipment, EventAttachment, MaterialPass } from '../types'
 import { EquipmentPhoto } from './EquipmentPhoto'
 import { Metric } from './Metric'
 
@@ -23,6 +23,8 @@ type HistoryEventCardProps = {
   onDelete: () => void
   formatDateTime: (value: string) => string
   formatWeight: (value: number) => string
+  getAttachmentUrl: (path: string) => string
+  onOpenAttachment: (attachment: EventAttachment) => void
 }
 
 export function HistoryEventCard({
@@ -37,11 +39,14 @@ export function HistoryEventCard({
   onDelete,
   formatDateTime,
   formatWeight,
+  getAttachmentUrl,
+  onOpenAttachment,
 }: HistoryEventCardProps) {
   const statusText = materialSummary.status
   const chainBridgeLengthM = item.chainSpan.bridgeLengthM || item.parameterSnapshot.bridgeLengthM || equipmentItem?.bridgeLengthM || 0
   const chainExpectedWeightKg = item.chainSpan.expectedControllerWeightKg || (item.chainSpan.chainLinearKgM && chainBridgeLengthM ? item.chainSpan.chainLinearKgM * chainBridgeLengthM : 0)
   const chainControllerWeightKg = item.chainSpan.controllerReadingWeightKg || 0
+  const attachments = item.attachments || []
 
   return (
     <div className={`card stack history-card status-${statusClass(statusText)}`}>
@@ -96,6 +101,19 @@ export function HistoryEventCard({
             </div>
           ))}
         </div>
+        {attachments.length > 0 && (
+          <div className="event-attachment-strip compact-top">
+            {attachments.map((attachment, index) => {
+              const attachmentUrl = getAttachmentUrl(attachment.path)
+              return (
+                <button className="event-attachment-history-thumb" type="button" key={attachment.id || attachment.path} onClick={() => onOpenAttachment(attachment)} disabled={!attachmentUrl}>
+                  {attachmentUrl ? <img src={attachmentUrl} alt={attachment.name || `Foto ${index + 1}`} loading="lazy" decoding="async" /> : <span>Sin vista</span>}
+                  <strong>{attachment.name || `Foto ${index + 1}`}</strong>
+                </button>
+              )
+            })}
+          </div>
+        )}
         {item.diagnosis && <p className="hint compact-top">Diagnostico: {item.diagnosis}</p>}
         {item.finalAdjustment.reason && <p className="hint">Motivo ajuste: {item.finalAdjustment.reason}</p>}
         {item.notes && <p>{item.notes}</p>}

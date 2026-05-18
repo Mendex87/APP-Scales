@@ -41,6 +41,7 @@ type EventRow = {
   material_validation: CalibrationEvent['materialValidation']
   final_adjustment: CalibrationEvent['finalAdjustment']
   approval: CalibrationEvent['approval']
+  attachments?: CalibrationEvent['attachments']
   diagnosis?: string
   notes: string
   sync_status: SyncStatus
@@ -621,6 +622,7 @@ function mapEventRow(row: EventRow): CalibrationEvent {
     materialValidation: row.material_validation,
     finalAdjustment: row.final_adjustment,
     approval: row.approval,
+    attachments: row.attachments || [],
     diagnosis: row.diagnosis || '',
     notes: row.notes,
     syncStatus: row.sync_status,
@@ -630,7 +632,8 @@ function mapEventRow(row: EventRow): CalibrationEvent {
 }
 
 export function toEventRow(item: CalibrationEvent): EventRow {
-  return {
+  const attachments = item.attachments || []
+  const row: EventRow = {
     id: item.id,
     equipment_id: item.equipmentId,
     created_at: item.createdAt,
@@ -653,4 +656,10 @@ export function toEventRow(item: CalibrationEvent): EventRow {
     sync_message: item.syncMessage,
     synced_at: item.syncedAt || null,
   }
+
+  if (attachments.length > 0) {
+    row.attachments = attachments
+  }
+
+  return row
 }

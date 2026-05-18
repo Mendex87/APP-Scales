@@ -120,6 +120,15 @@ export type MaterialValidation = {
 
 export type MaterialOutcome = 'control_conforme' | 'calibrada_ajustada' | 'fuera_tolerancia' | 'ajuste_sin_verificacion'
 
+export type EventAttachment = {
+  id: string
+  name: string
+  path: string
+  contentType: string
+  size: number
+  uploadedAt: string
+}
+
 export type MaterialPass = {
   index: number
   externalWeightKg: number
@@ -165,6 +174,7 @@ export type CalibrationEvent = {
   materialValidation: MaterialValidation
   finalAdjustment: FinalAdjustment
   approval: Approval
+  attachments: EventAttachment[]
   diagnosis: string
   notes: string
   syncStatus: SyncStatus

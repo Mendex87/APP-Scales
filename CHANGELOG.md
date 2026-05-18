@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.2 - Fotos adjuntas en calibraciones
+
+- El cierre de nueva calibracion permite adjuntar hasta 6 fotos comprimidas como evidencia visual.
+- Las fotos se guardan en el bucket `calibration-event-photos` y quedan vinculadas al evento como metadata.
+- Historial y reporte imprimible muestran las fotos adjuntas de cada evento.
+
 ## v4.1.1 - Span con cadena sobre puente de pesaje
 
 - El paso de cadena calcula la referencia esperada como peso lineal por distancia de puente/tren de pesaje.
