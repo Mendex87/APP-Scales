@@ -2,7 +2,7 @@
 
 Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
 
-Version actual: `v4.0.3`.
+Version actual: `v4.0.7`.
 
 ## Incluye
 
@@ -16,9 +16,20 @@ Version actual: `v4.0.3`.
 - validaciones numericas de cierre para evitar valores imposibles o pasadas incompletas
 - version de app registrada en cada evento para trazabilidad
 - recuperacion de contraseña por email con cooldown local para evitar reenvios repetidos
-- almacenamiento local o en Supabase
+- almacenamiento local o en servidor online
 - historial tecnico de calibraciones
 - reporte imprimible A4 con resumen sin duplicados, pesos de referencia con error final, pasadas completas y firma
+- preview de `/mapa` con planta 3D editable, puntos operativos y soporte para modelos `.glb`
+
+## Estado de operacion
+
+La app esta en operacion real para el flujo principal de calibraciones, historial, reportes y servidor online.
+
+La funcionalidad `/mapa` sigue como preview en la rama `preview-plant-map`. No debe considerarse final ni documentarse en manuales publicos hasta que la vista 3D quede aprobada.
+
+Documento interno de la preview:
+
+- `docs/plant-map-preview.md`
 
 ## Desarrollo local
 
@@ -41,9 +52,9 @@ La integracion con planillas externas fue retirada del flujo operativo. La traza
 
 Los usuarios pueden pedir un link desde `Olvidé mi contraseña` en la pantalla de ingreso. El envio de emails depende del SMTP configurado en Supabase; ver `SUPABASE-SETUP.md` para URLs permitidas, plantilla del correo y configuracion Resend/Brevo/SendGrid/Mailgun/SES.
 
-## Supabase
+## Servidor online
 
-La app ahora puede usar `Supabase` como base principal de datos.
+La app usa Supabase como proveedor tecnico del servidor online. En UI y documentacion para usuario final se debe hablar de `servidor online`.
 
 Archivo de setup:
 

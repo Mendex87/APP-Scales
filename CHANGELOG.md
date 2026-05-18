@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.1 - Span con cadena sobre puente de pesaje
+
+- El paso de cadena calcula la referencia esperada como peso lineal por distancia de puente/tren de pesaje.
+- La lectura del controlador se registra como peso sobre el puente, evitando comparar contra solo 1 metro de cadena.
+- Los reportes e historial muestran la carga esperada y la lectura del controlador para nuevos eventos.
+
 ## v4.1.0 - Manuales y mapa operativo actualizados
 
 - Se actualizan los manuales de administrador/usuario y tecnico de campo con el mapa operativo de planta.

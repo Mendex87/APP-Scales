@@ -156,6 +156,27 @@ alter table public.plant_map_points
 create index if not exists plant_map_points_object_id_idx
   on public.plant_map_points (object_id);
 
+create or replace function public.fix_plant_map_point_object_id()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.object_id := coalesce(new.object_id, '');
+  return new;
+end;
+$$;
+
+drop trigger if exists plant_map_points_object_id_fix on public.plant_map_points;
+
+create trigger plant_map_points_object_id_fix
+before insert or update on public.plant_map_points
+for each row
+execute function public.fix_plant_map_point_object_id();
+
+update public.plant_map_points
+set object_id = ''
+where object_id is null;
+
 insert into public.plant_map_points (id, label, zone, point_type, x, y, object_id)
 values
   ('cinta-23', 'Cinta 23', 'Transporte principal', 'belt_scale', 30, 57, 'belt-cinta-23'),

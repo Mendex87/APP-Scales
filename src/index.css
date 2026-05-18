@@ -3274,6 +3274,19 @@ body::before {
   max-width: 8ch;
 }
 
+.brand-home-button {
+  all: unset;
+  display: inline-block;
+  cursor: pointer;
+  border-radius: calc(var(--radius) * 0.45);
+  transition: color 0.22s ease, transform 0.22s var(--link-ease);
+}
+
+.brand-home-button:hover {
+  color: var(--color-orange);
+  transform: translateY(-1px);
+}
+
 .brand-block {
   max-width: 760px;
 }
@@ -3376,6 +3389,17 @@ body::before {
   gap: 0.55rem;
 }
 
+.tools-unit-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tools-unit-card .topbar-unit-toggle {
+  width: 10rem;
+}
+
 .topbar-unit-toggle {
   width: 9.2rem;
   min-height: 38px;
@@ -3398,15 +3422,15 @@ body::before {
 .hero-strip {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .hero-panel {
   position: relative;
   overflow: hidden;
-  padding: 1rem;
-  min-height: 138px;
+  padding: 0.78rem 0.88rem;
+  min-height: 112px;
   border-radius: var(--radius);
   background: var(--color-paper-strong);
   border: 1px solid var(--border);
@@ -3429,10 +3453,10 @@ body::before {
 .hero-panel::after {
   content: '';
   position: absolute;
-  right: -3rem;
-  bottom: -4rem;
-  width: 10rem;
-  height: 10rem;
+  right: -3.5rem;
+  bottom: -4.35rem;
+  width: 9rem;
+  height: 9rem;
   border: 1px solid rgba(255, 89, 73, 0.34);
   transform: rotate(45deg);
 }
@@ -3440,28 +3464,29 @@ body::before {
 .hero-panel span {
   display: block;
   font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--color-grey-500);
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.36rem;
 }
 
 .hero-panel strong {
   display: block;
   font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  font-size: clamp(1.9rem, 4.9vw, 3rem);
   line-height: 0.88;
   letter-spacing: -0.04em;
   text-transform: uppercase;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.28rem;
 }
 
 .hero-panel p {
   color: var(--color-grey-500);
   max-width: 26ch;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
+  line-height: 1.22;
 }
 
 .hero-panel-primary {
@@ -3790,6 +3815,7 @@ body::before {
 .primary:focus-visible,
 .secondary:focus-visible,
 .nav-item:focus-visible,
+.brand-home-button:focus-visible,
 .wizard-step:focus-visible,
 .collapsible-summary:focus-visible,
 .inline-details summary:focus-visible,
@@ -4726,6 +4752,15 @@ body::before {
   }
 
   .topbar-quick-controls {
+    width: 100%;
+  }
+
+  .tools-unit-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .tools-unit-card .topbar-unit-toggle {
     width: 100%;
   }
 

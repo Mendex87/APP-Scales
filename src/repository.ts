@@ -571,6 +571,7 @@ function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
 
 function mapEventRow(row: EventRow): CalibrationEvent {
   const parameterSnapshot = (row.parameter_snapshot || {}) as CalibrationEvent['parameterSnapshot']
+  const chainSpan = (row.chain_span || {}) as Partial<CalibrationEvent['chainSpan']>
   return {
     id: row.id,
     appVersion: parameterSnapshot.appVersion || '',
@@ -597,13 +598,16 @@ function mapEventRow(row: EventRow): CalibrationEvent {
     },
     parameterSnapshot,
     chainSpan: {
-      chainId: row.chain_span?.chainId || '',
-      chainName: row.chain_span?.chainName || '',
-      chainLinearKgM: row.chain_span?.chainLinearKgM || 0,
-      passCount: row.chain_span?.passCount || 0,
-      avgControllerReadingKgM: row.chain_span?.avgControllerReadingKgM || 0,
-      avgErrorPct: row.chain_span?.avgErrorPct || 0,
-      provisionalFactor: row.chain_span?.provisionalFactor || 0,
+      chainId: chainSpan.chainId || '',
+      chainName: chainSpan.chainName || '',
+      chainLinearKgM: chainSpan.chainLinearKgM || 0,
+      bridgeLengthM: chainSpan.bridgeLengthM || 0,
+      expectedControllerWeightKg: chainSpan.expectedControllerWeightKg || 0,
+      passCount: chainSpan.passCount || 0,
+      avgControllerReadingKgM: chainSpan.avgControllerReadingKgM || 0,
+      controllerReadingWeightKg: chainSpan.controllerReadingWeightKg || 0,
+      avgErrorPct: chainSpan.avgErrorPct || 0,
+      provisionalFactor: chainSpan.provisionalFactor || 0,
     },
     accumulatedCheck: row.accumulated_check || {
       expectedFlowTph: 0,

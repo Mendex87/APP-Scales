@@ -39,6 +39,9 @@ export function HistoryEventCard({
   formatWeight,
 }: HistoryEventCardProps) {
   const statusText = materialSummary.status
+  const chainBridgeLengthM = item.chainSpan.bridgeLengthM || item.parameterSnapshot.bridgeLengthM || equipmentItem?.bridgeLengthM || 0
+  const chainExpectedWeightKg = item.chainSpan.expectedControllerWeightKg || (item.chainSpan.chainLinearKgM && chainBridgeLengthM ? item.chainSpan.chainLinearKgM * chainBridgeLengthM : 0)
+  const chainControllerWeightKg = item.chainSpan.controllerReadingWeightKg || 0
 
   return (
     <div className={`card stack history-card status-${statusClass(statusText)}`}>
@@ -75,6 +78,8 @@ export function HistoryEventCard({
         <summary>Ver detalle</summary>
         <div className="grid four compact-top">
           <Metric label="Error cadena" value={`${item.chainSpan.avgErrorPct} %`} />
+          <Metric label="Cadena esperada" value={chainExpectedWeightKg ? formatWeight(chainExpectedWeightKg) : '-'} />
+          <Metric label="Cadena controlador" value={chainControllerWeightKg ? formatWeight(chainControllerWeightKg) : '-'} />
           <Metric label="Error acumulado" value={`${item.accumulatedCheck.errorPct || 0} %`} />
           <Metric label="Error material final" value={`${materialSummary.errorPct} %`} />
           <Metric label="Factor final" value={String(item.finalAdjustment.factorAfter)} />

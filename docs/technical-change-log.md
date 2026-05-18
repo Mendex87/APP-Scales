@@ -2,6 +2,42 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-16 - v4.0.7 - Vista normal ampliada del mapa 3D
+
+- Contexto: fuera de modo edicion, el mapa se percibia chico porque compartia fila con el panel de detalle.
+- Decision preview: reservar el panel lateral para modo edicion y hacer que la vista normal use el ancho completo.
+- Cambio UI: `.plant-map-layout` normal pasa a una columna; el detalle del punto queda debajo en dos columnas internas cuando hay ancho disponible.
+- Cambio canvas: la altura normal del canvas pasa a `clamp(820px, 76vh, 1040px)`.
+- Alcance: no se actualizan manuales porque `/mapa` sigue en preview.
+- Verificacion: `npm run build` correcto con warning esperado de chunks grandes por Three.js.
+
+## 2026-05-16 - v4.0.6 - Guardado seguro de puntos libres del mapa
+
+- Contexto: una pestana vieja del preview podia enviar `plant_map_points.object_id` como `null`, pero la tabla exige texto no nulo.
+- Cambio app: `toPlantMapPointRow` serializa puntos sin vinculo como `object_id: ''`.
+- Cambio base recomendado: mantener trigger defensivo para convertir `null` a texto vacio en insert/update.
+- Motivo: permitir recuperar y guardar borradores de mapa hechos en versiones cacheadas sin perder trabajo.
+- Verificacion: `npm run build` correcto con warning esperado de chunks grandes.
+
+## 2026-05-16 - v4.0.5 - Soporte GLB para objetos del mapa
+
+- Contexto: los presets generativos no representan con suficiente fidelidad objetos industriales reales; se decidio preparar la app para modelos exportados desde Fusion 360/Blender.
+- Decision preview: usar `.glb`/`.gltf` mediante `GLTFLoader`, con rutas servidas desde `public/models/plant/`.
+- Cambio datos: `plant_map_objects` incorpora `model_path`.
+- Cambio editor: se agrega campo `Modelo .glb` en la seccion `Objeto y modelo`.
+- Cambio escena: si `model_path` apunta a `.glb`/`.gltf`, la escena carga el modelo, lo escala al volumen del objeto y conserva fallback si falla.
+- Cambio UX: el panel de edicion queda dividido en secciones plegables y los presets quedan ocultos.
+- Verificacion: `npm run build` correcto con warning esperado de chunks grandes.
+
+## 2026-05-16 - v4.0.4 - Presets industriales del mapa
+
+- Contexto: se necesitaba crear objetos rapidamente durante la exploracion del editor 3D.
+- Decision preview: agregar presets como ayuda temporal, no como solucion visual final.
+- Cambio editor: presets para cintas, tolvas, silos, despachos, basculas, caminos, zonas, camiones, cabinas y marcadores.
+- Regla: cada preset crea un objeto en borrador, cerca del objeto seleccionado, y requiere `Guardar edicion`.
+- Estado posterior: Ezequiel indico que los presets no convencen visualmente; quedan ocultos y se priorizan modelos `.glb` reales.
+- Verificacion: `npm run build` correcto con warning esperado de chunks grandes.
+
 ## 2026-05-15 - v4.0.3 - Reporte A4 sin duplicados
 
 - Contexto: el reporte imprimible repetia datos entre cabecera, resumen, pesos de referencia y bloques tecnicos, reduciendo claridad en una sola pagina.

@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   Download,
   History,
+  Home,
   Moon,
   Pencil,
   PlusCircle,
@@ -138,7 +139,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.0'
+const APP_VERSION = 'v4.1.1'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1138,6 +1139,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   const closureType = materialSummary.adjustmentApplied ? 'Ajustada' : 'Control'
   const optionalMeasure = (value: number, kind: MeasureKind, digits = 3) => value > 0 ? measure(value, kind, digits) : 'No requerido'
   const optionalText = (value: string | number, suffix = '') => value ? `${value}${suffix}` : 'No requerido'
+  const chainSpanBridgeLengthM = item.chainSpan.bridgeLengthM || item.parameterSnapshot.bridgeLengthM || equipmentItem?.bridgeLengthM || 0
+  const chainExpectedControllerWeightKg = item.chainSpan.expectedControllerWeightKg || (item.chainSpan.chainLinearKgM && chainSpanBridgeLengthM ? item.chainSpan.chainLinearKgM * chainSpanBridgeLengthM : 0)
+  const chainControllerReadingText = item.chainSpan.controllerReadingWeightKg
+    ? optionalMeasure(item.chainSpan.controllerReadingWeightKg, 'weightKg')
+    : optionalMeasure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM')
   const inspectionChecks = [
     reportCheck('Banda vacia', item.precheck.beltEmpty),
     reportCheck('Banda limpia', item.precheck.beltClean),
@@ -1274,7 +1280,10 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
           ${reportRow('Cadena', item.chainSpan.chainName || 'No requerido')}
           ${reportRow('Tiempo cadena', optionalText(item.chainSpan.passCount, ' min'))}
           ${reportRow('Peso lineal', optionalMeasure(item.chainSpan.chainLinearKgM, 'linearWeightKgM'))}
-          ${reportRow('Lectura prom.', optionalMeasure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM'))}
+          ${reportRow('Puente pesaje', optionalMeasure(chainSpanBridgeLengthM, 'lengthM'))}
+          ${reportRow('Peso esperado puente', optionalMeasure(chainExpectedControllerWeightKg, 'weightKg'))}
+          ${reportRow(item.chainSpan.controllerReadingWeightKg ? 'Lectura controlador' : 'Lectura prom. historica', chainControllerReadingText)}
+          ${reportRow('Error cadena', `${item.chainSpan.avgErrorPct || 0} %`)}
           ${reportRow('Caudal leido', optionalMeasure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
           ${reportRow('Acumulado indicado', optionalMeasure(item.accumulatedCheck.indicatedTotal, 'massT'))}
         </div>
@@ -1808,6 +1817,11 @@ function App() {
       ...current,
       adjustmentFactorCurrent: current.adjustmentFactorCurrent || String(selectedEquipment.adjustmentFactorCurrent || 1),
     }))
+    setEventForm((current) => ({
+      ...current,
+      snapshotBridgeLengthM: current.snapshotBridgeLengthM || String(selectedEquipment.bridgeLengthM || ''),
+      snapshotNominalSpeedMs: current.snapshotNominalSpeedMs || String(selectedEquipment.nominalSpeedMs || ''),
+    }))
     const plantChain = chains.find((item) => item.plant.trim().toLowerCase() === selectedEquipment.plant.trim().toLowerCase())
     if (plantChain) {
       setSelectedChainId((current) => current || plantChain.id)
@@ -1844,9 +1858,13 @@ function App() {
     })
   }, [equipment, events])
 
+  const chainSpanBridgeLengthM = toNumber(eventForm.snapshotBridgeLengthM) || selectedEquipment?.bridgeLengthM || 0
+  const chainExpectedControllerWeightKg = (toNumber(eventForm.chainLinearKgM) || 0) * chainSpanBridgeLengthM
+  const chainControllerReadingWeightKg = toNumber(eventForm.avgControllerReadingKgM) || 0
+
   const avgErrorPct = useMemo(
-    () => computePercentError(toNumber(eventForm.chainLinearKgM) || 0, toNumber(eventForm.avgControllerReadingKgM) || 0),
-    [eventForm.chainLinearKgM, eventForm.avgControllerReadingKgM],
+    () => computePercentError(chainExpectedControllerWeightKg, chainControllerReadingWeightKg),
+    [chainExpectedControllerWeightKg, chainControllerReadingWeightKg],
   )
 
   const materialFactorBefore = toNumber(eventForm.calibrationFactor) || 0
@@ -2436,10 +2454,11 @@ function App() {
     if (requiresFullCalibration) {
       const chainTestMinutes = toNumber(eventForm.passCount)
       const accumulatedTestMinutes = toNumber(eventForm.accumulatedTestMinutes)
+      if (!(chainSpanBridgeLengthM > 0)) addIssue('Falta la distancia de puente/tren de pesaje.', 3)
       if (!(toNumber(eventForm.chainLinearKgM) > 0)) addIssue('Falta el peso lineal de cadena.', 4)
       if (!(chainTestMinutes > 0)) addIssue('Falta el tiempo de test con cadena.', 4)
       if (chainTestMinutes > MAX_TEST_MINUTES) addIssue(`El tiempo de test con cadena no puede superar ${MAX_TEST_MINUTES} min.`, 4)
-      if (!(toNumber(eventForm.avgControllerReadingKgM) > 0)) addIssue('Falta el promedio de lectura del controlador.', 4)
+      if (!(chainControllerReadingWeightKg > 0)) addIssue('Falta la lectura del controlador sobre el puente de pesaje.', 4)
       if (!(toNumber(eventForm.expectedFlowTph) > 0)) addIssue('Falta el caudal leido.', 5)
       if (!(accumulatedTestMinutes > 0)) addIssue('Falta el tiempo de prueba.', 5)
       if (accumulatedTestMinutes > MAX_TEST_MINUTES) addIssue(`El tiempo de prueba no puede superar ${MAX_TEST_MINUTES} min.`, 5)
@@ -2458,14 +2477,15 @@ function App() {
     if (!(finalFactor > 0)) addIssue('Falta el factor de calibracion final.', 7)
     if (finalFactor > MAX_FACTOR_VALUE) addIssue('El factor de calibracion final es demasiado alto; revisá el valor cargado.', 7)
     return issues
-  }, [completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment])
+  }, [chainControllerReadingWeightKg, chainSpanBridgeLengthM, completeMaterialPasses, currentUser, eventForm, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment])
 
   const firstBlockingIssue = eventBlockingIssues[0]
 
   const calibrationStepStates = useMemo(() => {
     const fullCalibrationReady = !requiresFullCalibration || (
+      chainSpanBridgeLengthM > 0 &&
       toNumber(eventForm.chainLinearKgM) > 0 &&
-      toNumber(eventForm.avgControllerReadingKgM) > 0 &&
+      chainControllerReadingWeightKg > 0 &&
       toNumber(eventForm.expectedFlowTph) > 0 &&
       toNumber(eventForm.accumulatedTestMinutes) > 0 &&
       toNumber(eventForm.accumulatedIndicatedTotal) > 0
@@ -2475,8 +2495,8 @@ function App() {
         Boolean(selectedEquipment && eventForm.eventDate && toNumber(eventForm.tolerancePercent) > 0 && toNumber(eventForm.tolerancePercent) <= MAX_TOLERANCE_PERCENT),
         precheckPassed,
         eventForm.zeroCompleted,
-        toNumber(eventForm.calibrationFactor) > 0,
-        !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.passCount) > 0 && toNumber(eventForm.passCount) <= MAX_TEST_MINUTES && toNumber(eventForm.avgControllerReadingKgM) > 0),
+        toNumber(eventForm.calibrationFactor) > 0 && (!requiresFullCalibration || chainSpanBridgeLengthM > 0),
+        !requiresFullCalibration || (toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.passCount) > 0 && toNumber(eventForm.passCount) <= MAX_TEST_MINUTES && chainControllerReadingWeightKg > 0),
         !requiresFullCalibration || (toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedTestMinutes) <= MAX_TEST_MINUTES && toNumber(eventForm.accumulatedIndicatedTotal) > 0),
         Boolean(finalMaterialPass && displayedMaterialPassesComplete),
         eventBlockingIssues.length === 0,
@@ -2486,15 +2506,15 @@ function App() {
       const statusLabel = skipped ? 'No requerido' : complete ? 'Completo' : warning ? 'Requiere atencion' : 'Pendiente'
       return { step, complete, warning, skipped, statusLabel }
     })
-  }, [displayedMaterialPassesComplete, eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
+  }, [chainControllerReadingWeightKg, chainSpanBridgeLengthM, displayedMaterialPassesComplete, eventBlockingIssues.length, eventForm, finalMaterialPass, precheckPassed, requiresFullCalibration, selectedEquipment])
 
   const wizardReadinessPercent = Math.round((calibrationStepStates.filter(({ complete }) => complete).length / calibrationSteps.length) * 100)
   const wizardStepCue = [
     selectedEquipment ? `Equipo activo: ${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}. ${selectedEquipmentMaintenance?.detail || ''}` : 'Selecciona una balanza para iniciar el circuito.',
     precheckPassed ? 'Inspeccion completa. El equipo esta en condicion de medicion.' : 'Completa los seis checks mecanicos antes de avanzar.',
     eventForm.zeroCompleted ? 'Cero registrado. Continua con la foto de parametros.' : 'Registra el cero del controlador antes de medir.',
-    toNumber(eventForm.calibrationFactor) > 0 ? 'Factor actual del controlador registrado. Ese factor sera la base para material real.' : 'Carga el factor actual con el que esta trabajando la balanza.',
-    !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && toNumber(eventForm.avgControllerReadingKgM) > 0 ? 'Span con cadena registrado.' : 'Carga peso lineal de cadena y promedio del controlador.',
+    toNumber(eventForm.calibrationFactor) > 0 && (!requiresFullCalibration || chainSpanBridgeLengthM > 0) ? 'Factor actual y puente de pesaje registrados. Esa sera la base para material real.' : 'Carga el factor actual y la distancia de puente/tren de pesaje.',
+    !requiresFullCalibration ? 'Cadena no requerida para este control preventivo.' : toNumber(eventForm.chainLinearKgM) > 0 && chainControllerReadingWeightKg > 0 ? 'Span con cadena registrado contra peso sobre puente.' : 'Carga peso lineal de cadena y lectura del controlador sobre el puente.',
     !requiresFullCalibration ? 'Acumulado no requerido para este control preventivo.' : toNumber(eventForm.expectedFlowTph) > 0 && toNumber(eventForm.accumulatedTestMinutes) > 0 && toNumber(eventForm.accumulatedIndicatedTotal) > 0 ? 'Acumulado registrado.' : 'Completa caudal leido, tiempo y acumulado indicado.',
     finalMaterialPass ? `Ultima pasada: ${round(materialErrorPct)} % de error.` : 'Carga al menos una pasada completa con material real.',
     eventBlockingIssues.length === 0 ? 'Evento listo para guardar con factor final confirmado.' : eventBlockingIssues[0]?.message,
@@ -2606,20 +2626,21 @@ function App() {
         messages.push('La velocidad calculada por RPM no coincide con la velocidad configurada.')
       }
     }
-    if (chainToolResult && eventForm.avgControllerReadingKgM) {
+    const chainSpanReady = chainExpectedControllerWeightKg > 0 && chainControllerReadingWeightKg > 0
+    if (chainSpanReady) {
       if (Math.abs(avgErrorPct) > 2) {
-        messages.push('El caudal instantaneo o la lectura base difieren mas de 2%; revisar factor de calibracion, velocidad o mecanica.')
+        messages.push('El peso indicado con cadena sobre el puente difiere mas de 2%; revisar factor de calibracion, distancia de puente, velocidad o mecanica.')
       }
     }
     if (accumulatedToolResult) {
       if (Math.abs(accumulatedToolResult.errorPct) > 2) {
         messages.push('El acumulado difiere mas de 2%; revisar o corregir con factor de ajuste.')
       }
-      if (Math.abs(accumulatedToolResult.errorPct) <= 2 && chainToolResult && Math.abs(avgErrorPct) <= 2) {
+      if (Math.abs(accumulatedToolResult.errorPct) <= 2 && chainSpanReady && Math.abs(avgErrorPct) <= 2) {
         messages.push('Instantaneo y acumulado coherentes para la prueba realizada.')
       }
     }
-    if (chainToolResult && Math.abs(avgErrorPct) <= 2 && accumulatedToolResult && Math.abs(accumulatedToolResult.errorPct) > 2) {
+    if (chainSpanReady && Math.abs(avgErrorPct) <= 2 && accumulatedToolResult && Math.abs(accumulatedToolResult.errorPct) > 2) {
       messages.push('Si el instantaneo esta correcto y falla el acumulado, no tocar factor de calibracion. Corregir con factor de ajuste.')
     }
     if (!eventForm.zeroCompleted) {
@@ -2635,7 +2656,7 @@ function App() {
       messages.push('La ultima pasada con material queda fuera de tolerancia; requiere nueva verificacion o intervencion.')
     }
     return messages
-  }, [rpmToolResult, selectedEquipment, chainToolResult, eventForm.avgControllerReadingKgM, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted, finalMaterialPass, materialOutcome])
+  }, [rpmToolResult, selectedEquipment, chainExpectedControllerWeightKg, chainControllerReadingWeightKg, avgErrorPct, accumulatedToolResult, eventForm.zeroCompleted, finalMaterialPass, materialOutcome])
 
   const historyMonths = useMemo(() => {
     return Array.from(new Set(events.map((item) => formatArgentinaYearMonth(item.eventDate)).filter(Boolean))).sort().reverse()
@@ -3460,8 +3481,11 @@ function App() {
         chainId: eventForm.chainId.trim(),
         chainName: eventForm.chainName.trim(),
         chainLinearKgM: toNumber(eventForm.chainLinearKgM) || 0,
+        bridgeLengthM: chainSpanBridgeLengthM,
+        expectedControllerWeightKg: round(chainExpectedControllerWeightKg, 6),
         passCount: toNumber(eventForm.passCount) || 0,
-        avgControllerReadingKgM: toNumber(eventForm.avgControllerReadingKgM) || 0,
+        avgControllerReadingKgM: chainControllerReadingWeightKg,
+        controllerReadingWeightKg: chainControllerReadingWeightKg,
         avgErrorPct: round(avgErrorPct),
         provisionalFactor: toNumber(eventForm.provisionalFactor) || toNumber(eventForm.calibrationFactor) || 0,
       },
@@ -4052,7 +4076,11 @@ function App() {
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">
-          <h1>Balanzas Dinamicas</h1>
+          <h1>
+            <button className="brand-home-button" type="button" onClick={() => setScreen('dashboard')}>
+              Balanzas Dinamicas
+            </button>
+          </h1>
           <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
           <div className="live-clock" aria-label="Hora actual de Argentina">
             <time dateTime={clockNow.toISOString()}>{formatArgentinaClock(clockNow)}</time>
@@ -4087,15 +4115,7 @@ function App() {
           </div>
           <div className="topbar-quick-controls">
             <button className="secondary small topbar-unit-toggle" type="button" onClick={() => setScreen('mapa')}>
-              <Scale className="action-icon" aria-hidden="true" />Mapa planta
-            </button>
-            <button
-              className="secondary small unit-toggle topbar-unit-toggle"
-              type="button"
-              onClick={handleUnitSystemToggle}
-              aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
-            >
-              {unitSystemName}
+              Mapa planta
             </button>
           </div>
         </div>
@@ -4184,8 +4204,8 @@ function App() {
               <div className="card ops-panel compact-ops-panel">
                 <div>
                   <span className="section-kicker">Comando de turno</span>
-                  <h2>Pulso operativo</h2>
-                  <p className="hint">Lectura ejecutiva del parque sin duplicar el detalle tecnico del historial.</p>
+                  <h2>Estado actual de las plantas</h2>
+                  <p className="hint">Lectura ejecutiva sin duplicar el detalle tecnico del historial.</p>
                 </div>
                 <div className="readiness-score" style={{ '--readiness': `${fleetReadinessPercent}%` } as CSSProperties}>
                   <span>Controles al dia</span>
@@ -4237,18 +4257,6 @@ function App() {
                   ))}
                   {priorityEquipment.length === 0 && <div className="empty-state success-state">Parque al dia segun frecuencia de control configurada.</div>}
                 </div>
-              </div>
-            </div>
-            <div className="quick-actions card">
-              <div>
-                <span className="section-kicker">Accesos rapidos</span>
-                <h2>Trabajo de campo</h2>
-              </div>
-              <div className="row compact-actions">
-                {canOperate && <button className="primary" type="button" onClick={() => setScreen('nueva')}><ClipboardCheck className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
-                {canReview && <button className="secondary" type="button" onClick={() => setScreen('balanzas')}><Scale className="action-icon" aria-hidden="true" />Ver balanzas</button>}
-                <button className="secondary" type="button" onClick={() => setScreen('historial')}><History className="action-icon" aria-hidden="true" />Historial</button>
-                <button className="secondary" type="button" onClick={() => setScreen('herramientas')}><Wrench className="action-icon" aria-hidden="true" />Herramientas</button>
               </div>
             </div>
             {canReview && <div className="stack">
@@ -4657,7 +4665,7 @@ function App() {
               <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
             </div>
             <div ref={equipmentFormRef} className="scroll-anchor">
-            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
+            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." actionLabel="Crear una nueva" defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
                   <div>
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
@@ -5020,7 +5028,7 @@ function App() {
               {calibrationStep === 3 && <CollapsibleCard title="Paso 4 · Foto de parametros" hint="Datos del controlador al momento de calibrar." defaultOpen>
                 <div className="card-tag">Paso 4</div>
                 <h2>Foto de parametros</h2>
-                <p className="hint">El factor de calibracion actual es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real.</p>
+                <p className="hint">El factor de calibracion actual es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real. La distancia de puente/tren de pesaje se usa en el Paso 5 para calcular la carga esperada con cadena.</p>
                 <div className="grid two">
                   <Field label="Factor calibracion actual" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
                   <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
@@ -5036,19 +5044,22 @@ function App() {
                 <div className="result-row"><span>Base para material real</span><strong>{toNumber(eventForm.calibrationFactor) > 0 ? eventForm.calibrationFactor : 'Pendiente'}</strong></div>
               </CollapsibleCard>}
 
-              {calibrationStep === 4 && <CollapsibleCard title="Paso 5 · Span con cadena" hint="Lectura promedio contra peso patron." defaultOpen>
+              {calibrationStep === 4 && <CollapsibleCard title="Paso 5 · Span con cadena" hint="Peso esperado sobre puente contra lectura del controlador." defaultOpen>
                 <div className="card-tag">Paso 5</div>
                 <h2>Span con peso patron (cadena)</h2>
+                <p className="hint">La referencia del controlador se calcula como peso lineal de cadena por distancia de puente/tren de pesaje.</p>
                 <div className="grid two">
                   <Field label={measureLabel('Peso lineal de cadena', 'linearWeightKgM')} type="number" value={measureInput(eventForm.chainLinearKgM, 'linearWeightKgM')} onChange={(value) => setEventForm((current) => ({ ...current, chainLinearKgM: parseMeasure(value, 'linearWeightKgM') }))} />
                   <Field label="Tiempo de test (min)" type="number" value={eventForm.passCount} onChange={(value) => setEventForm((current) => ({ ...current, passCount: value }))} />
-                  <Field label={measureLabel('Promedio lectura controlador', 'linearWeightKgM')} type="number" value={measureInput(eventForm.avgControllerReadingKgM, 'linearWeightKgM')} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: parseMeasure(value, 'linearWeightKgM') }))} />
+                  <Field label={measureLabel('Lectura controlador sobre puente', 'weightKg')} type="number" value={measureInput(eventForm.avgControllerReadingKgM, 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, avgControllerReadingKgM: parseMeasure(value, 'weightKg') }))} />
                   <Field label="Factor provisorio" type="number" value={eventForm.provisionalFactor} onChange={(value) => setEventForm((current) => ({ ...current, provisionalFactor: value }))} />
                 </div>
-                <div className="grid three compact-top">
-                  <Metric label="Error promedio" value={`${round(avgErrorPct)} %`} />
+                <div className="grid four compact-top">
+                  <Metric label="Error sobre puente" value={chainExpectedControllerWeightKg && chainControllerReadingWeightKg ? `${round(avgErrorPct)} %` : '-'} />
+                  <Metric label="Puente pesaje" value={chainSpanBridgeLengthM ? measureText(chainSpanBridgeLengthM, 'lengthM') : '-'} />
                   <Metric label="Referencia cadena" value={measureText(toNumber(eventForm.chainLinearKgM) || 0, 'linearWeightKgM')} />
-                  <Metric label="Promedio controlador" value={measureText(toNumber(eventForm.avgControllerReadingKgM) || 0, 'linearWeightKgM')} />
+                  <Metric label="Peso esperado controlador" value={chainExpectedControllerWeightKg ? measureText(chainExpectedControllerWeightKg, 'weightKg') : '-'} />
+                  <Metric label="Lectura controlador" value={chainControllerReadingWeightKg ? measureText(chainControllerReadingWeightKg, 'weightKg') : '-'} />
                 </div>
               </CollapsibleCard>}
 
@@ -5270,6 +5281,21 @@ function App() {
               <span className="section-kicker">Calculadoras de campo</span>
               <h2>Velocidad, cadena y factor</h2>
               <p>Tomá datos en piso y trasladá resultados al evento sin rehacer cuentas manuales.</p>
+            </div>
+            <div className="card tools-unit-card">
+              <div>
+                <span className="section-kicker">Unidades</span>
+                <h2>Sistema de medicion</h2>
+                <p className="hint">Cambia entre unidades metricas e imperiales para formularios, calculadoras y reportes.</p>
+              </div>
+              <button
+                className="secondary small unit-toggle topbar-unit-toggle"
+                type="button"
+                onClick={handleUnitSystemToggle}
+                aria-label={`Cambiar a unidades ${unitSystem === 'metric' ? 'imperiales' : 'metricas'}`}
+              >
+                {unitSystemName}
+              </button>
             </div>
             <div className="card">
               <label className="label">Balanza</label>
@@ -5587,7 +5613,7 @@ function App() {
       </main>
 
       <nav className={`bottom-nav ${canManageUsers ? 'six' : canOperate ? 'five' : canReview ? 'four' : 'three'}`} aria-label="Navegacion principal">
-        <button type="button" className={navItemClass('dashboard')} aria-current={screen === 'dashboard' ? 'page' : undefined} onClick={() => handleNavSelect('dashboard')}><Scale className="nav-icon" aria-hidden="true" />Inicio</button>
+        <button type="button" className={navItemClass('dashboard')} aria-current={screen === 'dashboard' ? 'page' : undefined} onClick={() => handleNavSelect('dashboard')}><Home className="nav-icon" aria-hidden="true" />Inicio</button>
         {canReview && <button type="button" className={navItemClass('balanzas')} aria-current={screen === 'balanzas' ? 'page' : undefined} onClick={() => handleNavSelect('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
         <button type="button" className={navItemClass('herramientas')} aria-current={screen === 'herramientas' ? 'page' : undefined} onClick={() => handleNavSelect('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
         {canOperate && <button type="button" className={navItemClass('nueva')} aria-current={screen === 'nueva' ? 'page' : undefined} onClick={() => handleNavSelect('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
@@ -5601,11 +5627,13 @@ function App() {
 function CollapsibleCard({
   title,
   hint,
+  actionLabel = 'Abrir',
   defaultOpen = false,
   children,
 }: {
   title: string
   hint?: string
+  actionLabel?: string
   defaultOpen?: boolean
   children: ReactNode
 }) {
@@ -5616,7 +5644,7 @@ function CollapsibleCard({
           <strong>{title}</strong>
           {hint && <small>{hint}</small>}
         </span>
-        <span className="collapsible-indicator">Abrir</span>
+        <span className="collapsible-indicator">{actionLabel}</span>
       </summary>
       <div className="collapsible-body">
         {children}

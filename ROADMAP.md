@@ -2,6 +2,13 @@
 
 Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilidad operativa, velocidad de uso en campo y calidad visual sin complicar la app innecesariamente.
 
+## Estado actual destacado
+
+- La app esta en operacion real para calibraciones, historial, reportes y servidor online.
+- La rama `preview-plant-map` contiene el mapa 3D de planta, todavia sin aprobar para produccion final.
+- La documentacion interna de esa preview vive en `docs/plant-map-preview.md`.
+- Los manuales publicos y PDFs no deben actualizarse con `/mapa` hasta que la preview quede 100% pulida y aprobada.
+
 ## Prioridad 1 - Robustez operativa
 
 ### Estados de balanza mas claros
@@ -85,6 +92,13 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 
 ## Prioridad 4 - Visual y experiencia
 
+### Mapa 3D de planta
+
+- En preview `preview-plant-map`: `/mapa` con escena Three.js, puntos operativos, objetos editables, modelos `.glb` y guardado online/local.
+- Prioridad de pulido: zona de despachos fiel al plano real, con silos, despachos, cintas y caminos.
+- Pendiente: modelos reales para despachos/cintas/caminos, camaras rapidas, capas bloqueables, etiquetas opcionales y snapshot antes de guardar.
+- Criterio de aprobacion: no mover a `main` ni actualizar manuales hasta validacion visual y operativa de Ezequiel.
+
 ### Jerarquia visual
 
 - Reducir ruido en tarjetas largas mostrando primero los datos accionables y ocultando lo secundario.
@@ -125,8 +139,8 @@ Este plan parte del estado `v1.0.0` y prioriza mejoras que aumentan confiabilida
 
 ## Siguiente sprint recomendado
 
-1. Agregar dashboard operativo con vencimientos y fuera de tolerancia.
-2. Agregar reporte imprimible/PDF por evento.
-3. Agregar borradores de calibracion para no perder carga en campo.
-4. Agregar tabla de auditoria para ediciones/eliminaciones.
-5. Agregar exportacion CSV del historial filtrado.
+1. Pulir zona de despachos del mapa 3D usando el PDF de vista superior como referencia.
+2. Agregar modelos `.glb` reales para silos, despachos, cintas y caminos.
+3. Agregar camaras rapidas y control de etiquetas en `/mapa`.
+4. Agregar snapshot/respaldo antes de guardar cambios grandes del mapa.
+5. Retomar auditoria, CSV e historial avanzado despues de cerrar el mapa preview.

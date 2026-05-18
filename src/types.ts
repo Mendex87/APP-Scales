@@ -97,8 +97,11 @@ export type ChainSpan = {
   chainId: string
   chainName: string
   chainLinearKgM: number
+  bridgeLengthM?: number
+  expectedControllerWeightKg?: number
   passCount: number
   avgControllerReadingKgM: number
+  controllerReadingWeightKg?: number
   avgErrorPct: number
   provisionalFactor: number
 }

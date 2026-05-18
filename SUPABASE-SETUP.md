@@ -41,6 +41,8 @@ También te lo dejé en archivo listo para copiar:
 
 Ese archivo ya quedó preparado para poder correrse más de una vez sin fallar por policies existentes.
 
+Nota de mantenimiento: el bloque SQL mostrado debajo es una referencia historica resumida. Para una base actualizada usar siempre `supabase/schema.sql`, que incluye tablas de mapa 3D (`plant_map_points`, `plant_map_objects`), `model_path` para modelos `.glb` y el trigger defensivo que normaliza `plant_map_points.object_id` a texto vacio.
+
 ```sql
 create table if not exists public.equipments (
   id text primary key,
