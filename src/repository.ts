@@ -62,6 +62,7 @@ type ChainRow = {
 
 type PlantMapPointRow = {
   id: string
+  plant_id?: PlantMapPoint['plantId'] | null
   label: string
   zone: string
   point_type: PlantMapPoint['pointType']
@@ -76,6 +77,7 @@ type PlantMapPointRow = {
 
 type PlantMapObjectRow = {
   id: string
+  plant_id?: PlantMapObject['plantId'] | null
   label: string
   object_type: PlantMapObject['objectType']
   x: number
@@ -233,37 +235,17 @@ export async function saveChainRecord(item: Chain) {
   return { source: 'supabase' as const }
 }
 
-export async function savePlantMapPointsRecord(items: PlantMapPoint[]) {
-  const savedAt = new Date().toISOString()
-  const normalized = items.map((item) => ({ ...item, updatedAt: savedAt }))
+export async function savePlantMapPointsRecord(items: PlantMapPoint[], plantId?: PlantMapPoint['plantId']) {
+  const normalized = items
   savePlantMapPoints(normalized)
 
   if (!isSupabaseConfigured || !supabase) {
     return { source: 'local' as const }
   }
 
-  const result = await supabase.from('plant_map_points').upsert(normalized.map(toPlantMapPointRow))
-  if (result.error) {
-    if (isPlantMapTableUnavailable(result.error)) {
-      return { source: 'local' as const }
-    }
-    throw toError(result.error)
-  }
-
-  return { source: 'supabase' as const }
-}
-
-export async function savePlantMapObjectsRecord(items: PlantMapObject[]) {
-  const savedAt = new Date().toISOString()
-  const normalized = items.map((item) => ({ ...item, updatedAt: savedAt }))
-  savePlantMapObjects(normalized)
-
-  if (!isSupabaseConfigured || !supabase) {
-    return { source: 'local' as const }
-  }
-
-  if (normalized.length > 0) {
-    const result = await supabase.from('plant_map_objects').upsert(normalized.map(toPlantMapObjectRow))
+  const remoteItems = plantId ? normalized.filter((item) => item.plantId === plantId) : normalized
+  if (remoteItems.length > 0) {
+    const result = await supabase.from('plant_map_points').upsert(remoteItems.map(toPlantMapPointRow))
     if (result.error) {
       if (isPlantMapTableUnavailable(result.error)) {
         return { source: 'local' as const }
@@ -272,7 +254,33 @@ export async function savePlantMapObjectsRecord(items: PlantMapObject[]) {
     }
   }
 
-  const existingResult = await supabase.from('plant_map_objects').select('id')
+  return { source: 'supabase' as const }
+}
+
+export async function savePlantMapObjectsRecord(items: PlantMapObject[], plantId?: PlantMapObject['plantId']) {
+  const normalized = items
+  savePlantMapObjects(normalized)
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { source: 'local' as const }
+  }
+
+  const remoteItems = plantId ? normalized.filter((item) => item.plantId === plantId) : normalized
+  if (remoteItems.length > 0) {
+    const result = await supabase.from('plant_map_objects').upsert(remoteItems.map(toPlantMapObjectRow))
+    if (result.error) {
+      if (isPlantMapTableUnavailable(result.error)) {
+        return { source: 'local' as const }
+      }
+      throw toError(result.error)
+    }
+  }
+
+  let existingQuery = supabase.from('plant_map_objects').select('id, plant_id')
+  if (plantId) {
+    existingQuery = existingQuery.eq('plant_id', plantId)
+  }
+  const existingResult = await existingQuery
   if (existingResult.error) {
     if (isPlantMapTableUnavailable(existingResult.error)) {
       return { source: 'local' as const }
@@ -280,8 +288,10 @@ export async function savePlantMapObjectsRecord(items: PlantMapObject[]) {
     throw toError(existingResult.error)
   }
 
-  const savedIds = new Set(normalized.map((item) => item.id))
+  const savedIds = new Set(remoteItems.map((item) => item.id))
+  const savedPlantIds = new Set(remoteItems.map((item) => item.plantId))
   const deletedIds = (existingResult.data || [])
+    .filter((item) => savedPlantIds.size === 0 || savedPlantIds.has(normalizePlantMapPlantId((item as Partial<PlantMapObjectRow>).plant_id)))
     .map((item) => item.id as string)
     .filter((id) => !savedIds.has(id))
 
@@ -499,6 +509,7 @@ function toChainRow(item: Chain): ChainRow {
 function mapPlantMapPointRow(row: PlantMapPointRow): PlantMapPoint {
   return {
     id: row.id,
+    plantId: normalizePlantMapPlantId(row.plant_id),
     label: row.label,
     zone: row.zone,
     pointType: row.point_type,
@@ -515,6 +526,7 @@ function mapPlantMapPointRow(row: PlantMapPointRow): PlantMapPoint {
 function toPlantMapPointRow(item: PlantMapPoint): PlantMapPointRow {
   return {
     id: item.id,
+    plant_id: item.plantId,
     label: item.label,
     zone: item.zone,
     point_type: item.pointType,
@@ -531,6 +543,7 @@ function toPlantMapPointRow(item: PlantMapPoint): PlantMapPointRow {
 function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
   return {
     id: row.id,
+    plantId: normalizePlantMapPlantId(row.plant_id),
     label: row.label,
     objectType: row.object_type,
     x: row.x,
@@ -552,6 +565,7 @@ function mapPlantMapObjectRow(row: PlantMapObjectRow): PlantMapObject {
 function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
   return {
     id: item.id,
+    plant_id: item.plantId,
     label: item.label,
     object_type: item.objectType,
     x: item.x,
@@ -568,6 +582,10 @@ function toPlantMapObjectRow(item: PlantMapObject): PlantMapObjectRow {
     created_at: item.createdAt,
     updated_at: item.updatedAt,
   }
+}
+
+function normalizePlantMapPlantId(value: unknown): PlantMapPoint['plantId'] {
+  return value === 'lavado' ? 'lavado' : 'secado'
 }
 
 function mapEventRow(row: EventRow): CalibrationEvent {

@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.3 - Mapa independiente de Lavado
+
+- El mapa operativo separa puntos y objetos por planta usando `plantId` / `plant_id`.
+- `Lavado` queda disponible con una base plana editable a la misma escala de `Secado`, sin objetos productivos iniciales.
+- El editor de mapa permite crear y ajustar objetos aunque la planta seleccionada todavia no tenga puntos de balanza.
+
 ## v4.1.2 - Fotos adjuntas en calibraciones
 
 - El cierre de nueva calibracion permite adjuntar hasta 6 fotos comprimidas como evidencia visual.

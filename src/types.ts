@@ -2,6 +2,7 @@ export const DEFAULT_CHECK_INTERVAL_DAYS = 30
 
 export type SpeedSource = 'automatica' | 'calculada' | 'rpm'
 export type SyncStatus = 'pendiente' | 'sincronizado' | 'error'
+export type PlantMapPlantId = 'secado' | 'lavado'
 export type PlantMapPointType = 'belt_scale' | 'kiln_scale' | 'dispatch_scale' | 'truck_scale'
 export type PlantMapObjectType =
   | 'stockpile'
@@ -184,6 +185,7 @@ export type CalibrationEvent = {
 
 export type PlantMapPoint = {
   id: string
+  plantId: PlantMapPlantId
   label: string
   zone: string
   pointType: PlantMapPointType
@@ -198,6 +200,7 @@ export type PlantMapPoint = {
 
 export type PlantMapObject = {
   id: string
+  plantId: PlantMapPlantId
   label: string
   objectType: PlantMapObjectType
   x: number

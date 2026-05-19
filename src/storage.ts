@@ -1,5 +1,5 @@
 import { DEFAULT_CHECK_INTERVAL_DAYS } from './types'
-import type { CalibrationEvent, Chain, Equipment, PlantMapObject, PlantMapObjectType, PlantMapPoint, PlantMapPointType } from './types'
+import type { CalibrationEvent, Chain, Equipment, PlantMapObject, PlantMapObjectType, PlantMapPlantId, PlantMapPoint, PlantMapPointType } from './types'
 
 const EQUIPMENT_KEY = 'balanzas-equipment-v2'
 const CHAINS_KEY = 'balanzas-chains-v1'
@@ -7,6 +7,7 @@ const EVENTS_KEY = 'balanzas-events-v2'
 const PLANT_MAP_POINTS_KEY = 'calibracinta:plant-map-points:v1'
 const PLANT_MAP_OBJECTS_KEY = 'calibracinta:plant-map-objects:v1'
 const PLANT_MAP_INFRASTRUCTURE_KEY = 'calibracinta:plant-map-infrastructure:v1'
+const PLANT_MAP_PLANTS = new Set<PlantMapPlantId>(['secado', 'lavado'])
 const PLANT_MAP_POINT_TYPES = new Set<PlantMapPointType>(['belt_scale', 'kiln_scale', 'dispatch_scale', 'truck_scale'])
 const PLANT_MAP_OBJECT_TYPES = new Set<PlantMapObjectType>([
   'stockpile',
@@ -33,16 +34,16 @@ const DEFAULT_PLANT_MAP_CREATED_AT = '2026-01-01T00:00:00.000Z'
 const INFRASTRUCTURE_OBJECT_IDS = new Set(['floor-main', 'zone-stock', 'zone-process', 'zone-dispatch', 'zone-truck', 'road-truck', 'road-service', 'road-cross'])
 
 export const DEFAULT_PLANT_MAP_POINTS: PlantMapPoint[] = [
-  { id: 'cinta-23', label: 'Cinta 23', zone: 'Transporte principal', pointType: 'belt_scale', x: 30, y: 57, equipmentId: '', objectId: 'belt-cinta-23', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'horno-1', label: 'Horno 1', zone: 'Secado', pointType: 'kiln_scale', x: 36, y: 40, equipmentId: '', objectId: 'kiln-1', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'horno-2', label: 'Horno 2', zone: 'Secado', pointType: 'kiln_scale', x: 47, y: 37, equipmentId: '', objectId: 'kiln-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'horno-3', label: 'Horno 3', zone: 'Secado', pointType: 'kiln_scale', x: 58, y: 34, equipmentId: '', objectId: 'kiln-3', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'despacho-1', label: 'Despacho 1', zone: 'Despacho', pointType: 'dispatch_scale', x: 68, y: 57, equipmentId: '', objectId: 'dispatch-1', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'despacho-2', label: 'Despacho 2', zone: 'Despacho', pointType: 'dispatch_scale', x: 75, y: 53, equipmentId: '', objectId: 'dispatch-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'despacho-3', label: 'Despacho 3', zone: 'Despacho', pointType: 'dispatch_scale', x: 82, y: 49, equipmentId: '', objectId: 'dispatch-3', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'despacho-4', label: 'Despacho 4', zone: 'Despacho', pointType: 'dispatch_scale', x: 89, y: 45, equipmentId: '', objectId: 'dispatch-4', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'bascula-1', label: 'Báscula 1', zone: 'Ingreso camiones', pointType: 'truck_scale', x: 66, y: 78, equipmentId: '', objectId: 'truck-scale-1', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
-  { id: 'bascula-2', label: 'Báscula 2', zone: 'Egreso camiones', pointType: 'truck_scale', x: 78, y: 82, equipmentId: '', objectId: 'truck-scale-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'cinta-23', plantId: 'secado', label: 'Cinta 23', zone: 'Transporte principal', pointType: 'belt_scale', x: 30, y: 57, equipmentId: '', objectId: 'belt-cinta-23', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'horno-1', plantId: 'secado', label: 'Horno 1', zone: 'Secado', pointType: 'kiln_scale', x: 36, y: 40, equipmentId: '', objectId: 'kiln-1', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'horno-2', plantId: 'secado', label: 'Horno 2', zone: 'Secado', pointType: 'kiln_scale', x: 47, y: 37, equipmentId: '', objectId: 'kiln-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'horno-3', plantId: 'secado', label: 'Horno 3', zone: 'Secado', pointType: 'kiln_scale', x: 58, y: 34, equipmentId: '', objectId: 'kiln-3', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'despacho-1', plantId: 'secado', label: 'Despacho 1', zone: 'Despacho', pointType: 'dispatch_scale', x: 68, y: 57, equipmentId: '', objectId: 'dispatch-1', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'despacho-2', plantId: 'secado', label: 'Despacho 2', zone: 'Despacho', pointType: 'dispatch_scale', x: 75, y: 53, equipmentId: '', objectId: 'dispatch-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'despacho-3', plantId: 'secado', label: 'Despacho 3', zone: 'Despacho', pointType: 'dispatch_scale', x: 82, y: 49, equipmentId: '', objectId: 'dispatch-3', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'despacho-4', plantId: 'secado', label: 'Despacho 4', zone: 'Despacho', pointType: 'dispatch_scale', x: 89, y: 45, equipmentId: '', objectId: 'dispatch-4', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'bascula-1', plantId: 'secado', label: 'Báscula 1', zone: 'Ingreso camiones', pointType: 'truck_scale', x: 66, y: 78, equipmentId: '', objectId: 'truck-scale-1', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+  { id: 'bascula-2', plantId: 'secado', label: 'Báscula 2', zone: 'Egreso camiones', pointType: 'truck_scale', x: 78, y: 82, equipmentId: '', objectId: 'truck-scale-2', annualCalibrationDate: '', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
 ]
 
 const DEFAULT_PLANT_MAP_OBJECT_SEEDS: Array<Partial<PlantMapObject> & Pick<PlantMapObject, 'createdAt' | 'id' | 'label' | 'objectType' | 'rotationY' | 'scale' | 'updatedAt' | 'x' | 'z'>> = [
@@ -82,6 +83,12 @@ const DEFAULT_PLANT_MAP_OBJECT_SEEDS: Array<Partial<PlantMapObject> & Pick<Plant
 ]
 
 export const DEFAULT_PLANT_MAP_OBJECTS: PlantMapObject[] = DEFAULT_PLANT_MAP_OBJECT_SEEDS.map(normalizePlantMapObject)
+
+const DEFAULT_LAVADO_PLANT_MAP_OBJECT_SEEDS: Array<Partial<PlantMapObject> & Pick<PlantMapObject, 'createdAt' | 'id' | 'label' | 'objectType' | 'plantId' | 'rotationY' | 'scale' | 'updatedAt' | 'x' | 'z'>> = [
+  { id: 'lavado-floor-main', plantId: 'lavado', label: 'Base Lavado', objectType: 'floor', x: 0, z: 0, elevation: -0.09, rotationY: 0, scale: 1, width: 35, depth: 24, height: 0.18, color: '#d6d2c8', createdAt: DEFAULT_PLANT_MAP_CREATED_AT, updatedAt: DEFAULT_PLANT_MAP_CREATED_AT },
+]
+
+const DEFAULT_LAVADO_PLANT_MAP_OBJECTS: PlantMapObject[] = DEFAULT_LAVADO_PLANT_MAP_OBJECT_SEEDS.map(normalizePlantMapObject)
 
 function parseStorage<T>(key: string, fallback: T): T {
   const raw = localStorage.getItem(key)
@@ -132,7 +139,7 @@ export function loadPlantMapObjects(): PlantMapObject[] {
   const stored = parseStorage<PlantMapObject[]>(PLANT_MAP_OBJECTS_KEY, [])
   const source = stored.length > 0 ? stored : DEFAULT_PLANT_MAP_OBJECTS
   const normalized = source.map(normalizePlantMapObject)
-  const migrated = withInfrastructureObjects(normalized)
+  const migrated = withLavadoBaseObjects(withInfrastructureObjects(normalized))
   if (migrated !== normalized) {
     localStorage.setItem(PLANT_MAP_OBJECTS_KEY, JSON.stringify(migrated.map(normalizePlantMapObject)))
   }
@@ -164,6 +171,7 @@ function normalizePlantMapPoint(item: Partial<PlantMapPoint>): PlantMapPoint {
   const now = new Date().toISOString()
   return {
     id: item.id || crypto.randomUUID(),
+    plantId: normalizePlantMapPlantId(item.plantId),
     label: item.label || 'Punto operativo',
     zone: item.zone || 'Planta',
     pointType,
@@ -183,6 +191,7 @@ function normalizePlantMapObject(item: Partial<PlantMapObject>): PlantMapObject 
   const now = new Date().toISOString()
   return {
     id: item.id || crypto.randomUUID(),
+    plantId: normalizePlantMapPlantId(item.plantId),
     label: item.label || 'Objeto 3D',
     objectType,
     x: clampSceneCoordinate(item.x ?? 0),
@@ -224,6 +233,15 @@ function withInfrastructureObjects(items: PlantMapObject[]) {
   const missing = DEFAULT_PLANT_MAP_OBJECTS.filter((item) => INFRASTRUCTURE_OBJECT_IDS.has(item.id) && !currentIds.has(item.id))
   localStorage.setItem(PLANT_MAP_INFRASTRUCTURE_KEY, 'done')
   return missing.length > 0 ? [...missing, ...items] : items
+}
+
+function withLavadoBaseObjects(items: PlantMapObject[]) {
+  if (items.some((item) => item.plantId === 'lavado')) return items
+  return [...items, ...DEFAULT_LAVADO_PLANT_MAP_OBJECTS]
+}
+
+function normalizePlantMapPlantId(value: unknown): PlantMapPlantId {
+  return PLANT_MAP_PLANTS.has(value as PlantMapPlantId) ? value as PlantMapPlantId : 'secado'
 }
 
 function clampPercent(value: number) {

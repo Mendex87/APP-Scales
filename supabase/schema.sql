@@ -130,6 +130,7 @@ create index if not exists calibration_events_event_date_idx
 
 create table if not exists public.plant_map_points (
   id text primary key,
+  plant_id text not null default 'secado',
   label text not null default '',
   zone text not null default '',
   point_type text not null default 'belt_scale',
@@ -142,6 +143,8 @@ create table if not exists public.plant_map_points (
   updated_at timestamptz not null default now(),
   constraint plant_map_points_type_check
     check (point_type in ('belt_scale', 'kiln_scale', 'dispatch_scale', 'truck_scale')),
+  constraint plant_map_points_plant_id_check
+    check (plant_id in ('secado', 'lavado')),
   constraint plant_map_points_x_check
     check (x >= 0 and x <= 100),
   constraint plant_map_points_y_check
@@ -152,7 +155,20 @@ create index if not exists plant_map_points_equipment_id_idx
   on public.plant_map_points (equipment_id);
 
 alter table public.plant_map_points
+  add column if not exists plant_id text not null default 'secado';
+
+alter table public.plant_map_points
   add column if not exists object_id text not null default '';
+
+alter table public.plant_map_points
+  drop constraint if exists plant_map_points_plant_id_check;
+
+alter table public.plant_map_points
+  add constraint plant_map_points_plant_id_check
+  check (plant_id in ('secado', 'lavado'));
+
+create index if not exists plant_map_points_plant_id_idx
+  on public.plant_map_points (plant_id);
 
 create index if not exists plant_map_points_object_id_idx
   on public.plant_map_points (object_id);
@@ -180,6 +196,7 @@ where object_id is null;
 
 create table if not exists public.plant_map_objects (
   id text primary key,
+  plant_id text not null default 'secado',
   label text not null default '',
   object_type text not null default 'structure',
   x double precision not null default 0,
@@ -197,6 +214,8 @@ create table if not exists public.plant_map_objects (
   updated_at timestamptz not null default now(),
   constraint plant_map_objects_type_check
     check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale', 'block', 'rectangular_silo', 'rectangular_hopper', 'belt_horizontal', 'belt_inclined', 'dispatch_belt', 'truck', 'yard', 'floor', 'zone', 'marker')),
+  constraint plant_map_objects_plant_id_check
+    check (plant_id in ('secado', 'lavado')),
   constraint plant_map_objects_x_check
     check (x >= -18 and x <= 18),
   constraint plant_map_objects_z_check
@@ -212,6 +231,9 @@ create table if not exists public.plant_map_objects (
   constraint plant_map_objects_color_check
     check (color ~ '^#[0-9A-Fa-f]{6}$')
 );
+
+alter table public.plant_map_objects
+  add column if not exists plant_id text not null default 'secado';
 
 alter table public.plant_map_objects
   add column if not exists scale double precision not null default 1;
@@ -238,6 +260,9 @@ alter table public.plant_map_objects
   add column if not exists model_path text not null default '';
 
 alter table public.plant_map_objects
+  drop constraint if exists plant_map_objects_plant_id_check;
+
+alter table public.plant_map_objects
   drop constraint if exists plant_map_objects_type_check;
 
 alter table public.plant_map_objects
@@ -262,8 +287,15 @@ alter table public.plant_map_objects
   drop constraint if exists plant_map_objects_color_check;
 
 alter table public.plant_map_objects
+  add constraint plant_map_objects_plant_id_check
+  check (plant_id in ('secado', 'lavado'));
+
+alter table public.plant_map_objects
   add constraint plant_map_objects_type_check
   check (object_type in ('stockpile', 'belt', 'kiln', 'structure', 'cabin', 'silo', 'dispatch_bin', 'truck_scale', 'block', 'rectangular_silo', 'rectangular_hopper', 'belt_horizontal', 'belt_inclined', 'dispatch_belt', 'truck', 'yard', 'floor', 'zone', 'marker'));
+
+create index if not exists plant_map_objects_plant_id_idx
+  on public.plant_map_objects (plant_id);
 
 alter table public.plant_map_objects
   add constraint plant_map_objects_x_check
