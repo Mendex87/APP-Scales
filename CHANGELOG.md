@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.5 - Reporte imprimible en color y blanco y negro
+
+- Historial ofrece dos salidas imprimibles: reporte color y reporte blanco y negro.
+- El modo blanco y negro usa bordes, textos y estados sin fondos de color para impresoras monocromas.
+
 ## v4.1.4 - Observaciones de pasadas con material
 
 - El detalle de historial muestra las observaciones cargadas en cada pasada con material certificado.

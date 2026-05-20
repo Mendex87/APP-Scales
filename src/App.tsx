@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.4'
+const APP_VERSION = 'v4.1.5'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -619,6 +619,8 @@ type EventBlockingIssue = {
   message: string
   step: number
 }
+
+type CalibrationReportPrintMode = 'color' | 'black-and-white'
 
 function outcomeLabel(outcome?: MaterialOutcome) {
   if (outcome === 'control_conforme') return 'Control conforme'
@@ -1121,7 +1123,10 @@ function buildAdminManualHtml(user: AuthUser) {
 </html>`
 }
 
-function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equipment | undefined, unitSystem: UnitSystem) {
+function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equipment | undefined, unitSystem: UnitSystem, printMode: CalibrationReportPrintMode = 'color') {
+  const isBlackAndWhite = printMode === 'black-and-white'
+  const reportModeClass = isBlackAndWhite ? 'report-bw' : 'report-color'
+  const reportModeLabel = isBlackAndWhite ? 'Blanco y negro' : 'Color'
   const materialSummary = getEventMaterialOutcome(item)
   const eventAppVersion = item.appVersion || item.parameterSnapshot.appVersion || '-'
   const measure = (value: number, kind: MeasureKind, digits = 3) => formatMeasureValue(value, kind, unitSystem, digits)
@@ -1166,7 +1171,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Reporte ${reportValue(item.id)}</title>
+  <title>Reporte ${reportValue(item.id)} - ${reportValue(reportModeLabel)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
     @page { size: A4 portrait; margin: 8mm; }
@@ -1221,11 +1226,46 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .signature { display: grid; align-content: end; min-height: 58px; padding: 7px; border: 1px solid #0c0b11; border-radius: 6px; background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(255, 89, 73, 0.08) 9px 10px), #fffdf8; }
     .signature-line { height: 1px; margin-top: 22px; background: #0c0b11; }
     .signature strong { font-size: 13px; }
+    .report-bw { background: #fff; color: #000; -webkit-print-color-adjust: economy; print-color-adjust: economy; }
+    .report-bw .no-print { border-color: #000; background: #fff; color: #000; }
+    .report-bw .sheet { border: 1px solid #000; background: #fff; box-shadow: none; }
+    .report-bw .header { color: #000; border: 2px solid #000; background: #fff; }
+    .report-bw .header h1,
+    .report-bw .header span,
+    .report-bw .header strong,
+    .report-bw .header p,
+    .report-bw .equipment-title,
+    .report-bw .weight-card.main span,
+    .report-bw .weight-card.main strong { color: #000; }
+    .report-bw h2 { border-bottom-color: #000; }
+    .report-bw .badge { border: 1px solid #000; background: #fff; color: #000; }
+    .report-bw .panel,
+    .report-bw .result-strip,
+    .report-bw .result-grid > div,
+    .report-bw .grid div,
+    .report-bw .tile,
+    .report-bw .weight-focus,
+    .report-bw .weight-card,
+    .report-bw .notes,
+    .report-bw .signature,
+    .report-bw .check { border-color: #000; border-radius: 0; background: #fff; }
+    .report-bw .result-grid > div,
+    .report-bw .grid div,
+    .report-bw .tile { border-top-color: #000; }
+    .report-bw .weight-card { border-left-color: #000; }
+    .report-bw .weight-card.main { color: #000; border-color: #000; background: #fff; }
+    .report-bw span { color: #333; }
+    .report-bw strong,
+    .report-bw td { color: #000; }
+    .report-bw th { border-color: #000; background: #fff; color: #000; }
+    .report-bw .check.ok { border-style: solid; background: #fff; }
+    .report-bw .check.alert { border-style: dashed; background: #fff; }
+    .report-bw .signature-line { background: #000; }
     @media print { body { padding: 0; background: #fff; } .no-print { display: none; } .sheet { width: auto; min-height: auto; margin: 0; padding: 0; border: 0; box-shadow: none; } }
   </style>
 </head>
-<body>
-  <button class="no-print" onclick="window.print()">Imprimir o guardar PDF</button>
+<body class="${reportModeClass}">
+  <button class="no-print" onclick="window.print()">Imprimir o guardar PDF (${reportValue(reportModeLabel)})</button>
   <main class="sheet">
     <section class="header">
       <div>
@@ -2839,7 +2879,7 @@ function App() {
     setCalibrationStep((current) => Math.min(current + 1, calibrationSteps.length - 1))
   }
 
-  function printCalibrationReport(item: CalibrationEvent, equipmentItem?: Equipment) {
+  function printCalibrationReport(item: CalibrationEvent, equipmentItem: Equipment | undefined, printMode: CalibrationReportPrintMode = 'color') {
     const reportWindow = window.open('', '_blank')
     if (!reportWindow) {
       setSyncNotice('No se pudo abrir el reporte. Revisá el bloqueador de ventanas emergentes.')
@@ -2847,7 +2887,7 @@ function App() {
     }
 
     reportWindow.opener = null
-    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem, unitSystem))
+    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem, unitSystem, printMode))
     reportWindow.document.close()
     reportWindow.focus()
     reportWindow.setTimeout(() => reportWindow.print(), 250)
@@ -5691,7 +5731,8 @@ function App() {
                     photoUrl={equipmentItem ? getEquipmentPhotoUrl(equipmentItem.photoPath) : ''}
                     canDelete={canDelete}
                     onOpenPhoto={() => equipmentItem && openEquipmentPhoto(equipmentItem)}
-                    onPrint={() => printCalibrationReport(item, equipmentItem)}
+                    onPrintColor={() => printCalibrationReport(item, equipmentItem, 'color')}
+                    onPrintBlackAndWhite={() => printCalibrationReport(item, equipmentItem, 'black-and-white')}
                     onDelete={() => handleDeleteEvent(item.id)}
                     formatDateTime={formatDateTime}
                     formatWeight={(value) => measureText(value, 'weightKg')}
