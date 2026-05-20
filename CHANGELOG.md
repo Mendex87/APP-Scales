@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.7 - Reporte A4 con acumulado por tiempo
+
+- El reporte imprimible deja de mostrar el dato de unidades en el encabezado.
+- El bloque de cadena y acumulado suma tiempo de prueba y acumulado esperado para documentar el control por tiempo.
+
 ## v4.1.6 - Selector de impresion dentro del reporte
 
 - Historial vuelve a mostrar un unico boton `Imprimir reporte`.

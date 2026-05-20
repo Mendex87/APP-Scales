@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.6'
+const APP_VERSION = 'v4.1.7'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1290,7 +1290,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <div><span>Fecha evento</span><strong>${reportValue(formatDateTime(item.eventDate))}</strong></div>
         <div><span>Tipo cierre</span><strong><span class="badge">${reportValue(closureType)}</span></strong></div>
         <div><span>Version app</span><strong>${reportValue(eventAppVersion)}</strong></div>
-        <div><span>Unidades</span><strong>${reportValue(unitSystem === 'metric' ? 'Metricas' : 'Imperiales')}</strong></div>
       </div>
     </section>
 
@@ -1346,6 +1345,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
           ${reportRow(item.chainSpan.controllerReadingWeightKg ? 'Lectura controlador' : 'Lectura prom. historica', chainControllerReadingText)}
           ${reportRow('Error cadena', `${item.chainSpan.avgErrorPct || 0} %`)}
           ${reportRow('Caudal leido', optionalMeasure(item.accumulatedCheck.expectedFlowTph, 'flowTph'))}
+          ${reportRow('Tiempo acumulado', optionalText(item.accumulatedCheck.testMinutes, ' min'))}
+          ${reportRow('Acumulado esperado', optionalMeasure(item.accumulatedCheck.expectedTotal, 'massT'))}
           ${reportRow('Acumulado indicado', optionalMeasure(item.accumulatedCheck.indicatedTotal, 'massT'))}
         </div>
       </div>
