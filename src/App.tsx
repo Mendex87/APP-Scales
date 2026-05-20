@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.5'
+const APP_VERSION = 'v4.1.6'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1182,7 +1182,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     h1, h2, .badge, span, strong, th { font-family: "Barlow Condensed", Inter, sans-serif; text-transform: uppercase; }
     h1 { font-size: 34px; line-height: 0.82; letter-spacing: -0.04em; }
     h2 { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 2px solid #ff5949; font-size: 16px; line-height: 0.9; letter-spacing: -0.015em; }
-    .no-print { margin: 0 0 10px; min-height: 36px; padding: 0 14px; border: 1px solid #d94135; border-radius: 999px; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+    .print-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; padding: 6px; border: 1px solid #c9c3b8; border-radius: 999px; background: #fffdf8; box-shadow: 0 8px 22px rgba(12, 11, 17, 0.12); }
+    .print-toolbar span { padding: 0 7px; color: #6f6a68; }
+    .print-toolbar button { min-height: 34px; padding: 0 12px; border: 1px solid #d5cfc3; border-radius: 999px; background: #f8f6ef; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
+    .print-toolbar button.active,
+    .print-toolbar .print-action { border-color: #d94135; background: #ff5949; color: #0c0b11; }
     .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.05) 0 18%, transparent 18% 100%), repeating-linear-gradient(135deg, transparent 0 16px, rgba(12, 11, 17, 0.025) 16px 17px, transparent 17px 34px), #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
     .header { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 58mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: var(--report-dark-gradient); background-clip: padding-box; }
     .header h1,
@@ -1227,7 +1231,10 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .signature-line { height: 1px; margin-top: 22px; background: #0c0b11; }
     .signature strong { font-size: 13px; }
     .report-bw { background: #fff; color: #000; -webkit-print-color-adjust: economy; print-color-adjust: economy; }
-    .report-bw .no-print { border-color: #000; background: #fff; color: #000; }
+    .report-bw .print-toolbar { border-color: #000; background: #fff; box-shadow: none; }
+    .report-bw .print-toolbar button { border-color: #000; background: #fff; color: #000; }
+    .report-bw .print-toolbar button.active,
+    .report-bw .print-toolbar .print-action { background: #000; color: #fff; }
     .report-bw .sheet { border: 1px solid #000; background: #fff; box-shadow: none; }
     .report-bw .header { color: #000; border: 2px solid #000; background: #fff; }
     .report-bw .header h1,
@@ -1265,7 +1272,12 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   </style>
 </head>
 <body class="${reportModeClass}">
-  <button class="no-print" onclick="window.print()">Imprimir o guardar PDF (${reportValue(reportModeLabel)})</button>
+  <div class="print-toolbar no-print">
+    <span>Salida</span>
+    <button type="button" data-mode="color">Color</button>
+    <button type="button" data-mode="black-and-white">Blanco y negro</button>
+    <button class="print-action" type="button" onclick="window.print()">Imprimir o guardar PDF</button>
+  </div>
   <main class="sheet">
     <section class="header">
       <div>
@@ -1359,6 +1371,18 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       </div>
     </section>
   </main>
+  <script>
+    (() => {
+      const modeButtons = Array.from(document.querySelectorAll('[data-mode]'));
+      const setReportMode = (mode) => {
+        document.body.classList.toggle('report-bw', mode === 'black-and-white');
+        document.body.classList.toggle('report-color', mode !== 'black-and-white');
+        modeButtons.forEach((button) => button.classList.toggle('active', button.dataset.mode === mode));
+      };
+      modeButtons.forEach((button) => button.addEventListener('click', () => setReportMode(button.dataset.mode || 'color')));
+      setReportMode(document.body.classList.contains('report-bw') ? 'black-and-white' : 'color');
+    })();
+  </script>
 </body>
 </html>`
 }
@@ -2879,7 +2903,7 @@ function App() {
     setCalibrationStep((current) => Math.min(current + 1, calibrationSteps.length - 1))
   }
 
-  function printCalibrationReport(item: CalibrationEvent, equipmentItem: Equipment | undefined, printMode: CalibrationReportPrintMode = 'color') {
+  function printCalibrationReport(item: CalibrationEvent, equipmentItem?: Equipment) {
     const reportWindow = window.open('', '_blank')
     if (!reportWindow) {
       setSyncNotice('No se pudo abrir el reporte. Revisá el bloqueador de ventanas emergentes.')
@@ -2887,10 +2911,9 @@ function App() {
     }
 
     reportWindow.opener = null
-    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem, unitSystem, printMode))
+    reportWindow.document.write(buildCalibrationReportHtml(item, equipmentItem, unitSystem))
     reportWindow.document.close()
     reportWindow.focus()
-    reportWindow.setTimeout(() => reportWindow.print(), 250)
   }
 
   function openAdminManual() {
@@ -5731,8 +5754,7 @@ function App() {
                     photoUrl={equipmentItem ? getEquipmentPhotoUrl(equipmentItem.photoPath) : ''}
                     canDelete={canDelete}
                     onOpenPhoto={() => equipmentItem && openEquipmentPhoto(equipmentItem)}
-                    onPrintColor={() => printCalibrationReport(item, equipmentItem, 'color')}
-                    onPrintBlackAndWhite={() => printCalibrationReport(item, equipmentItem, 'black-and-white')}
+                    onPrint={() => printCalibrationReport(item, equipmentItem)}
                     onDelete={() => handleDeleteEvent(item.id)}
                     formatDateTime={formatDateTime}
                     formatWeight={(value) => measureText(value, 'weightKg')}

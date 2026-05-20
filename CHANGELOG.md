@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.6 - Selector de impresion dentro del reporte
+
+- Historial vuelve a mostrar un unico boton `Imprimir reporte`.
+- La ventana del reporte permite elegir Color o Blanco y negro antes de imprimir o guardar PDF.
+
 ## v4.1.5 - Reporte imprimible en color y blanco y negro
 
 - Historial ofrece dos salidas imprimibles: reporte color y reporte blanco y negro.

@@ -19,8 +19,7 @@ type HistoryEventCardProps = {
   photoUrl: string
   canDelete: boolean
   onOpenPhoto: () => void
-  onPrintColor: () => void
-  onPrintBlackAndWhite: () => void
+  onPrint: () => void
   onDelete: () => void
   formatDateTime: (value: string) => string
   formatWeight: (value: number) => string
@@ -36,8 +35,7 @@ export function HistoryEventCard({
   photoUrl,
   canDelete,
   onOpenPhoto,
-  onPrintColor,
-  onPrintBlackAndWhite,
+  onPrint,
   onDelete,
   formatDateTime,
   formatWeight,
@@ -70,11 +68,8 @@ export function HistoryEventCard({
           </div>
         </div>
         <div className="row compact-actions">
-          <button className="secondary small" type="button" onClick={onPrintColor}>
-            <Printer className="action-icon" aria-hidden="true" />Imprimir color
-          </button>
-          <button className="secondary small" type="button" onClick={onPrintBlackAndWhite}>
-            <Printer className="action-icon" aria-hidden="true" />Imprimir B/N
+          <button className="secondary small" type="button" onClick={onPrint}>
+            <Printer className="action-icon" aria-hidden="true" />Imprimir reporte
           </button>
           {canDelete && (
             <button className="secondary small danger" type="button" onClick={onDelete}>
