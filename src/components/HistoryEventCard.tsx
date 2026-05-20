@@ -95,9 +95,10 @@ export function HistoryEventCard({
         </div>
         <div className="material-pass-list compact-top">
           {materialSummary.passes.map((pass) => (
-            <div className="result-row" key={`${item.id}-${pass.index}`}>
+            <div className="result-row material-pass-row" key={`${item.id}-${pass.index}`}>
               <span>Pasada {pass.index} {materialSummary.finalPass?.index === pass.index ? '· final' : ''}</span>
               <strong>{formatWeight(pass.externalWeightKg)} cert. / {formatWeight(pass.beltWeightKg)} ctrl. / {pass.errorPct} %</strong>
+              {pass.notes && <p>Observacion: {pass.notes}</p>}
             </div>
           ))}
         </div>

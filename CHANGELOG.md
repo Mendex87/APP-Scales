@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.4 - Observaciones de pasadas con material
+
+- El detalle de historial muestra las observaciones cargadas en cada pasada con material certificado.
+- El reporte imprimible incorpora esas observaciones en la tabla de material certificado.
+- El reporte imprimible ya no incluye fotos adjuntas para mantenerlo liviano.
+
 ## v4.1.3 - Mapa independiente de Lavado
 
 - El mapa operativo separa puntos y objetos por planta usando `plantId` / `plant_id`.

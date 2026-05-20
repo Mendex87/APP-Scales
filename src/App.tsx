@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.3'
+const APP_VERSION = 'v4.1.4'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1137,6 +1137,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <td>${reportValue(pass.factorUsed || '-')}</td>
         <td>${reportValue(`${pass.errorPct} %`)}</td>
         <td>${reportValue(materialSummary.finalPass?.index === pass.index ? 'Final' : pass.index === 1 ? 'Control inicial' : 'Post-ajuste')}</td>
+        <td class="pass-notes">${reportValue(pass.notes || '-')}</td>
       </tr>`,
     )
     .join('')
@@ -1151,16 +1152,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
   const chainControllerReadingText = item.chainSpan.controllerReadingWeightKg
     ? optionalMeasure(item.chainSpan.controllerReadingWeightKg, 'weightKg')
     : optionalMeasure(item.chainSpan.avgControllerReadingKgM, 'linearWeightKgM')
-  const eventAttachments = item.attachments || []
-  const attachmentCards = eventAttachments
-    .map((attachment, index) => {
-      const url = supabase && attachment.path ? supabase.storage.from(CALIBRATION_EVENT_PHOTOS_BUCKET).getPublicUrl(attachment.path).data.publicUrl : ''
-      return `<div class="attachment-card">
-        ${url ? `<img src="${reportValue(url)}" alt="${reportValue(attachment.name || `Foto ${index + 1}`)}" />` : '<div class="attachment-missing">Sin vista</div>'}
-        <span>${reportValue(attachment.name || `Foto ${index + 1}`)}</span>
-      </div>`
-    })
-    .join('')
   const inspectionChecks = [
     reportCheck('Banda vacia', item.precheck.beltEmpty),
     reportCheck('Banda limpia', item.precheck.beltClean),
@@ -1214,11 +1205,6 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .weight-grid { display: grid; grid-template-columns: 1fr 1fr 0.82fr 0.72fr; gap: 6px; }
     .weight-card { min-height: 56px; padding: 8px; border: 1px solid #d5cfc3; border-left: 6px solid #ff5949; border-radius: 7px; background: #faf8f2; }
     .weight-card strong { font-size: 24px; line-height: 0.88; letter-spacing: -0.035em; }
-    .attachment-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-    .attachment-card { overflow: hidden; min-height: 0; padding: 0; border: 1px solid #d5cfc3; border-radius: 7px; background: #faf8f2; }
-    .attachment-card img, .attachment-missing { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #e6e0d4; }
-    .attachment-missing { display: grid; place-items: center; color: #6f6a68; font-size: 10px; font-weight: 800; text-transform: uppercase; }
-    .attachment-card span { padding: 5px 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .weight-card.main { color: #f8f6ef; border-color: #0c0b11; background: var(--report-dark-gradient); background-clip: padding-box; }
     .weight-card.main span,
     .weight-card.main strong { color: #f8f6ef; }
@@ -1229,6 +1215,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 6px; background: #fffdf8; }
     th, td { padding: 4px 5px; border: 1px solid #d8d2c8; text-align: left; font-size: 9.6px; vertical-align: top; }
     th { background: var(--report-dark-gradient); color: #f8f6ef; font-size: 8.5px; letter-spacing: 0.05em; }
+    .pass-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
     .notes-grid { display: grid; grid-template-columns: 1fr 0.72fr; gap: 6px; align-items: stretch; }
     .notes { min-height: 46px; padding: 6px; border: 1px solid #d8d2c8; border-left: 4px solid #ff5949; border-radius: 6px; background: #fffdf8; font-size: 9px; line-height: 1.14; white-space: pre-wrap; overflow-wrap: anywhere; }
     .signature { display: grid; align-content: end; min-height: 58px; padding: 7px; border: 1px solid #0c0b11; border-radius: 6px; background: repeating-linear-gradient(135deg, transparent 0 9px, rgba(255, 89, 73, 0.08) 9px 10px), #fffdf8; }
@@ -1279,12 +1266,10 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
       <div class="panel full">
         <h2>Material certificado</h2>
         <table>
-          <thead><tr><th>#</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th></tr></thead>
+          <thead><tr><th>#</th><th>Peso certificado</th><th>Controlador</th><th>Factor usado</th><th>Error</th><th>Rol</th><th>Observaciones</th></tr></thead>
           <tbody>${materialPassRows}</tbody>
         </table>
       </div>
-
-      ${eventAttachments.length > 0 ? `<div class="panel full"><h2>Fotos adjuntas</h2><div class="attachment-grid">${attachmentCards}</div></div>` : ''}
 
       <div class="panel">
         <h2>Controlador y parametros</h2>

@@ -988,6 +988,19 @@ body::before {
   gap: 0.55rem;
 }
 
+.material-pass-row {
+  flex-wrap: wrap;
+}
+
+.material-pass-row p {
+  flex: 1 0 100%;
+  margin: 0.35rem 0 0;
+  color: var(--color-grey-500);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
 .event-attachments-panel {
   padding: 0.9rem;
   border: 1px solid var(--border);
