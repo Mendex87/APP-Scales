@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.7'
+const APP_VERSION = 'v4.1.8'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -4602,28 +4602,40 @@ function App() {
                 </div>
               </div>
             </div>
-            {canReview && <div className="stack">
-              {equipmentWithLastEvent.slice(0, 4).map(({ item, lastEvent, maintenance }) => {
-                const statusText = maintenance.label
-                return (
-                  <div className={`card equipment-card status-${maintenance.rowClass}`} key={item.id}>
-                    <div className="equipment-card-header">
-                      <div className="equipment-card-head">
-                        <EquipmentPhoto photoUrl={getEquipmentPhotoUrl(item.photoPath)} label={item.scaleName} status={statusText} compact onOpen={() => openEquipmentPhoto(item)} />
-                        <div>
-                          <span className="section-kicker">{statusText}</span>
-                          <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
-                          <p className="hint">{lastEvent ? maintenance.detail : 'Requiere primera carga/calibracion.'}</p>
-                        </div>
-                      </div>
-                      <div className="equipment-card-actions row compact-actions">
-                        {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
-                        <button className="secondary small" onClick={() => { setHistoryEquipmentId(item.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
-                      </div>
+            {canReview && <div className="card fleet-compact-panel">
+              <div className="row wrap fleet-compact-head">
+                <div>
+                  <span className="section-kicker">Parque completo</span>
+                  <h2>Todas las balanzas</h2>
+                  <p className="hint">Vista compacta por estado para revisar todo el parque sin abrir el listado tecnico.</p>
+                </div>
+                <div className="fleet-compact-count">
+                  <span>Total</span>
+                  <strong>{equipmentWithLastEvent.length}</strong>
+                </div>
+              </div>
+              <div className="fleet-compact-list compact-top">
+                {equipmentWithLastEvent.map(({ item, lastEvent, maintenance }) => (
+                  <article className={`fleet-compact-row status-${maintenance.rowClass}`} key={item.id}>
+                    <span className="fleet-status-bar" aria-hidden="true" />
+                    <div className="fleet-compact-main">
+                      <span>{maintenance.label}</span>
+                      <strong>{item.plant} / {item.line} / {item.beltCode}</strong>
+                      <p>{item.scaleName} · {lastEvent ? maintenance.detail : 'Requiere primera carga/calibracion.'}</p>
                     </div>
-                  </div>
-                )
-              })}
+                    <div className="fleet-compact-meta">
+                      <small>Proximo</small>
+                      <strong>{maintenance.nextDueDateText}</strong>
+                      <span>{maintenance.daysText}</span>
+                    </div>
+                    <div className="fleet-compact-actions">
+                      {canOperate && <button className="secondary small" type="button" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva</button>}
+                      <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(item.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
+                    </div>
+                  </article>
+                ))}
+                {equipmentWithLastEvent.length === 0 && <div className="empty-state">Todavia no hay balanzas cargadas.</div>}
+              </div>
             </div>}
           </section>
         )}

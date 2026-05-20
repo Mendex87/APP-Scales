@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.8 - Parque completo compacto en inicio
+
+- La pagina principal muestra todas las balanzas en una vista compacta por estado.
+- Se reemplazan las cuatro tarjetas inferiores por filas densas con proximo control y accesos rapidos.
+
 ## v4.1.7 - Reporte A4 con acumulado por tiempo
 
 - El reporte imprimible deja de mostrar el dato de unidades en el encabezado.
