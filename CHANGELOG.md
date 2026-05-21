@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.19 - Texto neutro en fecha automatica
+
+- Se quita la aclaracion de edicion admin del campo fecha y hora.
+
 ## v4.1.18 - Ajustes visuales del wizard
 
 - Se aclara que fecha y hora del evento se registran automaticamente.

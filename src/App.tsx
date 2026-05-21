@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.18'
+const APP_VERSION = 'v4.1.19'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -5172,7 +5172,7 @@ function App() {
                   </div>
                 </div>
                 <div className="grid two compact-top">
-                  <Field label="Fecha y hora automatica" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role === 'admin' ? 'Admin puede corregirla si hace falta.' : 'Se registra automaticamente al guardar.'} />
+                  <Field label="Fecha y hora automatica" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint="Se registra automaticamente al guardar." />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
                 {selectedEquipment && (
