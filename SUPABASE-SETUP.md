@@ -226,7 +226,7 @@ Ejemplos:
 
 ```text
 https://mendex87.com/**
-https://calibracinta.mendex87.com/**
+https://belttrace.mendex87.com/**
 https://*.vercel.app/**
 ```
 
@@ -243,8 +243,8 @@ Host: smtp.resend.com
 Port: 465
 Username: resend
 Password: RESEND_API_KEY
-Sender email: no-reply@calibracinta.mendex87.com
-Sender name: CalibraCinta
+Sender email: no-reply@belttrace.mendex87.com
+Sender name: BeltTrace
 ```
 
 No versionar API keys ni contraseñas. El dominio remitente debe estar verificado en el proveedor SMTP mediante los registros DNS que indique ese proveedor.
@@ -256,7 +256,7 @@ En `Authentication` > `Emails` > `Templates` > `Reset Password`, usar un asunto 
 Asunto sugerido:
 
 ```text
-Recuperá tu contraseña - CalibraCinta
+Recupera tu contrasena - BeltTrace
 ```
 
 HTML sugerido:
@@ -266,7 +266,7 @@ HTML sugerido:
   <div style="max-width:620px;margin:0 auto;padding:28px;">
     <div style="background:#0c0b11;color:#f8f6ef;padding:28px;border-radius:14px 14px 0 0;">
       <div style="color:#ff5949;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">Acceso protegido</div>
-      <h1 style="margin:10px 0 0;font-size:38px;line-height:.9;text-transform:uppercase;">CalibraCinta</h1>
+      <h1 style="margin:10px 0 0;font-size:38px;line-height:.9;text-transform:uppercase;">BeltTrace</h1>
       <p style="margin:14px 0 0;color:#d8d2c8;">Solicitud de recuperacion de contrasena.</p>
     </div>
     <div style="background:#fffdf8;border:1px solid #d5cfc3;border-top:0;padding:28px;border-radius:0 0 14px 14px;">

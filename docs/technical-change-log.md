@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.1.24 - Rebranding BeltTrace
+
+- Contexto: la marca visible pasa a BeltTrace con el foco operativo en trazabilidad y calibracion para balanzas de cinta.
+- Cambio app: se actualizan version, metadatos, manifiesto, landing, cabecera, consola de performance y manual admin interno.
+- Cambio documentacion: se actualizan manuales fuente/publicos, PDFs, README, changelog, configuracion Supabase y referencias actuales de performance.
+- Compatibilidad: se conservan claves `calibracinta:*` y marcadores internos historicos para no romper datos locales ni notas existentes.
+- Verificacion: `npm run build` requerido antes de promover.
+
 ## 2026-05-21 - v4.1.23 - Supervisor con wizard sin guardado
 
 - Contexto: supervisores necesitan revisar el flujo completo de nueva calibracion sin generar eventos operativos.
@@ -221,7 +229,7 @@ Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y 
 - Cambio estructura: se extraen `HistoryEventCard`, `HistoryPager`, `EquipmentPhoto` y `Metric` para reducir complejidad del componente principal.
 - Cambio medicion: se documenta baseline de build y se agrega log de carga inicial con conteos de equipos, cadenas y eventos.
 - Cambio fotos: las imagenes de equipos usan `loading="lazy"` y `decoding="async"` para reducir trabajo inicial en listados largos.
-- Verificacion requerida: correr `npm run build`, revisar historial con mas de 25 eventos, cambiar filtros, avanzar/retroceder paginas y revisar consola `[Calibra Cinta performance]` en desktop/mobile.
+- Verificacion requerida: correr `npm run build`, revisar historial con mas de 25 eventos, cambiar filtros, avanzar/retroceder paginas y revisar consola `[BeltTrace performance]` en desktop/mobile.
 
 ## 2026-05-07 - v3.0.2 - Ocultar proveedor en UI y manuales de usuario
 

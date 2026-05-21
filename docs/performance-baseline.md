@@ -14,7 +14,7 @@
 
 The preview adds a one-time browser console log after initial data load:
 
-`[Calibra Cinta performance]`
+`[BeltTrace performance]`
 
 It records:
 

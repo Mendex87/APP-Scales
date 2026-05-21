@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="CalibraCinta">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="BeltTrace">
   <rect width="128" height="128" rx="18" fill="#0c0b11"/>
   <path d="M18 94h92" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/>
   <path d="M25 34h78v42H25z" fill="none" stroke="#f0efeb" stroke-width="7"/>

@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.24 - Rebranding BeltTrace
+
+- La marca visible de la app pasa a BeltTrace.
+- Se actualizan titulo, landing, cabecera, metadatos, manifiesto, manuales y documentacion actual.
+- Se conservan claves internas `calibracinta:*` para no romper datos locales existentes.
+
 ## v4.1.23 - Modal de permiso y manuales
 
 - El intento de guardado de eventos por supervisor muestra un modal de permiso con estilo de confirmacion.

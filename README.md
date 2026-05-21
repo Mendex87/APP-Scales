@@ -1,8 +1,8 @@
-# APP-Scales
+# BeltTrace
 
-Aplicacion web para registro y trazabilidad de calibraciones de balanzas dinamicas sobre cintas transportadoras.
+Trazabilidad y calibracion para balanzas de cinta.
 
-Version actual: `v4.0.7`.
+Version actual: `v4.1.24`.
 
 ## Incluye
 
@@ -19,13 +19,13 @@ Version actual: `v4.0.7`.
 - almacenamiento local o en servidor online
 - historial tecnico de calibraciones
 - reporte imprimible A4 con resumen sin duplicados, pesos de referencia con error final, pasadas completas y firma
-- preview de `/mapa` con planta 3D editable, puntos operativos y soporte para modelos `.glb`
+- mapa de planta 3D editable, puntos operativos por planta y soporte para modelos `.glb`
 
 ## Estado de operacion
 
 La app esta en operacion real para el flujo principal de calibraciones, historial, reportes y servidor online.
 
-La funcionalidad `/mapa` sigue como preview en la rama `preview-plant-map`. No debe considerarse final ni documentarse en manuales publicos hasta que la vista 3D quede aprobada.
+La funcionalidad `/mapa` ya forma parte del flujo documentado y conserva trabajo nuevo primero en la rama `preview-plant-map` antes de promover a `main`.
 
 Documento interno de la preview:
 

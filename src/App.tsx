@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.23'
+const APP_VERSION = 'v4.1.24'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -894,7 +894,7 @@ function buildAdminManualHtml(user: AuthUser) {
 <head>
   <meta charset="utf-8" />
   <meta name="robots" content="noindex, nofollow, noarchive" />
-  <title>Manual administrador Calibra Cinta</title>
+  <title>Manual administrador BeltTrace</title>
   <style>
     :root { font-family: Arial, sans-serif; color: #0c0b11; background: #f0efeb; }
     * { box-sizing: border-box; }
@@ -935,7 +935,7 @@ function buildAdminManualHtml(user: AuthUser) {
   <main>
     <header class="cover">
       <span class="kicker">Manual administrador interno</span>
-      <h1>Calibra Cinta</h1>
+      <h1>BeltTrace</h1>
       <p>Guia de administracion, supervision y mantenimiento operativo. Este documento se genera dentro de una sesion autenticada con rol admin y no se publica como recurso estatico.</p>
       <div class="actions">
         <button onclick="window.print()">Imprimir o guardar PDF</button>
@@ -1604,7 +1604,7 @@ function App() {
     if (loadingData || dataLoadLoggedRef.current) return
     dataLoadLoggedRef.current = true
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
-    console.info('[Calibra Cinta performance]', {
+    console.info('[BeltTrace performance]', {
       version: APP_VERSION,
       dataSource,
       equipment: equipment.length,
@@ -4123,7 +4123,7 @@ function App() {
       <div className="app-shell auth-shell">
         <section className="auth-card">
           <div className="brand-kicker">Acceso protegido</div>
-          <h1>CalibraCinta</h1>
+          <h1>BeltTrace</h1>
           <p>Cargando sesión...</p>
         </section>
         {renderToastStack()}
@@ -4136,10 +4136,10 @@ function App() {
     return (
       <div className="public-shell" onClickCapture={handleActionPulse}>
         <section className="public-hero">
-          <div className="public-copy" aria-label="Video de presentacion de Calibra Cinta">
+          <div className="public-copy" aria-label="Video de presentacion de BeltTrace">
             <video
               className="public-hero-video"
-              src="/intro/calibra-cinta-intro.mp4"
+              src="/intro/belttrace-intro.mp4"
               autoPlay
               muted
               loop
@@ -4149,9 +4149,9 @@ function App() {
             />
             <div className="public-scanline" aria-hidden="true"></div>
             <div className="public-copy-content">
-              <span className="brand-kicker">Planta, campo y reporte en un mismo flujo</span>
-              <h1>Calibracion trazable para balanzas dinamicas</h1>
-              <p>Registro guiado de inspeccion, cero, parametros, cadena, acumulado, material real y cierre tecnico para cintas transportadoras.</p>
+              <span className="brand-kicker">Trazabilidad y calibracion para balanzas de cinta</span>
+              <h1>BeltTrace</h1>
+              <p>Registro guiado de inspeccion, cero, parametros, cadena, acumulado, material real y cierre tecnico para sistemas de pesaje en cinta.</p>
               <div className="public-actions">
                 <a className="primary manual-link" href="#acceso">Ingresar a la app</a>
                 <a className="secondary manual-link" href="/manual/tecnico/" target="_blank" rel="noreferrer">Manual de campo</a>
@@ -4440,10 +4440,10 @@ function App() {
         <div className="brand-block">
           <h1>
             <button className="brand-home-button" type="button" onClick={() => setScreen('dashboard')}>
-              Balanzas Dinamicas
+              BeltTrace
             </button>
           </h1>
-          <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
+          <p>Trazabilidad y calibracion para balanzas de cinta.</p>
           <div className="live-clock" aria-label="Hora actual de Argentina">
             <time dateTime={clockNow.toISOString()}>{formatArgentinaClock(clockNow)}</time>
           </div>

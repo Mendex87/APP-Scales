@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Manual administrador de Calibra Cinta para gestionar balanzas dinamicas, cadenas patron, calibraciones, reportes y usuarios." />
+  <meta name="description" content="Manual administrador de BeltTrace para gestionar balanzas de cinta, cadenas patron, calibraciones, reportes y usuarios." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://mendex87.com/manual/admin" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="Manual administrador Calibra Cinta" />
-  <meta property="og:description" content="Guia completa para administracion y supervision de balanzas dinamicas, calibraciones, controles preventivos y usuarios." />
+  <meta property="og:title" content="Manual administrador BeltTrace" />
+  <meta property="og:description" content="Guia completa para administracion y supervision de balanzas de cinta, calibraciones, controles preventivos y usuarios." />
   <meta property="og:url" content="https://mendex87.com/manual/admin" />
-  <title>Manual administrador Calibra Cinta | Balanzas dinamicas</title>
+  <title>Manual administrador BeltTrace | Balanzas de cinta</title>
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "TechArticle",
-      "headline": "Manual administrador Calibra Cinta",
-      "description": "Guia para administrar balanzas dinamicas, cadenas patron, calibraciones, reportes y usuarios en Calibra Cinta.",
+      "headline": "Manual administrador BeltTrace",
+      "description": "Guia para administrar balanzas de cinta, cadenas patron, calibraciones, reportes y usuarios en BeltTrace.",
       "url": "https://mendex87.com/manual/admin",
       "inLanguage": "es-AR"
     }
@@ -512,14 +512,14 @@
     <header class="cover">
       <div>
         <span class="kicker">Manual de administrador</span>
-        <h1>Calibra Cinta</h1>
-        <p class="subtitle">Guia completa para administracion y supervision integral de balanzas dinamicas, cadenas patron, calibraciones, controles preventivos, mapa operativo de planta, historial, reportes, herramientas tecnicas y usuarios.</p>
+        <h1>BeltTrace</h1>
+        <p class="subtitle">Guia completa para administracion y supervision integral de balanzas de cinta, cadenas patron, calibraciones, controles preventivos, mapa operativo de planta, historial, reportes, herramientas tecnicas y usuarios.</p>
         <div class="manual-actions">
           <button type="button" onclick="window.print()">Imprimir o guardar PDF</button>
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v4.1.0</strong></div>
+        <div><span>Version documentada</span><strong>v4.1.24</strong></div>
         <div><span>Alcance</span><strong>Operacion completa</strong></div>
         <div><span>Uso recomendado</span><strong>Administracion</strong></div>
       </div>
@@ -552,9 +552,9 @@
 
     <section id="proposito">
       <h2>1. Proposito de la aplicacion</h2>
-      <p>Calibra Cinta centraliza la operacion de calibracion y control de balanzas dinamicas instaladas en cintas transportadoras. La app esta pensada para el tecnico que trabaja en planta, el supervisor que revisa resultados y el administrador que mantiene usuarios, equipos y datos maestros.</p>
+      <p>BeltTrace centraliza la operacion de calibracion y control de balanzas instaladas en cintas transportadoras. La app esta pensada para el tecnico que trabaja en planta, el supervisor que revisa resultados y el administrador que mantiene usuarios, equipos y datos maestros.</p>
       <div class="grid four">
-        <div class="metric"><span>Equipo</span><strong>Balanzas dinamicas</strong></div>
+        <div class="metric"><span>Equipo</span><strong>Balanzas de cinta</strong></div>
         <div class="metric"><span>Patron</span><strong>Cadenas calibradas</strong></div>
         <div class="metric"><span>Prueba final</span><strong>Material real pesado</strong></div>
         <div class="metric"><span>Salida</span><strong>Historial + PDF</strong></div>
@@ -730,7 +730,7 @@
         <thead><tr><th>Campo</th><th>Que registrar</th><th>Uso</th></tr></thead>
         <tbody>
           <tr><td>Peso balanza certificada</td><td>Peso real obtenido antes/despues en balanza de piso o camionera certificada.</td><td>Referencia del calculo de error.</td></tr>
-          <tr><td>Peso indicado controlador</td><td>Peso totalizado o indicado por la balanza dinamica.</td><td>Valor comparado contra el patron real.</td></tr>
+          <tr><td>Peso indicado controlador</td><td>Peso totalizado o indicado por la balanza de cinta.</td><td>Valor comparado contra el patron real.</td></tr>
           <tr><td>Factor usado</td><td>En la primera pasada lo toma del Paso 4; en verificaciones post-ajuste se carga el nuevo factor usado.</td><td>Permite demostrar si hubo ajuste y con que factor se verifico.</td></tr>
           <tr><td>Nota de pasada</td><td>Observaciones de campo.</td><td>Contexto para supervision e historial.</td></tr>
         </tbody>
@@ -916,7 +916,7 @@
           <tr><td>Control conforme</td><td>Evento donde la balanza queda dentro de tolerancia sin ajuste de factor.</td></tr>
           <tr><td>Factor calibracion</td><td>Parametro del controlador usado para ajustar la medicion de peso/caudal.</td></tr>
           <tr><td>Factor ajuste</td><td>Parametro asociado a correccion de totalizador/acumulado.</td></tr>
-          <tr><td>Pasada</td><td>Comparacion puntual entre peso certificado y peso indicado por la balanza dinamica.</td></tr>
+          <tr><td>Pasada</td><td>Comparacion puntual entre peso certificado y peso indicado por la balanza de cinta.</td></tr>
           <tr><td>Permisos por rol</td><td>Mecanismo del servidor online que limita acciones segun usuario y rol operativo.</td></tr>
           <tr><td>Tolerancia</td><td>Porcentaje maximo de error aceptado para considerar conforme un evento.</td></tr>
         </tbody>
@@ -924,7 +924,7 @@
     </section>
 
     <footer class="footer-note">
-      <strong>Calibra Cinta - Manual de usuario.</strong>
+      <strong>BeltTrace - Manual de usuario.</strong>
       <p>Documento generado para operacion tecnica y supervision. Ante discrepancias con procedimientos internos de planta, aplicar el procedimiento aprobado por la organizacion y registrar observaciones en el evento.</p>
     </footer>
   </main>
