@@ -540,47 +540,81 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.8rem;
-  height: 3.15rem;
+  width: 4.2rem;
+  height: 4.2rem;
   margin-bottom: 0.85rem;
   overflow: hidden;
-  color: var(--color-paper);
   border: 1px solid rgba(255, 89, 73, 0.7);
-  border-radius: calc(var(--radius) * 0.7);
+  border-radius: calc(var(--radius) * 1.15);
   background:
     linear-gradient(135deg, rgba(255, 89, 73, 0.24), transparent 48%),
     var(--color-ink);
   box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08), 0 0.85rem 1.8rem rgba(255, 89, 73, 0.16);
-  font-family: "Barlow Condensed", Inter, sans-serif;
-  font-size: 2.45rem;
-  font-weight: 700;
-  letter-spacing: -0.2em;
-  line-height: 0.8;
 }
 
-.brand-monogram::after {
-  content: '';
-  position: absolute;
-  right: 0.42rem;
-  bottom: 0.36rem;
-  left: 0.42rem;
-  height: 4px;
-  background: var(--color-orange);
+.brand-monogram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.brand-monogram span:first-child {
-  color: var(--color-orange);
+.brand-logo-grid {
+  fill: none;
+  stroke: var(--color-paper);
+  stroke-opacity: 0.08;
+  stroke-width: 2;
 }
 
-.brand-monogram span:last-child {
-  color: var(--color-paper);
+.brand-logo-belt {
+  fill: #2e2930;
+  stroke: var(--color-paper);
+  stroke-linejoin: round;
+  stroke-opacity: 0.68;
+  stroke-width: 5;
+}
+
+.brand-logo-belt-line {
+  fill: none;
+  stroke: var(--color-orange);
+  stroke-linecap: square;
+  stroke-opacity: 0.68;
+  stroke-width: 4;
+}
+
+.brand-logo-roller {
+  fill: var(--color-paper);
+  fill-opacity: 0.82;
+}
+
+.brand-logo-train,
+.brand-logo-foot {
+  fill: var(--color-paper);
+}
+
+.brand-logo-train.active,
+.brand-logo-foot.active {
+  fill: var(--color-orange);
+}
+
+.brand-logo-measure {
+  fill: none;
+  stroke: var(--color-orange);
+  stroke-linecap: square;
+  stroke-width: 9;
+}
+
+.brand-logo-ticks {
+  fill: none;
+  stroke: var(--color-paper);
+  stroke-linecap: square;
+  stroke-opacity: 0.58;
+  stroke-width: 4;
 }
 
 .brand-monogram.compact {
-  width: 2.9rem;
-  height: 2.35rem;
+  width: 3rem;
+  height: 3rem;
   margin-bottom: 0.5rem;
-  font-size: 1.82rem;
   box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08), 0 0.5rem 1rem rgba(255, 89, 73, 0.12);
 }
 
@@ -5296,10 +5330,9 @@ body::before {
   }
 
   .brand-monogram.compact {
-    width: 2.45rem;
-    height: 2rem;
+    width: 2.55rem;
+    height: 2.55rem;
     margin-bottom: 0.35rem;
-    font-size: 1.55rem;
   }
 
   .live-clock {
@@ -5447,9 +5480,8 @@ body::before {
   }
 
   .brand-monogram {
-    width: 3.2rem;
-    height: 2.7rem;
-    font-size: 2.05rem;
+    width: 3.4rem;
+    height: 3.4rem;
   }
 
   .public-copy p {

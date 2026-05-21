@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.1.26 - Logo TT trenes de pesaje
+
+- Contexto: se prueba en preview un logo mas tecnico, donde las TT representan dos trenes de pesaje sobre cinta.
+- Cambio UI: el monograma de landing/header se reemplaza por un SVG inline con cinta superior, rodillos, dos trenes de pesaje y linea naranja de medicion.
+- Cambio asset: el favicon usa el mismo concepto para validar identidad visual en navegador.
+- Verificacion: `npm run build` requerido antes de promover.
+
 ## 2026-05-21 - v4.1.25 - Wordmark TT
 
 - Contexto: se busca reforzar la identidad visual de BeltTrace sin cambiar estructura ni flujo operativo.

@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.25'
+const APP_VERSION = 'v4.1.26'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -172,6 +172,27 @@ function renderBrandWordmark() {
   return (
     <span className="brand-wordmark" aria-hidden="true">
       Bel<span className="brand-wordmark-accent">t</span><span className="brand-wordmark-accent">T</span>race
+    </span>
+  )
+}
+
+function BrandMonogram({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className={`brand-monogram${compact ? ' compact' : ''}`} aria-hidden="true">
+      <svg viewBox="0 0 256 256" focusable="false">
+        <path className="brand-logo-grid" d="M30 34h196M30 222h196M34 30v196M222 30v196" />
+        <path className="brand-logo-belt" d="M32 64h192l-13 25H45z" />
+        <path className="brand-logo-belt-line" d="M45 89h166" />
+        <circle className="brand-logo-roller" cx="61" cy="76" r="6" />
+        <circle className="brand-logo-roller" cx="128" cy="76" r="6" />
+        <circle className="brand-logo-roller" cx="195" cy="76" r="6" />
+        <path className="brand-logo-train active" d="M47 102h70v17H91v59H73v-59H47z" />
+        <rect className="brand-logo-foot active" x="62" y="178" width="40" height="10" rx="2" />
+        <path className="brand-logo-train" d="M139 102h70v17h-26v59h-18v-59h-26z" />
+        <rect className="brand-logo-foot" x="154" y="178" width="40" height="10" rx="2" />
+        <path className="brand-logo-measure" d="M36 204h184" />
+        <path className="brand-logo-ticks" d="M66 196v16M128 196v16M190 196v16" />
+      </svg>
     </span>
   )
 }
@@ -4157,7 +4178,7 @@ function App() {
             />
             <div className="public-scanline" aria-hidden="true"></div>
             <div className="public-copy-content">
-              <span className="brand-monogram" aria-hidden="true"><span>T</span><span>T</span></span>
+              <BrandMonogram />
               <span className="brand-kicker">Trazabilidad y calibracion para balanzas de cinta</span>
               <h1 aria-label="BeltTrace">{renderBrandWordmark()}</h1>
               <p>Registro guiado de inspeccion, cero, parametros, cadena, acumulado, material real y cierre tecnico para sistemas de pesaje en cinta.</p>
@@ -4447,7 +4468,7 @@ function App() {
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">
-          <span className="brand-monogram compact" aria-hidden="true"><span>T</span><span>T</span></span>
+          <BrandMonogram compact />
           <h1>
             <button className="brand-home-button" type="button" onClick={() => setScreen('dashboard')} aria-label="BeltTrace">
               {renderBrandWordmark()}

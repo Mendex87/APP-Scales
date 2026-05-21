@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.26 - Logo TT trenes de pesaje
+
+- El monograma TT pasa a representar dos trenes de pesaje bajo una cinta transportadora.
+- Se actualiza el favicon con la misma identidad visual.
+
 ## v4.1.25 - Wordmark TT
 
 - Se destacan las dos T del titulo BeltTrace con el naranja de la app.

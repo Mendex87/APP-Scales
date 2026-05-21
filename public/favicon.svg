@@ -1,7 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="BeltTrace TT logo">
-  <rect width="128" height="128" rx="18" fill="#0c0b11"/>
-  <path d="M19 95h90" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/>
-  <path d="M27 29h74v53H27z" fill="none" stroke="#f0efeb" stroke-opacity="0.72" stroke-width="6"/>
-  <text x="49" y="78" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="64" font-weight="900" fill="#ff5949">T</text>
-  <text x="78" y="78" text-anchor="middle" font-family="Arial Narrow, Arial, sans-serif" font-size="64" font-weight="900" fill="#f0efeb">T</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="BeltTrace TT weighing train logo">
+  <rect x="8" y="8" width="240" height="240" rx="30" fill="#0c0b11"/>
+  <path d="M30 34h196M30 222h196M34 30v196M222 30v196" stroke="#f0efeb" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M32 64h192l-13 25H45z" fill="#2e2930" stroke="#f0efeb" stroke-opacity="0.68" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M45 89h166" stroke="#ff5949" stroke-opacity="0.68" stroke-width="4" stroke-linecap="square"/>
+  <circle cx="61" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/>
+  <circle cx="128" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/>
+  <circle cx="195" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/>
+  <path d="M47 102h70v17H91v59H73v-59H47z" fill="#ff5949"/>
+  <rect x="62" y="178" width="40" height="10" rx="2" fill="#ff5949"/>
+  <path d="M139 102h70v17h-26v59h-18v-59h-26z" fill="#f0efeb"/>
+  <rect x="154" y="178" width="40" height="10" rx="2" fill="#f0efeb"/>
+  <path d="M36 204h184" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/>
+  <path d="M66 196v16M128 196v16M190 196v16" stroke="#f0efeb" stroke-opacity="0.58" stroke-width="4" stroke-linecap="square"/>
 </svg>
