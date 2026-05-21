@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.10 - Estilo integrado para parque compacto
+
+- La lista compacta de balanzas adopta bordes redondeados, fondo y sombra coherentes con el resto del inicio.
+- Las plantas se separan con un corte visual sutil, sin agregar titulos dentro del listado.
+
 ## v4.1.9 - Lista compacta de balanzas corregida
 
 - La vista compacta de todas las balanzas usa filas de ancho completo para evitar textos cortados verticalmente.

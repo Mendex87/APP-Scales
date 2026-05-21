@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.9'
+const APP_VERSION = 'v4.1.10'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -2065,6 +2065,14 @@ function App() {
       .filter((row) => row.rank < 4)
       .sort((a, b) => a.rank - b.rank || `${a.item.plant}${a.item.line}${a.item.beltCode}`.localeCompare(`${b.item.plant}${b.item.line}${b.item.beltCode}`))
       .slice(0, 4)
+  }, [equipmentWithLastEvent])
+
+  const dashboardFleetRows = useMemo(() => {
+    return [...equipmentWithLastEvent].sort((a, b) => {
+      const left = `${a.item.plant}/${a.item.line}/${a.item.beltCode}/${a.item.scaleName}`.toLowerCase()
+      const right = `${b.item.plant}/${b.item.line}/${b.item.beltCode}/${b.item.scaleName}`.toLowerCase()
+      return left.localeCompare(right)
+    })
   }, [equipmentWithLastEvent])
 
   const selectedEquipmentMaintenance = selectedEquipment
@@ -4611,12 +4619,16 @@ function App() {
                 </div>
                 <div className="fleet-compact-count">
                   <span>Total</span>
-                  <strong>{equipmentWithLastEvent.length}</strong>
+                  <strong>{dashboardFleetRows.length}</strong>
                 </div>
               </div>
               <div className="fleet-compact-list compact-top">
-                {equipmentWithLastEvent.map(({ item, lastEvent, maintenance }) => (
-                  <article className={`fleet-compact-row status-${maintenance.rowClass}`} key={item.id}>
+                {dashboardFleetRows.map(({ item, lastEvent, maintenance }, index) => {
+                  const previousPlant = dashboardFleetRows[index - 1]?.item.plant.trim().toLowerCase()
+                  const currentPlant = item.plant.trim().toLowerCase()
+                  const startsPlantGroup = index > 0 && currentPlant !== previousPlant
+                  return (
+                  <article className={`fleet-compact-row status-${maintenance.rowClass} ${startsPlantGroup ? 'plant-boundary' : ''}`} key={item.id}>
                     <span className="fleet-status-bar" aria-hidden="true" />
                     <div className="fleet-compact-main">
                       <span>{maintenance.label}</span>
@@ -4633,8 +4645,9 @@ function App() {
                       <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(item.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
                     </div>
                   </article>
-                ))}
-                {equipmentWithLastEvent.length === 0 && <div className="empty-state">Todavia no hay balanzas cargadas.</div>}
+                  )
+                })}
+                {dashboardFleetRows.length === 0 && <div className="empty-state">Todavia no hay balanzas cargadas.</div>}
               </div>
             </div>}
           </section>
