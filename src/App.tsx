@@ -145,7 +145,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.21'
+const APP_VERSION = 'v4.1.22'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -166,7 +166,7 @@ const Plant3DScene = lazy(() => import('./components/Plant3DScene').then((module
 
 const PLANT_MAP_PLANT_OPTIONS: PlantMapPlantOption[] = [
   { value: 'secado', label: 'Secado', description: 'Mapa 3D cargado actualmente.', available: true },
-  { value: 'lavado', label: 'Lavado', description: 'Base tecnica independiente lista para construir el layout.', available: true },
+  { value: 'lavado', label: 'Lavado', description: 'Mapa 3D disponible para Lavado.', available: true },
 ]
 
 const PLANT_MAP_OBJECT_OPTIONS: Array<{ value: PlantMapObjectType; label: string }> = [
@@ -1780,9 +1780,6 @@ function App() {
     }
     if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
       setScreen('herramientas')
-    }
-    if (currentUser.role === 'supervisor' && screen === 'nueva') {
-      setScreen('dashboard')
     }
   }, [currentUser, screen])
 
@@ -3625,6 +3622,11 @@ function App() {
     event.preventDefault()
     if (eventSaveInFlightRef.current) return
 
+    if (!canOperate) {
+      setSyncNotice('Guardar eventos esta habilitado solo para tecnicos.')
+      return
+    }
+
     setEventSubmitAttempted(true)
     if (eventBlockingIssues.length > 0) {
       goToCalibrationStep(eventBlockingIssues[0].step)
@@ -4586,7 +4588,7 @@ function App() {
                         type="button"
                         onClick={() => {
                           setSelectedEquipmentId(row.item.id)
-                          if (!row.lastEvent && canOperate) {
+                          if (!row.lastEvent && canReview) {
                             primeEventForm(row.item)
                             return
                           }
@@ -4635,7 +4637,7 @@ function App() {
                       <span>{maintenance.daysText}</span>
                     </div>
                     <div className="fleet-compact-actions">
-                      {canOperate && <button className="secondary small" type="button" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva</button>}
+                      {canReview && <button className="secondary small" type="button" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva</button>}
                       <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(item.id); setScreen('historial') }}><History className="action-icon" aria-hidden="true" />Historial</button>
                     </div>
                   </article>
@@ -4891,13 +4893,13 @@ function App() {
               <p>{canOperate ? 'Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.' : 'Consulta de equipos, último error, factor y estado general de cada instalación.'}</p>
             </div>
             <div ref={equipmentFormRef} className="scroll-anchor">
-            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint={canOperate ? 'Alta de equipos y datos tecnicos principales.' : 'Altas, ediciones y nuevas calibraciones son opciones solo para tecnicos.'} actionLabel={canOperate ? 'Crear una nueva' : 'Ver listado'} defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
+            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint={canOperate ? 'Alta de equipos y datos tecnicos principales.' : 'Altas y ediciones son solo para tecnicos. Supervisores pueden completar el wizard sin guardar.'} actionLabel={canOperate ? 'Crear una nueva' : 'Ver listado'} defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
                   <div>
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
-                    <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : canOperate ? 'La app arranca mostrando equipos y su ultimo estado conocido.' : 'Estas opciones son solo para tecnicos. Como supervisor podes revisar el listado y el estado operativo.'}</p>
+                    <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : canOperate ? 'La app arranca mostrando equipos y su ultimo estado conocido.' : 'Altas y ediciones son solo para tecnicos. Como supervisor podes revisar el listado y recorrer una nueva calibracion sin guardar.'}</p>
                   </div>
-                  {canOperate && <button className="secondary" onClick={() => setScreen('nueva')}>
+                  {canReview && <button className="secondary" onClick={() => setScreen('nueva')}>
                     <PlusCircle className="action-icon" aria-hidden="true" />
                     Nueva calibracion
                   </button>}
@@ -5035,7 +5037,7 @@ function App() {
                         </div>
                       </div>
                       <div className="equipment-card-actions row compact-actions">
-                        {canOperate && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
+                        {canReview && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
                         {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
                         {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
                       </div>
@@ -5058,7 +5060,7 @@ function App() {
           </section>
         )}
 
-        {screen === 'nueva' && canOperate && (
+        {screen === 'nueva' && canReview && (
           <section className="stack screen-shell">
             <div className="screen-banner">
               <span className="section-kicker">Eleccion de balanza/cinta</span>
@@ -5525,6 +5527,12 @@ function App() {
                     </ul>
                   </div>
                 )}
+                {!canOperate && (
+                  <div className="warning-panel">
+                    <strong>Guardado solo para tecnicos</strong>
+                    <p>Como supervisor podes revisar y completar el wizard, pero guardar el evento queda habilitado solo para usuarios tecnicos.</p>
+                  </div>
+                )}
                 <button className="primary" type="submit" disabled={eventSaving}><Save className="action-icon" aria-hidden="true" />{eventSaving ? 'Guardando...' : 'Guardar evento'}</button>
               </div>}
             </form>
@@ -5875,11 +5883,11 @@ function App() {
 
       </main>
 
-      <nav className={`bottom-nav ${canManageUsers ? 'six' : canOperate ? 'five' : canReview ? 'four' : 'three'}`} aria-label="Navegacion principal">
+      <nav className={`bottom-nav ${canManageUsers ? 'six' : canReview ? 'five' : 'three'}`} aria-label="Navegacion principal">
         <button type="button" className={navItemClass('dashboard')} aria-current={screen === 'dashboard' ? 'page' : undefined} onClick={() => handleNavSelect('dashboard')}><Home className="nav-icon" aria-hidden="true" />Inicio</button>
         {canReview && <button type="button" className={navItemClass('balanzas')} aria-current={screen === 'balanzas' ? 'page' : undefined} onClick={() => handleNavSelect('balanzas')}><Scale className="nav-icon" aria-hidden="true" />Balanzas</button>}
         <button type="button" className={navItemClass('herramientas')} aria-current={screen === 'herramientas' ? 'page' : undefined} onClick={() => handleNavSelect('herramientas')}><Wrench className="nav-icon" aria-hidden="true" />Herramientas</button>
-        {canOperate && <button type="button" className={navItemClass('nueva')} aria-current={screen === 'nueva' ? 'page' : undefined} onClick={() => handleNavSelect('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
+        {canReview && <button type="button" className={navItemClass('nueva')} aria-current={screen === 'nueva' ? 'page' : undefined} onClick={() => handleNavSelect('nueva')}><ClipboardCheck className="nav-icon" aria-hidden="true" />Nueva</button>}
         <button type="button" className={navItemClass('historial')} aria-current={screen === 'historial' ? 'page' : undefined} onClick={() => handleNavSelect('historial')}><History className="nav-icon" aria-hidden="true" />Historial</button>
         {canManageUsers && <button type="button" className={navItemClass('usuarios')} aria-current={screen === 'usuarios' ? 'page' : undefined} onClick={() => handleNavSelect('usuarios')}><Users className="nav-icon" aria-hidden="true" />Usuarios</button>}
       </nav>

@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.22 - Supervisor en wizard de calibracion
+
+- Supervisores pueden abrir y completar el wizard de nueva calibracion sin guardar eventos.
+- El guardado final avisa que esta habilitado solo para tecnicos.
+- Se quita texto tecnico interno del selector de mapas.
+
 ## v4.1.21 - Mensajes por rol en balanzas
 
 - Para supervisores, el listado de balanzas aclara que altas, ediciones y nuevas calibraciones son solo para tecnicos.
