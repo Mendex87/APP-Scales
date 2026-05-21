@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.1.25 - Wordmark TT
+
+- Contexto: se busca reforzar la identidad visual de BeltTrace sin cambiar estructura ni flujo operativo.
+- Cambio UI: las dos T del titulo se destacan con el naranja de marca y se agrega un monograma TT en landing/header.
+- Cambio asset: el favicon pasa a usar el monograma TT.
+- Verificacion: `npm run build` requerido antes de promover.
+
 ## 2026-05-21 - v4.1.24 - Rebranding BeltTrace
 
 - Contexto: la marca visible pasa a BeltTrace con el foco operativo en trazabilidad y calibracion para balanzas de cinta.

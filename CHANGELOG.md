@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.25 - Wordmark TT
+
+- Se destacan las dos T del titulo BeltTrace con el naranja de la app.
+- Se incorpora un monograma TT como marca visual y favicon.
+
 ## v4.1.24 - Rebranding BeltTrace
 
 - La marca visible de la app pasa a BeltTrace.

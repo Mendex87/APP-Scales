@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.24'
+const APP_VERSION = 'v4.1.25'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -167,6 +167,14 @@ const EQUIPMENT_PHOTOS_BUCKET = 'equipment-photos'
 const CALIBRATION_EVENT_PHOTOS_BUCKET = 'calibration-event-photos'
 const HistoryEventCard = lazy(() => import('./components/HistoryEventCard').then((module) => ({ default: module.HistoryEventCard })))
 const Plant3DScene = lazy(() => import('./components/Plant3DScene').then((module) => ({ default: module.Plant3DScene })))
+
+function renderBrandWordmark() {
+  return (
+    <span className="brand-wordmark" aria-hidden="true">
+      Bel<span className="brand-wordmark-accent">t</span><span className="brand-wordmark-accent">T</span>race
+    </span>
+  )
+}
 
 const PLANT_MAP_PLANT_OPTIONS: PlantMapPlantOption[] = [
   { value: 'secado', label: 'Secado', description: 'Mapa 3D cargado actualmente.', available: true },
@@ -4149,8 +4157,9 @@ function App() {
             />
             <div className="public-scanline" aria-hidden="true"></div>
             <div className="public-copy-content">
+              <span className="brand-monogram" aria-hidden="true"><span>T</span><span>T</span></span>
               <span className="brand-kicker">Trazabilidad y calibracion para balanzas de cinta</span>
-              <h1>BeltTrace</h1>
+              <h1 aria-label="BeltTrace">{renderBrandWordmark()}</h1>
               <p>Registro guiado de inspeccion, cero, parametros, cadena, acumulado, material real y cierre tecnico para sistemas de pesaje en cinta.</p>
               <div className="public-actions">
                 <a className="primary manual-link" href="#acceso">Ingresar a la app</a>
@@ -4438,9 +4447,10 @@ function App() {
       <a className="skip-link" href="#main-content">Saltar al contenido</a>
       <header className="topbar">
         <div className="brand-block">
+          <span className="brand-monogram compact" aria-hidden="true"><span>T</span><span>T</span></span>
           <h1>
-            <button className="brand-home-button" type="button" onClick={() => setScreen('dashboard')}>
-              BeltTrace
+            <button className="brand-home-button" type="button" onClick={() => setScreen('dashboard')} aria-label="BeltTrace">
+              {renderBrandWordmark()}
             </button>
           </h1>
           <p>Trazabilidad y calibracion para balanzas de cinta.</p>

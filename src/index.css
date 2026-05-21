@@ -526,6 +526,64 @@ body::before {
   text-wrap: balance;
 }
 
+.brand-wordmark {
+  display: inline-block;
+}
+
+.brand-wordmark-accent {
+  color: var(--color-orange);
+  text-shadow: 0 0 0.18em rgba(255, 89, 73, 0.45);
+}
+
+.brand-monogram {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.8rem;
+  height: 3.15rem;
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+  color: var(--color-paper);
+  border: 1px solid rgba(255, 89, 73, 0.7);
+  border-radius: calc(var(--radius) * 0.7);
+  background:
+    linear-gradient(135deg, rgba(255, 89, 73, 0.24), transparent 48%),
+    var(--color-ink);
+  box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08), 0 0.85rem 1.8rem rgba(255, 89, 73, 0.16);
+  font-family: "Barlow Condensed", Inter, sans-serif;
+  font-size: 2.45rem;
+  font-weight: 700;
+  letter-spacing: -0.2em;
+  line-height: 0.8;
+}
+
+.brand-monogram::after {
+  content: '';
+  position: absolute;
+  right: 0.42rem;
+  bottom: 0.36rem;
+  left: 0.42rem;
+  height: 4px;
+  background: var(--color-orange);
+}
+
+.brand-monogram span:first-child {
+  color: var(--color-orange);
+}
+
+.brand-monogram span:last-child {
+  color: var(--color-paper);
+}
+
+.brand-monogram.compact {
+  width: 2.9rem;
+  height: 2.35rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.82rem;
+  box-shadow: inset 0 0 0 1px rgba(240, 239, 235, 0.08), 0 0.5rem 1rem rgba(255, 89, 73, 0.12);
+}
+
 .public-copy p {
   max-width: 58ch;
   margin: 0;
@@ -3629,11 +3687,11 @@ body::before {
   display: inline-block;
   cursor: pointer;
   border-radius: calc(var(--radius) * 0.45);
-  transition: color 0.22s ease, transform 0.22s var(--link-ease);
+  transition: transform 0.22s var(--link-ease), filter 0.22s ease;
 }
 
 .brand-home-button:hover {
-  color: var(--color-orange);
+  filter: contrast(1.08);
   transform: translateY(-1px);
 }
 
@@ -5237,6 +5295,13 @@ body::before {
     display: none;
   }
 
+  .brand-monogram.compact {
+    width: 2.45rem;
+    height: 2rem;
+    margin-bottom: 0.35rem;
+    font-size: 1.55rem;
+  }
+
   .live-clock {
     margin-top: 0.5rem;
     font-size: 0.72rem;
@@ -5379,6 +5444,12 @@ body::before {
   .public-copy h1 {
     max-width: 9ch;
     font-size: clamp(4rem, 20vw, 6.8rem);
+  }
+
+  .brand-monogram {
+    width: 3.2rem;
+    height: 2.7rem;
+    font-size: 2.05rem;
   }
 
   .public-copy p {
