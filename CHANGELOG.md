@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.13 - Ajuste de encabezado del parque compacto
+
+- Se quita la bajada descriptiva del panel de todas las balanzas.
+- El separador de plantas usa el naranja principal de la pagina.
+
 ## v4.1.12 - Separador de plantas naranja
 
 - La division visual entre plantas en el inicio usa tono naranja industrial.

@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.12'
+const APP_VERSION = 'v4.1.13'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -4615,7 +4615,6 @@ function App() {
                 <div>
                   <span className="section-kicker">Parque completo</span>
                   <h2>Todas las balanzas</h2>
-                  <p className="hint">Vista compacta por estado para revisar todo el parque sin abrir el listado tecnico.</p>
                 </div>
                 <div className="fleet-compact-count">
                   <span>Total</span>
