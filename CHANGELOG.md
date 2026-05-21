@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.15 - Contador compacto integrado
+
+- Se recupera el contador del parque como una insignia compacta con acento naranja.
+
 ## v4.1.14 - Encabezado compacto mas limpio
 
 - Se quita el contador total del panel de todas las balanzas.
