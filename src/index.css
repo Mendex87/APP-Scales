@@ -1632,17 +1632,18 @@ body::before {
 }
 
 .fleet-compact-row.plant-boundary {
-  margin-top: 0.95rem;
+  margin-top: 1.3rem;
 }
 
 .fleet-compact-row.plant-boundary::before {
   content: '';
   position: absolute;
-  left: 0.15rem;
-  right: 0.15rem;
-  top: -0.58rem;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(12, 11, 17, 0.24), transparent);
+  left: 0.35rem;
+  right: 0.35rem;
+  top: -0.78rem;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(12, 11, 17, 0.34), rgba(var(--status-rgb), 0.42), rgba(12, 11, 17, 0.34), transparent);
 }
 
 .fleet-status-bar {
@@ -1737,7 +1738,7 @@ body::before {
   }
 
   .fleet-compact-row.plant-boundary {
-    margin-top: 0.75rem;
+    margin-top: 1rem;
   }
 }
 

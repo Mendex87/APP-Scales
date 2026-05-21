@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.11 - Separacion de plantas mas visible
+
+- La lista compacta del inicio refuerza el corte visual entre plantas sin agregar titulos.
+
 ## v4.1.10 - Estilo integrado para parque compacto
 
 - La lista compacta de balanzas adopta bordes redondeados, fondo y sombra coherentes con el resto del inicio.
