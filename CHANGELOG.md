@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.17 - Lectura en modo oscuro
+
+- Se quita la etiqueta superior del panel de todas las balanzas.
+- Se corrigen textos negros en modo oscuro en el inicio y el mapa 3D.
+
 ## v4.1.16 - Contador alineado al titulo
 
 - El contador del parque se muestra como bloque cuadrado a la derecha del titulo de todas las balanzas.

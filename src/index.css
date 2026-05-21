@@ -1718,6 +1718,19 @@ body::before {
   line-height: 0.92;
 }
 
+:root[data-theme='dark'] .fleet-compact-title-row h2,
+:root[data-theme='dark'] .fleet-compact-main strong,
+:root[data-theme='dark'] .fleet-compact-meta strong {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .fleet-compact-main span,
+:root[data-theme='dark'] .fleet-compact-main p,
+:root[data-theme='dark'] .fleet-compact-meta small,
+:root[data-theme='dark'] .fleet-compact-meta span {
+  color: rgba(243, 238, 231, 0.74);
+}
+
 .fleet-compact-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2103,6 +2116,14 @@ body::before {
   white-space: nowrap;
 }
 
+:root[data-theme='dark'] .plant-map-context-rail strong {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .plant-map-context-rail span {
+  color: rgba(243, 238, 231, 0.74);
+}
+
 .plant-status-key {
   display: inline-flex;
   align-items: center;
@@ -2320,6 +2341,18 @@ body::before {
   font-size: 0.96rem;
   line-height: 1;
   text-transform: uppercase;
+}
+
+:root[data-theme='dark'] .plant-map-status-card h3,
+:root[data-theme='dark'] .plant-map-status-card-grid strong,
+:root[data-theme='dark'] .plant-map-status-equipment strong {
+  color: var(--color-paper);
+}
+
+:root[data-theme='dark'] .plant-map-status-card p,
+:root[data-theme='dark'] .plant-map-status-card-grid small,
+:root[data-theme='dark'] .plant-map-status-equipment span {
+  color: rgba(243, 238, 231, 0.74);
 }
 
 .plant-map-status-equipment {
