@@ -3,8 +3,10 @@ import type { ChangeEvent, CSSProperties, FormEvent, MouseEvent, PointerEvent, R
 import { flushSync } from 'react-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
+  BadgeCheck,
   ClipboardCheck,
   Download,
+  Gauge,
   History,
   Home,
   Moon,
@@ -143,7 +145,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.19'
+const APP_VERSION = 'v4.1.20'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -5365,14 +5367,8 @@ function App() {
                           : 'Usala despues de modificar el factor del controlador; registrá el factor realmente usado en esta verificacion.'}
                       </p>
                       <div className="grid two compact-top">
-                        <div className="material-weight-field">
-                          <Scale className="material-field-icon" aria-hidden="true" />
-                          <Field label={measureLabel('Peso balanza certificada', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
-                        </div>
-                        <div className="material-weight-field">
-                          <Settings2 className="material-field-icon" aria-hidden="true" />
-                          <Field label={measureLabel('Peso indicado controlador', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
-                        </div>
+                        <Field label={measureLabel('Peso balanza certificada', 'weightKg')} labelIcon={<BadgeCheck aria-hidden="true" />} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
+                        <Field label={measureLabel('Peso indicado controlador', 'weightKg')} labelIcon={<Gauge aria-hidden="true" />} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
                         <Field
                           label={passNumber === 1 ? 'Factor usado (Paso 4)' : 'Factor usado post-ajuste'}
                           type="number"
@@ -5947,9 +5943,9 @@ function PlantEditorSection({
   )
 }
 
-type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean; hint?: string }
+type FieldProps = { label: string; value: string; onChange: (value: string) => void; type?: string; disabled?: boolean; hint?: string; labelIcon?: ReactNode }
 
-function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldProps) {
+function Field({ label, value, onChange, type = 'text', disabled, hint, labelIcon }: FieldProps) {
   const id = useId()
   const isNumeric = type === 'number'
   const inputType = isNumeric ? 'text' : type
@@ -5987,7 +5983,7 @@ function Field({ label, value, onChange, type = 'text', disabled, hint }: FieldP
 
   return (
     <div className="field-shell">
-      <label className="label" htmlFor={id}>{label}</label>
+      <label className={`label ${labelIcon ? 'with-icon' : ''}`.trim()} htmlFor={id}>{labelIcon && <span className="label-icon">{labelIcon}</span>}<span>{label}</span></label>
       <input id={id} className="input" type={inputType} inputMode={inputMode} value={inputValue} onChange={(event) => handleChange(event.target.value)} onFocus={handleFocus} onBlur={handleBlur} disabled={disabled} />
       {hint && <p className="hint compact-top">{hint}</p>}
     </div>

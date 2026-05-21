@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.20 - Iconos de peso en etiquetas
+
+- Los iconos del Paso 7 pasan al inicio del titulo del campo y usan simbolos mas representativos.
+
 ## v4.1.19 - Texto neutro en fecha automatica
 
 - Se quita la aclaracion de edicion admin del campo fecha y hora.

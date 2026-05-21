@@ -983,26 +983,6 @@ body::before {
   color: var(--state-success-text);
 }
 
-.material-weight-field {
-  position: relative;
-  min-width: 0;
-}
-
-.material-weight-field .input {
-  padding-right: 2.45rem;
-}
-
-.material-field-icon {
-  position: absolute;
-  top: 2.5rem;
-  right: 0.88rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  color: var(--color-orange);
-  opacity: 0.48;
-  pointer-events: none;
-}
-
 .material-pass-note .textarea {
   min-height: 64px;
 }
@@ -4107,6 +4087,24 @@ body::before {
   letter-spacing: 0.045em;
   text-transform: uppercase;
   color: var(--color-grey-500);
+}
+
+.label.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+}
+
+.label-icon {
+  display: inline-flex;
+  color: var(--color-orange);
+  opacity: 0.72;
+}
+
+.label-icon svg {
+  width: 0.92rem;
+  height: 0.92rem;
+  stroke-width: 2.25;
 }
 
 .input {
