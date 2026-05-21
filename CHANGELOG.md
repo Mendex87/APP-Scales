@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.21 - Mensajes por rol en balanzas
+
+- Para supervisores, el listado de balanzas aclara que altas, ediciones y nuevas calibraciones son solo para tecnicos.
+
 ## v4.1.20 - Iconos de peso en etiquetas
 
 - Los iconos del Paso 7 pasan al inicio del titulo del campo y usan simbolos mas representativos.

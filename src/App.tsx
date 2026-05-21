@@ -145,7 +145,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.20'
+const APP_VERSION = 'v4.1.21'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -4888,14 +4888,14 @@ function App() {
             <div className="screen-banner">
               <span className="section-kicker">Parque instalado</span>
               <h2>Listado de balanzas y estado operativo</h2>
-              <p>Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.</p>
+              <p>{canOperate ? 'Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.' : 'Consulta de equipos, último error, factor y estado general de cada instalación.'}</p>
             </div>
             <div ref={equipmentFormRef} className="scroll-anchor">
-            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint="Alta de equipos y datos tecnicos principales." actionLabel="Crear una nueva" defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
+            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint={canOperate ? 'Alta de equipos y datos tecnicos principales.' : 'Altas, ediciones y nuevas calibraciones son opciones solo para tecnicos.'} actionLabel={canOperate ? 'Crear una nueva' : 'Ver listado'} defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
                   <div>
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
-                    <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : 'La app arranca mostrando equipos y su ultimo estado conocido.'}</p>
+                    <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : canOperate ? 'La app arranca mostrando equipos y su ultimo estado conocido.' : 'Estas opciones son solo para tecnicos. Como supervisor podes revisar el listado y el estado operativo.'}</p>
                   </div>
                   {canOperate && <button className="secondary" onClick={() => setScreen('nueva')}>
                     <PlusCircle className="action-icon" aria-hidden="true" />
