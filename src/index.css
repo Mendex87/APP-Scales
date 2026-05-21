@@ -1572,37 +1572,50 @@ body::before {
 }
 
 .fleet-compact-head {
-  align-items: flex-start;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.fleet-compact-title-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.fleet-compact-title-row h2 {
+  margin: 0;
 }
 
 .fleet-compact-count {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  min-height: 2rem;
-  padding: 0.28rem 0.68rem;
+  display: flex;
+  flex: 0 0 3.4rem;
+  width: 3.4rem;
+  height: 3.4rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(255, 89, 73, 0.42);
-  border-radius: 999px;
+  border-radius: 0.7rem;
   background:
-    linear-gradient(135deg, rgba(255, 89, 73, 0.14), rgba(255, 89, 73, 0.04)),
+    linear-gradient(135deg, rgba(255, 89, 73, 0.18), rgba(255, 89, 73, 0.05)),
     var(--color-paper-strong);
-  box-shadow: inset 0 0 0 1px rgba(255, 89, 73, 0.08), 0 0.35rem 0.85rem rgba(255, 89, 73, 0.08);
+  box-shadow: inset 0 -0.16rem 0 rgba(255, 89, 73, 0.18), 0 0.35rem 0.85rem rgba(255, 89, 73, 0.08);
   color: var(--color-orange-dark);
   font-family: "Barlow Condensed", Inter, sans-serif;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .fleet-compact-count strong {
   color: var(--color-orange);
-  font-size: 1.35rem;
+  font-size: 1.65rem;
   font-weight: 800;
 }
 
 .fleet-compact-count span {
-  font-size: 0.78rem;
+  font-size: 0.6rem;
   font-weight: 800;
 }
 

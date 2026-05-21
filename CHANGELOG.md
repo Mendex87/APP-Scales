@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.16 - Contador alineado al titulo
+
+- El contador del parque se muestra como bloque cuadrado a la derecha del titulo de todas las balanzas.
+- Las fotos adjuntas muestran etiquetas neutras y no nombres de archivo.
+
 ## v4.1.15 - Contador compacto integrado
 
 - Se recupera el contador del parque como una insignia compacta con acento naranja.

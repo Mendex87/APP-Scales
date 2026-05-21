@@ -108,8 +108,8 @@ export function HistoryEventCard({
               const attachmentUrl = getAttachmentUrl(attachment.path)
               return (
                 <button className="event-attachment-history-thumb" type="button" key={attachment.id || attachment.path} onClick={() => onOpenAttachment(attachment)} disabled={!attachmentUrl}>
-                  {attachmentUrl ? <img src={attachmentUrl} alt={attachment.name || `Foto ${index + 1}`} loading="lazy" decoding="async" /> : <span>Sin vista</span>}
-                  <strong>{attachment.name || `Foto ${index + 1}`}</strong>
+                  {attachmentUrl ? <img src={attachmentUrl} alt={`Foto adjunta ${index + 1}`} loading="lazy" decoding="async" /> : <span>Sin vista</span>}
+                  <strong>Foto {index + 1}</strong>
                 </button>
               )
             })}

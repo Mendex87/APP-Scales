@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.15'
+const APP_VERSION = 'v4.1.16'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -3378,7 +3378,7 @@ function App() {
   function openEventAttachmentPhoto(item: EventAttachment) {
     const src = getEventAttachmentUrl(item.path)
     if (!src) return
-    setPhotoViewer({ src, title: item.name || 'Foto adjunta' })
+    setPhotoViewer({ src, title: 'Foto adjunta' })
   }
 
   function handleConfirmDialog() {
@@ -3425,11 +3425,6 @@ function App() {
     return result.data.path
   }
 
-  function safeAttachmentFileName(name: string, index: number) {
-    const baseName = name.replace(/\.[^.]+$/, '') || `foto-${index + 1}`
-    return baseName.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 72) || `foto-${index + 1}`
-  }
-
   async function uploadEventAttachments(eventId: string, drafts: EventPhotoDraft[]): Promise<EventAttachment[]> {
     if (drafts.length === 0) return []
     if (!supabase) throw new Error('Las fotos adjuntas requieren servidor online.')
@@ -3439,8 +3434,7 @@ function App() {
 
     for (const [index, draft] of drafts.entries()) {
       const blob = await resizeImage(draft.file)
-      const fileName = safeAttachmentFileName(draft.file.name, index)
-      const path = `${eventId}/${Date.now()}-${index + 1}-${fileName}.jpg`
+      const path = `${eventId}/${Date.now()}-${index + 1}.jpg`
       const result = await supabase.storage.from(CALIBRATION_EVENT_PHOTOS_BUCKET).upload(path, blob, {
         contentType: 'image/jpeg',
         upsert: true,
@@ -3449,7 +3443,7 @@ function App() {
 
       attachments.push({
         id: generateId(),
-        name: draft.file.name || `Foto ${index + 1}`,
+        name: `Foto ${index + 1}`,
         path: result.data.path,
         contentType: 'image/jpeg',
         size: blob.size,
@@ -4611,14 +4605,14 @@ function App() {
               </div>
             </div>
             {canReview && <div className="card fleet-compact-panel">
-              <div className="row wrap fleet-compact-head">
-                <div>
-                  <span className="section-kicker">Parque completo</span>
+              <div className="fleet-compact-head">
+                <span className="section-kicker">Parque completo</span>
+                <div className="fleet-compact-title-row">
                   <h2>Todas las balanzas</h2>
-                </div>
-                <div className="fleet-compact-count" aria-label={`${dashboardFleetRows.length} equipos en el parque`}>
-                  <strong>{dashboardFleetRows.length}</strong>
-                  <span>equipos</span>
+                  <div className="fleet-compact-count" aria-label={`${dashboardFleetRows.length} equipos en el parque`}>
+                    <strong>{dashboardFleetRows.length}</strong>
+                    <span>equipos</span>
+                  </div>
                 </div>
               </div>
               <div className="fleet-compact-list compact-top">
@@ -5501,7 +5495,7 @@ function App() {
                         <div className="event-attachment-thumb" key={photo.id}>
                           <img src={photo.previewUrl} alt={`Foto adjunta ${index + 1}`} />
                           <div>
-                            <span>{photo.file.name || `Foto ${index + 1}`}</span>
+                            <span>Foto {index + 1}</span>
                             <button className="secondary small danger" type="button" onClick={() => removeEventPhotoDraft(photo.id)} disabled={eventSaving}>Quitar</button>
                           </div>
                         </div>
