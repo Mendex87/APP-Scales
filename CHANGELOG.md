@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.14 - Encabezado compacto mas limpio
+
+- Se quita el contador total del panel de todas las balanzas.
+
 ## v4.1.13 - Ajuste de encabezado del parque compacto
 
 - Se quita la bajada descriptiva del panel de todas las balanzas.

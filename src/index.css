@@ -1576,36 +1576,6 @@ body::before {
   justify-content: space-between;
 }
 
-.fleet-compact-count {
-  min-width: 5.25rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--color-paper-strong);
-  box-shadow: inset 0 0 0 1px rgba(12, 11, 17, 0.03);
-  text-align: right;
-}
-
-.fleet-compact-count span,
-.fleet-compact-count strong {
-  display: block;
-  font-family: "Barlow Condensed", Inter, sans-serif;
-  text-transform: uppercase;
-}
-
-.fleet-compact-count span {
-  color: var(--color-grey-500);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.fleet-compact-count strong {
-  color: var(--color-ink);
-  font-size: 2rem;
-  line-height: 0.85;
-}
-
 .fleet-compact-list {
   display: grid;
   grid-template-columns: 1fr;
