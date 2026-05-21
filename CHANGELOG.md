@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.9 - Lista compacta de balanzas corregida
+
+- La vista compacta de todas las balanzas usa filas de ancho completo para evitar textos cortados verticalmente.
+- Se mantiene el acceso rapido a nueva calibracion e historial sin tarjetas sobredimensionadas.
+
 ## v4.1.8 - Parque completo compacto en inicio
 
 - La pagina principal muestra todas las balanzas en una vista compacta por estado.
