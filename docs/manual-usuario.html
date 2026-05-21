@@ -586,11 +586,11 @@
         <tbody>
           <tr><td><span class="tag dark">Admin</span></td><td>Responsable del sistema.</td><td>Gestiona usuarios, equipos, cadenas, calibraciones, eliminaciones y revisiones.</td><td>Sin restricciones funcionales dentro de la app.</td></tr>
           <tr><td><span class="tag">Tecnico</span></td><td>Personal de campo.</td><td>Da de alta equipos nuevos cuando no existen, carga cadenas, registra calibraciones/controles, usa herramientas y consulta historial.</td><td>No elimina registros, no gestiona usuarios, no edita equipos existentes y no da de baja balanzas.</td></tr>
-          <tr><td><span class="tag warning">Supervisor</span></td><td>Revision operativa.</td><td>Consulta balanzas, herramientas, historial, fotos, detalle y reportes.</td><td>No crea, elimina ni modifica eventos.</td></tr>
+          <tr><td><span class="tag warning">Supervisor</span></td><td>Revision operativa.</td><td>Consulta balanzas, herramientas, historial, fotos, detalle y reportes. Puede abrir y completar el wizard de nueva calibracion para revisar el flujo.</td><td>No guarda, crea, elimina ni modifica eventos.</td></tr>
           <tr><td><span class="tag success">Viewer</span></td><td>Consulta basica.</td><td>Acceso de lectura a herramientas e historial segun configuracion.</td><td>No opera calibraciones ni administra datos.</td></tr>
         </tbody>
       </table>
-      <div class="callout warning"><strong>Importante:</strong> si un usuario tecnico no puede guardar eventos, revisar que tenga rol <code>tecnico</code> y que el despliegue incluya la version que evita actualizar datos maestros al cerrar un evento.</div>
+      <div class="callout warning"><strong>Importante:</strong> solo usuarios <code>admin</code> o <code>tecnico</code> pueden guardar eventos. Si un supervisor intenta guardar desde el Paso 8, la app muestra un modal de permiso tecnico requerido y no sincroniza el evento.</div>
     </section>
 
     <section id="inicio">
@@ -637,12 +637,12 @@
       <p>El acceso <strong>Mapa planta</strong> abre la vista 3D operativa. Sirve para ubicar balanzas, revisar estado visualmente y entrar rapido a nueva calibracion o historial cuando el punto esta vinculado a un equipo.</p>
       <div class="grid four">
         <div class="metric"><span>Planta activa</span><strong>Secado</strong></div>
-        <div class="metric"><span>Pendiente</span><strong>Lavado</strong></div>
+        <div class="metric"><span>Planta disponible</span><strong>Lavado</strong></div>
         <div class="metric"><span>Control app</span><strong>Balanzas vinculadas</strong></div>
         <div class="metric"><span>Control anual</span><strong>Basculas camioneras</strong></div>
       </div>
       <h3>Selector de planta</h3>
-      <p>El selector muestra <strong>Secado</strong> como mapa disponible. <strong>Lavado</strong> aparece como pendiente y queda deshabilitado hasta que exista un layout operativo para esa planta.</p>
+      <p>El selector permite alternar entre <strong>Secado</strong> y <strong>Lavado</strong>. Cada planta conserva su propio mapa, puntos y objetos 3D.</p>
       <h3>Lectura de indicadores</h3>
       <table>
         <thead><tr><th>Indicador</th><th>Que muestra</th><th>Como usarlo</th></tr></thead>
@@ -690,7 +690,8 @@
 
     <section id="nueva-calibracion" class="page-break">
       <h2>8. Nueva calibracion paso a paso</h2>
-      <p>El flujo esta organizado como wizard de 8 pasos. La navegacion permite avanzar, retroceder o tocar directamente un paso. El evento se guarda solo desde el cierre.</p>
+      <p>El flujo esta organizado como wizard de 8 pasos. La navegacion permite avanzar, retroceder o tocar directamente un paso. El evento se guarda solo desde el cierre y solo para usuarios admin o tecnico.</p>
+      <div class="callout warning"><strong>Supervisor:</strong> puede recorrer y completar los pasos para revision o acompanamiento, pero al tocar <strong>Guardar evento</strong> vera un modal de permiso tecnico requerido. No se crea ni sincroniza ningun evento.</div>
       <div class="grid four">
         <div class="metric"><span>Paso 1</span><strong>Contexto operativo</strong></div>
         <div class="metric"><span>Paso 2</span><strong>Inspeccion</strong></div>
@@ -703,7 +704,7 @@
       </div>
 
       <h3>Paso 1: Contexto operativo</h3>
-      <p>Seleccionar la balanza/cinta y la cadena patron desde las tarjetas de contexto, definir fecha/hora y tolerancia. La app interpreta y muestra todas las horas en hora Argentina. Si la balanza tiene cadenas de la misma planta, solo se listan esas cadenas; si no tiene, se habilitan todas.</p>
+      <p>Seleccionar la balanza/cinta y la cadena patron desde las tarjetas de contexto, revisar la fecha y hora automatica y definir tolerancia. La app registra el horario al guardar y muestra todas las horas en hora Argentina. Si la balanza tiene cadenas de la misma planta, solo se listan esas cadenas; si no tiene, se habilitan todas.</p>
       <div class="callout warning"><strong>Primera calibracion:</strong> si la balanza no tiene eventos previos, la app exigira datos completos de cadena y acumulado. Si ya tiene historial, podra cerrarse como control preventivo con material.</div>
 
       <h3>Paso 2: Inspeccion previa</h3>
@@ -713,7 +714,7 @@
       <p>Registrar si el cero fue realizado, el valor observado si el controlador lo muestra, la unidad o referencia visible y observaciones. Ya no se separan valores antes/despues ni se exige cargar deriva.</p>
 
       <h3>Paso 4: Foto de parametros</h3>
-      <p>Cargar los parametros visibles del controlador al momento de intervenir. El <strong>Factor calibracion actual</strong> es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real. Cero, puente de pesaje, velocidad nominal, unidades y parametros extra quedan como trazabilidad adicional.</p>
+      <p>Cargar los parametros visibles del controlador al momento de intervenir. El <strong>Factor calibracion actual</strong> es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real. El puente de pesaje, la velocidad nominal y los parametros extra quedan como trazabilidad adicional.</p>
 
       <h3>Paso 5: Span con cadena</h3>
       <p>Registrar peso lineal de cadena, tiempo de test, lectura del controlador sobre el puente/tren de pesaje y factor provisorio. La app calcula la carga esperada como peso lineal por distancia de pesaje y compara contra esa lectura, no contra 1 metro de cadena. El factor provisorio queda documentado para el span con cadena, pero no reemplaza el factor actual del Paso 4 como base de material real.</p>
@@ -739,6 +740,7 @@
       <p>Revisar resultado final, error final, si hubo ajuste y completar obligatoriamente <strong>Factor final de calibracion</strong>. Este campo debe reflejar el factor que queda cargado en el controlador al cerrar el evento. Si queda vacio o en cero, la app bloquea el guardado.</p>
       <p>Opcionalmente se pueden adjuntar hasta 6 fotos como evidencia visual. La app las comprime y las sube al servidor online; luego quedan disponibles en historial y reporte imprimible.</p>
       <div class="callout warning"><strong>Regla obligatoria:</strong> el factor final no se infiere automaticamente desde el factor usado, sugerido o anterior. Debe confirmarse en el cierre, incluso en controles conformes sin ajuste.</div>
+      <div class="callout warning"><strong>Permiso de guardado:</strong> si el rol actual es supervisor, el boton <strong>Guardar evento</strong> abre un modal de aviso y no registra el evento. Para guardar, debe intervenir un usuario tecnico o admin.</div>
     </section>
 
     <section id="controles-preventivos">
@@ -825,7 +827,7 @@
       <h3>Recuperacion de contraseña</h3>
       <p>Cada usuario puede iniciar recuperacion desde la pantalla de ingreso con <strong>Olvidé mi contraseña</strong>. El servidor online envia un link al email registrado; al abrirlo, la app pide nueva contraseña y confirmacion. Por seguridad, el reenvio de instrucciones muestra una cuenta regresiva antes de permitir otro email.</p>
       <h3>Recomendaciones de rol</h3>
-      <p>Usar <code>tecnico</code> para personal que opera calibraciones. Usar <code>supervisor</code> para revision sin carga. Usar <code>viewer</code> para consulta basica. Reservar <code>admin</code> para personal responsable de datos maestros y usuarios.</p>
+      <p>Usar <code>tecnico</code> para personal que opera y guarda calibraciones. Usar <code>supervisor</code> para revision, reportes y recorrido del wizard sin guardado. Usar <code>viewer</code> para consulta basica. Reservar <code>admin</code> para personal responsable de datos maestros y usuarios.</p>
     </section>
 
     <section id="datos" class="page-break">

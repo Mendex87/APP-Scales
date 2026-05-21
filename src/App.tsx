@@ -96,6 +96,10 @@ type ConfirmDialog = {
   title: string
   message: string
   detail?: string
+  kicker?: string
+  tone?: 'danger' | 'warning' | 'info'
+  cancelLabel?: string
+  hideCancel?: boolean
   confirmLabel: string
   onConfirm: () => void | Promise<void>
 }
@@ -145,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.22'
+const APP_VERSION = 'v4.1.23'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -988,7 +992,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <tbody>
           <tr><td>Admin</td><td>Gestiona usuarios, equipos, cadenas, eventos, eliminaciones y revisiones.</td><td>Compartir material admin o usar usuarios personales para tecnicos.</td></tr>
           <tr><td>Tecnico</td><td>Realiza trabajo de campo: da de alta equipos nuevos cuando no existen, carga cadenas, registra calibraciones/controles, usa herramientas y consulta historial.</td><td>No puede eliminar datos, gestionar usuarios, editar equipos existentes ni dar de baja balanzas.</td></tr>
-          <tr><td>Supervisor</td><td>Consulta balanzas, historial, reportes, herramientas y fotos.</td><td>Crear, editar o borrar registros operativos.</td></tr>
+          <tr><td>Supervisor</td><td>Consulta balanzas, historial, reportes, herramientas y fotos. Puede recorrer el wizard de nueva calibracion para revision, pero no guardar eventos.</td><td>Crear, editar, borrar o sincronizar registros operativos.</td></tr>
           <tr><td>Consulta</td><td>Acceso basico de lectura segun configuracion.</td><td>Operar calibraciones o administrar datos.</td></tr>
         </tbody>
       </table>
@@ -1011,7 +1015,7 @@ function buildAdminManualHtml(user: AuthUser) {
       <ol>
         <li>Entrar como admin y abrir <strong>Usuarios</strong>.</li>
         <li>Cargar email, nombre visible, contrasena y rol minimo necesario.</li>
-        <li>Usar <code>tecnico</code> para campo, <code>supervisor</code> para revision y <code>viewer</code> para consulta.</li>
+        <li>Usar <code>tecnico</code> para campo y guardado de eventos, <code>supervisor</code> para revision con wizard sin guardado y <code>viewer</code> para consulta.</li>
         <li>Reservar <code>admin</code> para responsables reales del sistema.</li>
       </ol>
       <div class="callout ok">Recuperacion de acceso: cada usuario puede pedir un link desde <strong>Olvide mi contrasena</strong>. El envio depende del email registrado y del servicio SMTP configurado en el servidor online.</div>
@@ -3623,7 +3627,16 @@ function App() {
     if (eventSaveInFlightRef.current) return
 
     if (!canOperate) {
-      setSyncNotice('Guardar eventos esta habilitado solo para tecnicos.')
+      setConfirmDialog({
+        title: 'Guardar evento',
+        kicker: 'Permiso tecnico requerido',
+        tone: 'warning',
+        message: 'Esta accion esta habilitada solo para tecnicos.',
+        detail: 'Como supervisor podes revisar y completar el wizard, pero el evento no se guarda ni se sincroniza.',
+        confirmLabel: 'Entendido',
+        hideCancel: true,
+        onConfirm: () => undefined,
+      })
       return
     }
 
@@ -4514,15 +4527,15 @@ function App() {
 
       {confirmDialog && (
         <div className="confirm-modal" role="dialog" aria-modal="true" aria-label={confirmDialog.title}>
-          <button className="confirm-modal-backdrop" type="button" onClick={() => setConfirmDialog(null)} aria-label="Cancelar accion" />
-          <div className="confirm-modal-card">
-            <span className="section-kicker">Accion destructiva</span>
+          <button className="confirm-modal-backdrop" type="button" onClick={() => setConfirmDialog(null)} aria-label={confirmDialog.hideCancel ? 'Cerrar aviso' : 'Cancelar accion'} />
+          <div className={`confirm-modal-card confirm-${confirmDialog.tone || 'danger'}`}>
+            <span className="section-kicker">{confirmDialog.kicker || 'Accion destructiva'}</span>
             <h2>{confirmDialog.title}</h2>
             <p className="confirm-message">{confirmDialog.message}</p>
             {confirmDialog.detail && <p className="confirm-detail">{confirmDialog.detail}</p>}
             <div className="row compact-actions confirm-actions">
-              <button className="secondary" type="button" onClick={() => setConfirmDialog(null)}>Cancelar</button>
-              <button className="secondary danger" type="button" onClick={handleConfirmDialog}>{confirmDialog.confirmLabel}</button>
+              {!confirmDialog.hideCancel && <button className="secondary" type="button" onClick={() => setConfirmDialog(null)}>{confirmDialog.cancelLabel || 'Cancelar'}</button>}
+              <button className={`secondary ${confirmDialog.tone === 'danger' || !confirmDialog.tone ? 'danger' : 'confirm-primary'}`} type="button" onClick={handleConfirmDialog}>{confirmDialog.confirmLabel}</button>
             </div>
           </div>
         </div>
@@ -5525,12 +5538,6 @@ function App() {
                         <li key={issue.message}>{issue.message}</li>
                       ))}
                     </ul>
-                  </div>
-                )}
-                {!canOperate && (
-                  <div className="warning-panel">
-                    <strong>Guardado solo para tecnicos</strong>
-                    <p>Como supervisor podes revisar y completar el wizard, pero guardar el evento queda habilitado solo para usuarios tecnicos.</p>
                   </div>
                 )}
                 <button className="primary" type="submit" disabled={eventSaving}><Save className="action-icon" aria-hidden="true" />{eventSaving ? 'Guardando...' : 'Guardar evento'}</button>

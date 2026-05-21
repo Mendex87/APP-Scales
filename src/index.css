@@ -3519,6 +3519,22 @@ body::before {
   border-top: 4px solid var(--color-error);
 }
 
+.confirm-modal-card.confirm-warning {
+  border-top-color: var(--color-warning);
+}
+
+.confirm-modal-card.confirm-info {
+  border-top-color: var(--color-orange);
+}
+
+.confirm-modal-card.confirm-warning .section-kicker {
+  background: var(--color-warning);
+}
+
+.confirm-modal-card.confirm-info .section-kicker {
+  background: var(--color-orange);
+}
+
 .confirm-modal-card h2 {
   margin: 0;
   font-family: "Barlow Condensed", Inter, sans-serif;
@@ -3544,6 +3560,18 @@ body::before {
   background: var(--state-error-bg);
   color: var(--state-error-text);
   border: 1px solid rgba(196, 59, 48, 0.35);
+}
+
+.confirm-modal-card.confirm-warning .confirm-detail {
+  background: var(--state-warning-bg);
+  color: var(--state-warning-text);
+  border-color: rgba(201, 133, 0, 0.35);
+}
+
+.confirm-modal-card.confirm-info .confirm-detail {
+  background: rgba(255, 89, 73, 0.12);
+  color: var(--color-orange-dark);
+  border-color: rgba(255, 89, 73, 0.32);
 }
 
 .confirm-actions {
@@ -4273,6 +4301,17 @@ body::before {
 .secondary.danger:hover:enabled {
   color: var(--color-white);
   border-color: var(--color-error);
+}
+
+.secondary.confirm-primary {
+  background-image: linear-gradient(105deg, var(--color-ink) 0 50%, var(--color-orange) 50% 100%);
+  color: var(--color-paper);
+  border-color: var(--color-orange);
+}
+
+.secondary.confirm-primary:hover:enabled {
+  color: var(--color-ink);
+  border-color: var(--color-orange-dark);
 }
 
 .primary.action-pulse,

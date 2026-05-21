@@ -572,14 +572,14 @@
       <p>El mapa de planta es una ayuda visual para ubicar puntos operativos antes de registrar una calibracion o control. No reemplaza la identificacion fisica del equipo ni el procedimiento aprobado de planta.</p>
       <div class="grid">
         <div class="metric"><span>Mapa activo</span><strong>Secado</strong><p>Layout 3D disponible para consulta.</p></div>
-        <div class="metric"><span>Pendiente</span><strong>Lavado</strong><p>Aparece deshabilitado hasta que se construya el mapa.</p></div>
+        <div class="metric"><span>Planta disponible</span><strong>Lavado</strong><p>Mapa independiente para consulta y edicion autorizada.</p></div>
         <div class="metric"><span>Balanzas app</span><strong>Equipos vinculados</strong><p>Permiten abrir nueva calibracion o historial.</p></div>
         <div class="metric"><span>Basculas anuales</span><strong>Control anual</strong><p>Se siguen por fecha anual, fuera del wizard de cintas.</p></div>
       </div>
       <h3>Como usarlo en campo</h3>
       <ol>
         <li>Desde el inicio, abrir <strong>Mapa planta</strong>.</li>
-        <li>Confirmar que el selector este en <strong>Secado</strong> si ese es el sector a intervenir.</li>
+        <li>Confirmar que el selector este en la planta correcta: <strong>Secado</strong> o <strong>Lavado</strong>.</li>
         <li>Rotar, desplazar o acercar la camara manualmente para ubicar el punto. No hay botones de vista <strong>General</strong>, <strong>Despachos</strong> o <strong>Superior</strong>.</li>
         <li>Tocar el punto para ver estado, ultimo valido, proximo vencimiento y dias restantes.</li>
         <li>Si el punto corresponde a la balanza correcta, abrir <strong>Nueva calibracion</strong> o <strong>Historial</strong> desde la tarjeta.</li>
@@ -682,6 +682,7 @@
       <div class="callout"><strong>Factor final obligatorio:</strong> antes de guardar, cargar el factor que queda efectivamente en el controlador. La app no infiere este valor desde el factor usado, sugerido o anterior.</div>
       <div class="callout"><strong>Factor base obligatorio:</strong> si falta el factor actual del Paso 4, la app bloquea el cierre y vuelve a ese paso. Ese dato representa el factor con el que trabaja la balanza al iniciar la prueba con material.</div>
       <div class="callout"><strong>Fotos adjuntas:</strong> en el cierre se pueden agregar hasta 6 fotos de evidencia. Se comprimen y quedan asociadas al evento para historial y reporte.</div>
+      <div class="callout warning"><strong>Permiso de guardado:</strong> el rol supervisor puede recorrer y completar el wizard para revision, pero al tocar <strong>Guardar evento</strong> vera un modal de permiso tecnico requerido. Solo tecnico o admin pueden guardar eventos.</div>
     </section>
 
     <section id="resultado">

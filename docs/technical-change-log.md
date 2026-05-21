@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.1.23 - Supervisor con wizard sin guardado
+
+- Contexto: supervisores necesitan revisar el flujo completo de nueva calibracion sin generar eventos operativos.
+- Cambio app: el rol supervisor puede abrir el wizard, completar pasos y al intentar guardar ve un modal de permiso tecnico requerido.
+- Cambio permisos: solo `admin` y `tecnico` conservan guardado de eventos; supervisor no sincroniza ni crea registros.
+- Documentacion: se actualizan manual de usuario, manual tecnico fuente/publico, manual admin interno y PDFs publicos/fuente generados con Chrome headless.
+- Verificacion: `npm run build` requerido antes de promover.
+
 ## 2026-05-18 - v4.1.2 - Fotos adjuntas a eventos
 
 - Contexto: se requiere adjuntar evidencia visual propia de cada calibracion, no solo foto maestra del equipo.

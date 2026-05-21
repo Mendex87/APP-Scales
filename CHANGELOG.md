@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.23 - Modal de permiso y manuales
+
+- El intento de guardado de eventos por supervisor muestra un modal de permiso con estilo de confirmacion.
+- Se actualizan manuales para explicar el wizard disponible para supervisores sin guardado.
+
 ## v4.1.22 - Supervisor en wizard de calibracion
 
 - Supervisores pueden abrir y completar el wizard de nueva calibracion sin guardar eventos.
