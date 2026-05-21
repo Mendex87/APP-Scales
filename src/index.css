@@ -983,6 +983,30 @@ body::before {
   color: var(--state-success-text);
 }
 
+.material-weight-field {
+  position: relative;
+  min-width: 0;
+}
+
+.material-weight-field .input {
+  padding-right: 2.45rem;
+}
+
+.material-field-icon {
+  position: absolute;
+  top: 2.5rem;
+  right: 0.88rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--color-orange);
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.material-pass-note .textarea {
+  min-height: 64px;
+}
+
 .material-pass-list {
   display: grid;
   gap: 0.55rem;
@@ -4479,6 +4503,12 @@ body::before {
 
 .check-field input:checked {
   transform: scale(1.08);
+}
+
+.zero-check-field {
+  align-self: end;
+  min-height: 50px;
+  padding-block: 0.72rem;
 }
 
 .notice,

@@ -143,7 +143,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.17'
+const APP_VERSION = 'v4.1.18'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -5172,7 +5172,7 @@ function App() {
                   </div>
                 </div>
                 <div className="grid two compact-top">
-                  <Field label="Fecha y hora" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role !== 'admin' ? 'Fecha automatica al guardar' : undefined} />
+                  <Field label="Fecha y hora automatica" type="datetime-local" value={eventForm.eventDate} onChange={(value) => setEventForm((current) => ({ ...current, eventDate: value }))} disabled={currentUser?.role !== 'admin'} hint={currentUser?.role === 'admin' ? 'Admin puede corregirla si hace falta.' : 'Se registra automaticamente al guardar.'} />
                   <Field label="Tolerancia (%)" type="number" value={eventForm.tolerancePercent} onChange={(value) => setEventForm((current) => ({ ...current, tolerancePercent: value }))} />
                 </div>
                 {selectedEquipment && (
@@ -5228,7 +5228,7 @@ function App() {
                 <h2>Cero</h2>
                 <p className="hint">Siempre se realiza antes de calibrar. Marca cero realizado para poder avanzar y registra el valor observado con su unidad.</p>
                 <div className="grid two">
-                  <CheckField label="Cero realizado" checked={eventForm.zeroCompleted} onChange={(checked) => setEventForm((current) => ({ ...current, zeroCompleted: checked }))} />
+                  <CheckField className="zero-check-field" label="Cero realizado" checked={eventForm.zeroCompleted} onChange={(checked) => setEventForm((current) => ({ ...current, zeroCompleted: checked }))} />
                   <Field label="Valor observado" type="number" value={eventForm.zeroBeforeValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroBeforeValue: value }))} />
                   <div>
                     <label className="label">Unidad / referencia visible</label>
@@ -5255,10 +5255,8 @@ function App() {
                 <p className="hint">El factor de calibracion actual es obligatorio: debe ser el factor que esta cargado en el controlador antes de validar con material real. La distancia de puente/tren de pesaje se usa en el Paso 5 para calcular la carga esperada con cadena.</p>
                 <div className="grid two">
                   <Field label="Factor calibracion actual" type="number" value={eventForm.calibrationFactor} onChange={(value) => setEventForm((current) => ({ ...current, calibrationFactor: value }))} />
-                  <Field label="Cero" type="number" value={eventForm.zeroValue} onChange={(value) => setEventForm((current) => ({ ...current, zeroValue: value }))} />
                   <Field label={measureLabel('Puente pesaje', 'lengthM')} type="number" value={measureInput(eventForm.snapshotBridgeLengthM, 'lengthM')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotBridgeLengthM: parseMeasure(value, 'lengthM') }))} />
                   <Field label={measureLabel('Velocidad nominal', 'speedMs')} type="number" value={measureInput(eventForm.snapshotNominalSpeedMs, 'speedMs')} onChange={(value) => setEventForm((current) => ({ ...current, snapshotNominalSpeedMs: parseMeasure(value, 'speedMs') }))} />
-                  <Field label="Unidades" value={eventForm.units} onChange={(value) => setEventForm((current) => ({ ...current, units: value }))} />
                   <div className="system-field">
                     <span>Cambio registrado por</span>
                     <strong>{currentUser.username}</strong>
@@ -5367,8 +5365,14 @@ function App() {
                           : 'Usala despues de modificar el factor del controlador; registrá el factor realmente usado en esta verificacion.'}
                       </p>
                       <div className="grid two compact-top">
-                        <Field label={measureLabel('Peso balanza certificada', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
-                        <Field label={measureLabel('Peso indicado controlador', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
+                        <div className="material-weight-field">
+                          <Scale className="material-field-icon" aria-hidden="true" />
+                          <Field label={measureLabel('Peso balanza certificada', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}ExternalWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}ExternalWeightKg`]: parseMeasure(value, 'weightKg') }))} />
+                        </div>
+                        <div className="material-weight-field">
+                          <Settings2 className="material-field-icon" aria-hidden="true" />
+                          <Field label={measureLabel('Peso indicado controlador', 'weightKg')} type="number" value={measureInput(eventForm[`${prefix}BeltWeightKg`], 'weightKg')} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}BeltWeightKg`]: parseMeasure(value, 'weightKg') }))} />
+                        </div>
                         <Field
                           label={passNumber === 1 ? 'Factor usado (Paso 4)' : 'Factor usado post-ajuste'}
                           type="number"
@@ -5377,7 +5381,7 @@ function App() {
                           disabled={passNumber === 1}
                           hint={passNumber === 1 ? 'Se toma del factor actual registrado en Paso 4.' : undefined}
                         />
-                        <TextArea label="Nota de pasada" value={eventForm[`${prefix}Notes`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Notes`]: value }))} />
+                        <TextArea className="material-pass-note" label="Nota de pasada" rows={2} value={eventForm[`${prefix}Notes`]} onChange={(value) => setEventForm((current) => ({ ...current, [`${prefix}Notes`]: value }))} />
                       </div>
                     </div>
                   )
@@ -6026,19 +6030,19 @@ function SliderField({ label, value, min, max, onChange, disabled, step = 0.1, s
   )
 }
 
-function TextArea({ label, value, onChange }: Omit<FieldProps, 'type'>) {
+function TextArea({ label, value, onChange, rows = 4, className = '' }: Omit<FieldProps, 'type'> & { rows?: number; className?: string }) {
   const id = useId()
   return (
-    <div className="field-shell">
+    <div className={`field-shell ${className}`.trim()}>
       <label className="label" htmlFor={id}>{label}</label>
-      <textarea id={id} className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={4} />
+      <textarea id={id} className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={rows} />
     </div>
   )
 }
 
-function CheckField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+function CheckField({ label, checked, onChange, className = '' }: { label: string; checked: boolean; onChange: (checked: boolean) => void; className?: string }) {
   return (
-    <label className="check-field">
+    <label className={`check-field ${className}`.trim()}>
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
       <span>{label}</span>
     </label>

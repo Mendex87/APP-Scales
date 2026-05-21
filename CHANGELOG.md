@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.18 - Ajustes visuales del wizard
+
+- Se aclara que fecha y hora del evento se registran automaticamente.
+- Se compacta el control de cero realizado y se simplifica el paso de parametros.
+- Se agregan iconos sutiles y nota compacta en las pasadas con material real.
+
 ## v4.1.17 - Lectura en modo oscuro
 
 - Se quita la etiqueta superior del panel de todas las balanzas.
