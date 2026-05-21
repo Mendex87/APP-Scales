@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.1.12 - Separador de plantas naranja
+
+- La division visual entre plantas en el inicio usa tono naranja industrial.
+
 ## v4.1.11 - Separacion de plantas mas visible
 
 - La lista compacta del inicio refuerza el corte visual entre plantas sin agregar titulos.

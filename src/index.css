@@ -1643,7 +1643,7 @@ body::before {
   top: -0.78rem;
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(12, 11, 17, 0.34), rgba(var(--status-rgb), 0.42), rgba(12, 11, 17, 0.34), transparent);
+  background: linear-gradient(90deg, transparent, rgba(201, 133, 0, 0.32), rgba(201, 133, 0, 0.72), rgba(201, 133, 0, 0.32), transparent);
 }
 
 .fleet-status-bar {
