@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.2.0 - Promocion de preview de plantas
+
+- Se promueve la preview multi-planta a release principal con mapa separado por planta, flujo supervisor sin guardado y rebrand BeltTrace.
+- Se consolida el logo TT de trenes de pesaje en app, reportes, manuales, favicon y email documentado de recuperacion.
+- La cabecera principal conserva el subtitulo tecnico de seteo, Span, material real y ajuste final, con hover naranja sobre el titulo.
+- Se ajustan textos visibles de dashboard para hablar de plantas en lugar de parque.
+- Manuales HTML/PDF, README y registros tecnicos quedan actualizados a `v4.2.0`.
+
 ## v4.1.28 - Cabecera BeltTrace
 
 - Se restaura el subtitulo tecnico de seteo, Span, material real y ajuste final bajo el titulo principal.

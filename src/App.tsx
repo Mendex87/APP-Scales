@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.28'
+const APP_VERSION = 'v4.2.0'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1136,7 +1136,7 @@ function buildAdminManualHtml(user: AuthUser) {
       <h2>8. Historial, reportes y lectura de estado</h2>
       <ul>
         <li>El historial muestra todos los eventos, incluidos desvios ya corregidos.</li>
-        <li>El dashboard muestra el estado actual del parque segun el ultimo evento de cada balanza.</li>
+        <li>El dashboard muestra el estado actual de las plantas segun el ultimo evento de cada balanza.</li>
         <li>Un evento viejo fuera de tolerancia no debe contar como desvio abierto si la balanza luego quedo calibrada.</li>
         <li>El reporte imprimible se abre desde Historial y puede guardarse como PDF desde el navegador.</li>
         <li>El reporte A4 vertical prioriza resumen, pesos de referencia, pasadas completas con material, soporte tecnico y firma.</li>
@@ -2245,7 +2245,7 @@ function App() {
         statusById.set(point.id, {
           label: 'Vinculo no encontrado',
           rowClass: 'neutral',
-          detail: 'La balanza vinculada ya no existe en el parque cargado.',
+          detail: 'La balanza vinculada ya no existe en las plantas cargadas.',
           lastValidDateText: '-',
           nextDueDateText: 'Pendiente',
           daysText: 'Pendiente',
@@ -4312,7 +4312,7 @@ function App() {
         <section className="public-grid" aria-label="Modulos principales">
           <div className="card"><span className="section-kicker">Campo</span><h2>Flujo guiado</h2><p className="hint">Validaciones paso a paso para reducir omisiones durante la intervencion.</p></div>
           <div className="card"><span className="section-kicker">Trazabilidad</span><h2>Eventos auditables</h2><p className="hint">Factores, errores, tecnico responsable y diagnostico quedan listos para reporte.</p></div>
-          <div className="card"><span className="section-kicker">Operacion</span><h2>Estado del parque</h2><p className="hint">KPIs, semaforos y filtros para priorizar equipos con accion recomendada.</p></div>
+          <div className="card"><span className="section-kicker">Operacion</span><h2>Estado de plantas</h2><p className="hint">KPIs, semaforos y filtros para priorizar equipos con accion recomendada.</p></div>
         </section>
         {renderToastStack()}
         {renderLoginTransition()}
@@ -4645,7 +4645,7 @@ function App() {
               <div className="dashboard-card primary-dashboard-card">
                 <span>Accion recomendada</span>
                 <strong>{dashboardStats.nextAction}</strong>
-                <p>{outOfToleranceCount > 0 ? 'Hay eventos que requieren seguimiento.' : 'El parque no muestra desvíos abiertos según el historial cargado.'}</p>
+                <p>{outOfToleranceCount > 0 ? 'Hay eventos que requieren seguimiento.' : 'Las plantas no muestran desvíos abiertos según el historial cargado.'}</p>
               </div>
               <Metric label="Balanzas" value={String(equipment.length)} />
               <Metric label="Vencidos" value={String(dashboardStats.overdue)} />
@@ -4712,7 +4712,7 @@ function App() {
                       </button>
                     </div>
                   ))}
-                  {priorityEquipment.length === 0 && <BrandedEmptyState className="success-state">Parque al dia segun frecuencia de control configurada.</BrandedEmptyState>}
+                  {priorityEquipment.length === 0 && <BrandedEmptyState className="success-state">Plantas al dia segun frecuencia de control configurada.</BrandedEmptyState>}
                 </div>
               </div>
             </div>
@@ -4996,7 +4996,7 @@ function App() {
         {screen === 'balanzas' && canReview && (
           <section className="stack screen-shell">
             <div className="screen-banner">
-              <span className="section-kicker">Parque instalado</span>
+              <span className="section-kicker">Plantas instaladas</span>
               <h2>Listado de balanzas y estado operativo</h2>
               <p>{canOperate ? 'Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.' : 'Consulta de equipos, último error, factor y estado general de cada instalación.'}</p>
             </div>

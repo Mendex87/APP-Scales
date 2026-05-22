@@ -2,7 +2,7 @@
 
 Trazabilidad y calibracion para balanzas de cinta.
 
-Version actual: `v4.1.28`.
+Version actual: `v4.2.0`.
 
 ## Incluye
 
@@ -18,14 +18,17 @@ Version actual: `v4.1.28`.
 - recuperacion de contraseña por email con cooldown local para evitar reenvios repetidos
 - almacenamiento local o en servidor online
 - historial tecnico de calibraciones
-- reporte imprimible A4 con resumen sin duplicados, pesos de referencia con error final, pasadas completas y firma
-- mapa de planta 3D editable, puntos operativos por planta y soporte para modelos `.glb`
+- fotos adjuntas por evento de calibracion como evidencia visual
+- reporte imprimible A4 con logo TT, resumen sin duplicados, pesos de referencia con error final, pasadas completas y firma
+- mapa de planta 3D editable, puntos operativos separados por planta y soporte para modelos `.glb`
+- rol supervisor con recorrido completo del wizard sin permiso de guardado
+- identidad BeltTrace con logo TT como trenes de pesaje en app, reportes, manuales y favicon
 
 ## Estado de operacion
 
-La app esta en operacion real para el flujo principal de calibraciones, historial, reportes y servidor online.
+La app esta en operacion real para el flujo principal de calibraciones, historial, reportes, manuales, mapa de plantas y servidor online.
 
-La funcionalidad `/mapa` ya forma parte del flujo documentado y conserva trabajo nuevo primero en la rama `preview-plant-map` antes de promover a `main`.
+La funcionalidad `/mapa` ya forma parte del flujo documentado en `main`; las nuevas iteraciones deben seguir pasando primero por una rama preview antes de promoverse.
 
 Documento interno de la preview:
 

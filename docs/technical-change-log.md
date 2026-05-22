@@ -2,6 +2,15 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.2.0 - Promocion de preview de plantas
+
+- Contexto: se aprueba promover a main la rama `preview-plant-map` con los cambios acumulados de plantas, supervisor, rebrand y documentacion.
+- Cambio release: version visible, package y manuales pasan a `v4.2.0`.
+- Cambio UI: el dashboard usa lenguaje de plantas en textos visibles y mantiene el subtitulo tecnico bajo BeltTrace.
+- Cambio identidad: el logo TT como trenes de pesaje queda aplicado en app, reportes imprimibles, manuales, favicon y template documentado de email.
+- Cambio documentacion: manual usuario, manual tecnico fuente/publico, PDFs, README, changelog y setup Supabase se actualizan antes del merge a `main`.
+- Verificacion: `npm run build` requerido en preview y nuevamente en `main` antes del push final.
+
 ## 2026-05-21 - v4.1.28 - Cabecera BeltTrace
 
 - Contexto: se conserva el wordmark TT, pero se recupera el texto tecnico original bajo el titulo principal.
