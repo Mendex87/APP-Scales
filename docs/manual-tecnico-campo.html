@@ -114,6 +114,23 @@
       text-transform: uppercase;
     }
 
+    .manual-brand {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 18px;
+      align-items: end;
+    }
+
+    .manual-logo {
+      display: block;
+      width: 74px;
+      height: 74px;
+      opacity: 0.92;
+      filter: drop-shadow(0 14px 22px rgba(255, 89, 73, 0.16));
+    }
+
+    .wordmark-accent { color: var(--orange); }
+
     .cover .subtitle {
       max-width: 760px;
       color: #e8e5de;
@@ -347,10 +364,21 @@
     }
 
     .footer-note {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 12px;
+      align-items: center;
       margin-top: 40px;
       padding: 18px;
       color: var(--paper);
       background: var(--ink);
+    }
+
+    .footer-note .manual-logo {
+      width: 48px;
+      height: 48px;
+      opacity: 0.46;
+      filter: none;
     }
 
     main.page > section {
@@ -380,6 +408,17 @@
     h2 {
       position: relative;
       border-bottom: 1px solid var(--border);
+    }
+
+    h2::after {
+      content: 'TT';
+      display: inline-block;
+      margin-left: 10px;
+      color: var(--orange);
+      font-size: 0.46em;
+      letter-spacing: -0.18em;
+      opacity: 0.34;
+      vertical-align: middle;
     }
 
     .toc,
@@ -477,6 +516,7 @@
       .cover,
       .callout { padding: 18px; }
       .cover-meta,
+      .manual-brand,
       .grid,
       .grid.two,
       .grid.four { grid-template-columns: 1fr; }
@@ -488,15 +528,20 @@
   <main class="page">
     <header class="cover">
       <div>
-        <span class="kicker">Manual tecnico de campo</span>
-        <h1>BeltTrace</h1>
+        <div class="manual-brand">
+          <svg class="manual-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect x="8" y="8" width="240" height="240" rx="30" fill="#0c0b11"/><path d="M30 34h196M30 222h196M34 30v196M222 30v196" stroke="#f0efeb" stroke-opacity="0.08" stroke-width="2"/><path d="M32 64h192l-13 25H45z" fill="#2e2930" stroke="#f0efeb" stroke-opacity="0.68" stroke-width="5" stroke-linejoin="round"/><path d="M45 89h166" stroke="#ff5949" stroke-opacity="0.68" stroke-width="4" stroke-linecap="square"/><circle cx="61" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/><circle cx="128" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/><circle cx="195" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/><path d="M47 102h70v17H91v59H73v-59H47z" fill="#ff5949"/><rect x="62" y="178" width="40" height="10" rx="2" fill="#ff5949"/><path d="M139 102h70v17h-26v59h-18v-59h-26z" fill="#f0efeb"/><rect x="154" y="178" width="40" height="10" rx="2" fill="#f0efeb"/><path d="M36 204h184" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/><path d="M66 196v16M128 196v16M190 196v16" stroke="#f0efeb" stroke-opacity="0.58" stroke-width="4" stroke-linecap="square"/></svg>
+          <div>
+            <span class="kicker">Manual tecnico de campo</span>
+            <h1>Bel<span class="wordmark-accent">tT</span>race</h1>
+          </div>
+        </div>
         <p class="subtitle">Guia operativa para realizar controles y calibraciones en campo. Este documento se enfoca en el procedimiento tecnico: preparar el equipo, usar el mapa de planta como ayuda visual, registrar datos confiables, interpretar tolerancias y cerrar el trabajo correctamente.</p>
         <div class="manual-actions">
           <button type="button" onclick="window.print()">Imprimir o guardar PDF</button>
         </div>
       </div>
       <div class="cover-meta">
-        <div><span>Version documentada</span><strong>v4.1.24</strong></div>
+        <div><span>Version documentada</span><strong>v4.1.27</strong></div>
         <div><span>Alcance</span><strong>Uso en campo</strong></div>
         <div><span>Usuario</span><strong>Tecnico</strong></div>
       </div>
@@ -757,8 +802,9 @@
     </section>
 
     <footer class="footer-note">
-      <strong>BeltTrace - Manual tecnico de campo.</strong>
-      <p>Documento orientado al procedimiento en campo. Ante diferencias con instrucciones internas de planta, aplicar el procedimiento aprobado y dejar observacion en el evento.</p>
+      <svg class="manual-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true"><rect x="8" y="8" width="240" height="240" rx="30" fill="#0c0b11"/><path d="M32 64h192l-13 25H45z" fill="#2e2930" stroke="#f0efeb" stroke-opacity="0.68" stroke-width="5" stroke-linejoin="round"/><path d="M47 102h70v17H91v59H73v-59H47z" fill="#ff5949"/><path d="M139 102h70v17h-26v59h-18v-59h-26z" fill="#f0efeb"/><path d="M36 204h184" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/></svg>
+      <div><strong>BeltTrace - Manual tecnico de campo.</strong>
+      <p>Documento orientado al procedimiento en campo. Ante diferencias con instrucciones internas de planta, aplicar el procedimiento aprobado y dejar observacion en el evento.</p></div>
     </footer>
   </main>
 </body>

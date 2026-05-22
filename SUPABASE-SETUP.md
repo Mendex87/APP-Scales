@@ -265,8 +265,18 @@ HTML sugerido:
 <div style="margin:0;padding:0;background:#f0efeb;font-family:Arial,sans-serif;color:#0c0b11;">
   <div style="max-width:620px;margin:0 auto;padding:28px;">
     <div style="background:#0c0b11;color:#f8f6ef;padding:28px;border-radius:14px 14px 0 0;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="58" height="58" role="img" aria-label="BeltTrace TT" style="display:block;margin:0 0 14px;">
+        <rect x="8" y="8" width="240" height="240" rx="30" fill="#0c0b11"/>
+        <path d="M32 64h192l-13 25H45z" fill="#2e2930" stroke="#f0efeb" stroke-opacity="0.68" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M45 89h166" stroke="#ff5949" stroke-opacity="0.68" stroke-width="4" stroke-linecap="square"/>
+        <path d="M47 102h70v17H91v59H73v-59H47z" fill="#ff5949"/>
+        <rect x="62" y="178" width="40" height="10" rx="2" fill="#ff5949"/>
+        <path d="M139 102h70v17h-26v59h-18v-59h-26z" fill="#f0efeb"/>
+        <rect x="154" y="178" width="40" height="10" rx="2" fill="#f0efeb"/>
+        <path d="M36 204h184" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/>
+      </svg>
       <div style="color:#ff5949;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;">Acceso protegido</div>
-      <h1 style="margin:10px 0 0;font-size:38px;line-height:.9;text-transform:uppercase;">BeltTrace</h1>
+      <h1 style="margin:10px 0 0;font-size:38px;line-height:.9;text-transform:uppercase;">Bel<span style="color:#ff5949;">tT</span>race</h1>
       <p style="margin:14px 0 0;color:#d8d2c8;">Solicitud de recuperacion de contrasena.</p>
     </div>
     <div style="background:#fffdf8;border:1px solid #d5cfc3;border-top:0;padding:28px;border-radius:0 0 14px 14px;">

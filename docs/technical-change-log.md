@@ -2,6 +2,14 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.1.27 - Logo TT en documentos
+
+- Contexto: se valida la identidad TT en superficies operativas sin intervenir todavia el mapa de planta.
+- Cambio UI: login y estados vacios usan el monograma TT como marca secundaria.
+- Cambio reportes/manuales: reporte imprimible, manual admin interno, manuales HTML/PDF y template de email incorporan logo TT de forma sutil.
+- Alcance diferido: el icono de puntos de balanza en mapa queda para una iteracion aparte.
+- Verificacion: `npm run build` requerido antes de promover.
+
 ## 2026-05-21 - v4.1.26 - Logo TT trenes de pesaje
 
 - Contexto: se prueba en preview un logo mas tecnico, donde las TT representan dos trenes de pesaje sobre cinta.

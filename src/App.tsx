@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.26'
+const APP_VERSION = 'v4.1.27'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -195,6 +195,33 @@ function BrandMonogram({ compact = false }: { compact?: boolean }) {
       </svg>
     </span>
   )
+}
+
+function BrandedEmptyState({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`empty-state branded-empty-state ${className}`.trim()}>
+      <BrandMonogram compact />
+      <span>{children}</span>
+    </div>
+  )
+}
+
+function brandDocumentLogoSvg(className = 'document-logo') {
+  return `<svg class="${className}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="BeltTrace TT logo">
+    <rect x="8" y="8" width="240" height="240" rx="30" fill="#0c0b11"/>
+    <path d="M30 34h196M30 222h196M34 30v196M222 30v196" stroke="#f0efeb" stroke-opacity="0.08" stroke-width="2"/>
+    <path d="M32 64h192l-13 25H45z" fill="#2e2930" stroke="#f0efeb" stroke-opacity="0.68" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M45 89h166" stroke="#ff5949" stroke-opacity="0.68" stroke-width="4" stroke-linecap="square"/>
+    <circle cx="61" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/>
+    <circle cx="128" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/>
+    <circle cx="195" cy="76" r="6" fill="#f0efeb" fill-opacity="0.82"/>
+    <path d="M47 102h70v17H91v59H73v-59H47z" fill="#ff5949"/>
+    <rect x="62" y="178" width="40" height="10" rx="2" fill="#ff5949"/>
+    <path d="M139 102h70v17h-26v59h-18v-59h-26z" fill="#f0efeb"/>
+    <rect x="154" y="178" width="40" height="10" rx="2" fill="#f0efeb"/>
+    <path d="M36 204h184" stroke="#ff5949" stroke-width="9" stroke-linecap="square"/>
+    <path d="M66 196v16M128 196v16M190 196v16" stroke="#f0efeb" stroke-opacity="0.58" stroke-width="4" stroke-linecap="square"/>
+  </svg>`
 }
 
 const PLANT_MAP_PLANT_OPTIONS: PlantMapPlantOption[] = [
@@ -943,7 +970,10 @@ function buildAdminManualHtml(user: AuthUser) {
     code { padding: 1px 5px; background: #e5e2da; border: 1px solid rgba(12, 11, 17, 0.12); }
     .cover { color: #f0efeb; background: linear-gradient(135deg, #0c0b11, #19171a 70%, #2e2930); }
     .cover p { max-width: 720px; margin-top: 12px; color: #e8e5de; }
+    .cover-brand { display: grid; grid-template-columns: 58px 1fr; gap: 14px; align-items: end; }
+    .document-logo { display: block; width: 58px; height: 58px; }
     .kicker { display: inline-block; margin-bottom: 14px; color: #ff5949; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .wordmark-accent { color: #ff5949; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
     .actions button, .actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 10px 14px; border: 2px solid #ff5949; background: #ff5949; color: #0c0b11; font-weight: 800; text-transform: uppercase; text-decoration: none; cursor: pointer; }
     .actions a.secondary { color: #f0efeb; background: transparent; }
@@ -955,6 +985,10 @@ function buildAdminManualHtml(user: AuthUser) {
     .callout { padding: 12px; background: #fff3d6; border: 1px solid rgba(201, 133, 0, 0.45); }
     .ok { background: rgba(31, 143, 95, 0.1); border-color: rgba(31, 143, 95, 0.35); }
     .danger { background: rgba(196, 59, 48, 0.1); border-color: rgba(196, 59, 48, 0.35); }
+    .footer-note { display: grid; grid-template-columns: 42px 1fr; gap: 10px; align-items: center; color: #f0efeb; background: #0c0b11; }
+    .footer-note .document-logo { width: 42px; height: 42px; opacity: 0.42; }
+    .footer-note strong { color: #f0efeb; }
+    .footer-note p { color: rgba(240, 239, 235, 0.72); }
     .toc ol { columns: 2; column-gap: 32px; }
     @media print { body { background: #fff; padding: 0; } header, section { break-inside: avoid; border-color: #bbb; } .actions { display: none; } }
     @media (max-width: 760px) { body { padding: 12px; } header, section { padding: 16px; } .meta, .grid { grid-template-columns: 1fr; } .toc ol { columns: 1; } }
@@ -963,8 +997,13 @@ function buildAdminManualHtml(user: AuthUser) {
 <body>
   <main>
     <header class="cover">
-      <span class="kicker">Manual administrador interno</span>
-      <h1>BeltTrace</h1>
+      <div class="cover-brand">
+        ${brandDocumentLogoSvg('document-logo')}
+        <div>
+          <span class="kicker">Manual administrador interno</span>
+          <h1>Bel<span class="wordmark-accent">tT</span>race</h1>
+        </div>
+      </div>
       <p>Guia de administracion, supervision y mantenimiento operativo. Este documento se genera dentro de una sesion autenticada con rol admin y no se publica como recurso estatico.</p>
       <div class="actions">
         <button onclick="window.print()">Imprimir o guardar PDF</button>
@@ -1153,6 +1192,11 @@ function buildAdminManualHtml(user: AuthUser) {
         <li>No hay material admin publicado en rutas publicas.</li>
       </ol>
     </section>
+
+    <section class="footer-note">
+      ${brandDocumentLogoSvg('document-logo')}
+      <div><strong>BeltTrace</strong><p>Manual administrador interno generado desde una sesion autenticada.</p></div>
+    </section>
   </main>
 </body>
 </html>`
@@ -1222,8 +1266,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .print-toolbar button { min-height: 34px; padding: 0 12px; border: 1px solid #d5cfc3; border-radius: 999px; background: #f8f6ef; color: #0c0b11; font-weight: 800; text-transform: uppercase; cursor: pointer; }
     .print-toolbar button.active,
     .print-toolbar .print-action { border-color: #d94135; background: #ff5949; color: #0c0b11; }
-    .sheet { width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; border: 1px solid #c9c3b8; border-radius: 8px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.05) 0 18%, transparent 18% 100%), repeating-linear-gradient(135deg, transparent 0 16px, rgba(12, 11, 17, 0.025) 16px 17px, transparent 17px 34px), #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
-    .header { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 58mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: var(--report-dark-gradient); background-clip: padding-box; }
+    .sheet { position: relative; width: min(100%, 194mm); min-height: 277mm; margin: 0 auto; padding: 7mm; overflow: hidden; border: 1px solid #c9c3b8; border-radius: 8px; background: linear-gradient(115deg, rgba(255, 89, 73, 0.05) 0 18%, transparent 18% 100%), repeating-linear-gradient(135deg, transparent 0 16px, rgba(12, 11, 17, 0.025) 16px 17px, transparent 17px 34px), #f8f6ef; box-shadow: 0 18px 45px rgba(12, 11, 17, 0.16); }
+    .sheet > section { position: relative; z-index: 1; }
+    .report-watermark { position: absolute; right: 5mm; bottom: 7mm; z-index: 0; width: 58mm; opacity: 0.035; pointer-events: none; }
+    .report-watermark-logo { display: block; width: 100%; height: auto; }
+    .header { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) 64mm; gap: 8px; margin-bottom: 7px; padding: 10px; color: #f8f6ef; border-radius: 7px; background: var(--report-dark-gradient); background-clip: padding-box; }
     .header h1,
     .header span,
     .header strong { color: #f8f6ef; }
@@ -1231,6 +1278,11 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .equipment-title { max-width: 24ch; margin-top: 7px; color: #f8f6ef; font-family: "Barlow Condensed", Inter, sans-serif; font-size: 23px; font-weight: 700; line-height: 0.88; letter-spacing: -0.025em; text-transform: uppercase; }
     .badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 999px; background: #ff5949; color: #0c0b11; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; }
     .header .badge { color: #0c0b11; }
+    .header-side { display: grid; gap: 6px; align-content: start; }
+    .report-brand { display: grid; grid-template-columns: 32px 1fr; gap: 6px; align-items: center; padding: 5px; border: 1px solid rgba(248, 246, 239, 0.18); border-radius: 6px; background: rgba(12, 11, 17, 0.28); }
+    .report-brand .report-logo { width: 32px; height: 32px; }
+    .report-brand strong { color: #f8f6ef; font-size: 14px; }
+    .report-brand span { color: rgba(248, 246, 239, 0.66); }
     .header-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start; }
     .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .wide,
@@ -1271,7 +1323,10 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     .report-bw .print-toolbar button.active,
     .report-bw .print-toolbar .print-action { background: #000; color: #fff; }
     .report-bw .sheet { border: 1px solid #000; background: #fff; box-shadow: none; }
+    .report-bw .report-watermark { display: none; }
     .report-bw .header { color: #000; border: 2px solid #000; background: #fff; }
+    .report-bw .report-brand { border-color: #000; background: #fff; }
+    .report-bw .report-logo { filter: grayscale(1); opacity: 0.72; }
     .report-bw .header h1,
     .report-bw .header span,
     .report-bw .header strong,
@@ -1314,6 +1369,7 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
     <button class="print-action" type="button" onclick="window.print()">Imprimir o guardar PDF</button>
   </div>
   <main class="sheet">
+    <div class="report-watermark">${brandDocumentLogoSvg('report-watermark-logo')}</div>
     <section class="header">
       <div>
         <span>Reporte de calibracion</span>
@@ -1321,10 +1377,16 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
         <p>Equipo / cinta</p>
         <div class="equipment-title">${reportValue(equipmentLabel)}</div>
       </div>
-      <div class="header-meta">
-        <div><span>Fecha evento</span><strong>${reportValue(formatDateTime(item.eventDate))}</strong></div>
-        <div><span>Tipo cierre</span><strong><span class="badge">${reportValue(closureType)}</span></strong></div>
-        <div><span>Version app</span><strong>${reportValue(eventAppVersion)}</strong></div>
+      <div class="header-side">
+        <div class="report-brand">
+          ${brandDocumentLogoSvg('report-logo')}
+          <div><span>BeltTrace</span><strong>Trazabilidad</strong></div>
+        </div>
+        <div class="header-meta">
+          <div><span>Fecha evento</span><strong>${reportValue(formatDateTime(item.eventDate))}</strong></div>
+          <div><span>Tipo cierre</span><strong><span class="badge">${reportValue(closureType)}</span></strong></div>
+          <div><span>Version app</span><strong>${reportValue(eventAppVersion)}</strong></div>
+        </div>
       </div>
     </section>
 
@@ -4151,8 +4213,9 @@ function App() {
     return (
       <div className="app-shell auth-shell">
         <section className="auth-card">
+          <BrandMonogram compact />
           <div className="brand-kicker">Acceso protegido</div>
-          <h1>BeltTrace</h1>
+          <h1 aria-label="BeltTrace">{renderBrandWordmark()}</h1>
           <p>Cargando sesión...</p>
         </section>
         {renderToastStack()}
@@ -4195,6 +4258,7 @@ function App() {
           </div>
 
           <div id="acceso" className="auth-card public-login">
+            <BrandMonogram compact />
             <div className="login-status"><span></span> Servidor online</div>
             <div className="brand-kicker">Acceso protegido</div>
             {authPanelMode === 'login' && (
@@ -4648,7 +4712,7 @@ function App() {
                       </button>
                     </div>
                   ))}
-                  {priorityEquipment.length === 0 && <div className="empty-state success-state">Parque al dia segun frecuencia de control configurada.</div>}
+                  {priorityEquipment.length === 0 && <BrandedEmptyState className="success-state">Parque al dia segun frecuencia de control configurada.</BrandedEmptyState>}
                 </div>
               </div>
             </div>
@@ -4687,7 +4751,7 @@ function App() {
                   </article>
                   )
                 })}
-                {dashboardFleetRows.length === 0 && <div className="empty-state">Todavia no hay balanzas cargadas.</div>}
+                {dashboardFleetRows.length === 0 && <BrandedEmptyState>Todavia no hay balanzas cargadas.</BrandedEmptyState>}
               </div>
             </div>}
           </section>
@@ -5833,7 +5897,7 @@ function App() {
               <HistoryPager page={historyPage} pageSize={HISTORY_PAGE_SIZE} totalItems={filteredEvents.length} onPageChange={setHistoryPage} />
             )}
 
-            {filteredEvents.length === 0 && <div className="card">No hay eventos con esos filtros.</div>}
+            {filteredEvents.length === 0 && <BrandedEmptyState className="card">No hay eventos con esos filtros.</BrandedEmptyState>}
           </section>
         )}
 

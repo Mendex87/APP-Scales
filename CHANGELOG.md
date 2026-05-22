@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.27 - Logo TT en documentos
+
+- El logo TT de trenes de pesaje se integra en reportes imprimibles, login, estados vacios y manuales.
+- Se actualiza el template documentado de recuperacion de contrasena con la identidad BeltTrace.
+- Se regeneran PDFs de manuales con la marca sutil.
+
 ## v4.1.26 - Logo TT trenes de pesaje
 
 - El monograma TT pasa a representar dos trenes de pesaje bajo una cinta transportadora.
