@@ -532,6 +532,8 @@ body::before {
 
 .brand-wordmark {
   display: inline-block;
+  color: inherit;
+  transition: color 0.22s ease, text-shadow 0.22s ease;
 }
 
 .brand-wordmark-accent {
@@ -3749,6 +3751,11 @@ body::before {
 .brand-home-button:hover {
   filter: contrast(1.08);
   transform: translateY(-1px);
+}
+
+.brand-home-button:hover .brand-wordmark {
+  color: var(--color-orange);
+  text-shadow: 0 0 0.14em rgba(255, 89, 73, 0.22);
 }
 
 .brand-block {

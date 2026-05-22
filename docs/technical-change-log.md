@@ -2,6 +2,13 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-05-21 - v4.1.28 - Cabecera BeltTrace
+
+- Contexto: se conserva el wordmark TT, pero se recupera el texto tecnico original bajo el titulo principal.
+- Cambio UI: la cabecera muestra `Trazabilidad de seteo, Span con peso patron, material real y ajuste final.`.
+- Cambio interaccion: el titulo principal vuelve a pasar completo al naranja de marca en hover.
+- Verificacion: `npm run build` requerido antes de promover.
+
 ## 2026-05-21 - v4.1.27 - Logo TT en documentos
 
 - Contexto: se valida la identidad TT en superficies operativas sin intervenir todavia el mapa de planta.

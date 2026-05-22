@@ -2,7 +2,7 @@
 
 Trazabilidad y calibracion para balanzas de cinta.
 
-Version actual: `v4.1.27`.
+Version actual: `v4.1.28`.
 
 ## Incluye
 

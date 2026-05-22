@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.1.27'
+const APP_VERSION = 'v4.1.28'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -4538,7 +4538,7 @@ function App() {
               {renderBrandWordmark()}
             </button>
           </h1>
-          <p>Trazabilidad y calibracion para balanzas de cinta.</p>
+          <p>Trazabilidad de seteo, Span con peso patron, material real y ajuste final.</p>
           <div className="live-clock" aria-label="Hora actual de Argentina">
             <time dateTime={clockNow.toISOString()}>{formatArgentinaClock(clockNow)}</time>
           </div>

@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.28 - Cabecera BeltTrace
+
+- Se restaura el subtitulo tecnico de seteo, Span, material real y ajuste final bajo el titulo principal.
+- El titulo vuelve a tomar el naranja de marca al pasar el mouse.
+
 ## v4.1.27 - Logo TT en documentos
 
 - El logo TT de trenes de pesaje se integra en reportes imprimibles, login, estados vacios y manuales.
