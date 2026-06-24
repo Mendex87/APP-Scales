@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.2.1 - Parametros visibles para tecnicos
+
+- El listado de balanzas muestra un panel de solo lectura con los parametros tecnicos cargados de cada cinta.
+- Los tecnicos pueden consultar controlador, dimensiones, velocidad, factores, frecuencia, unidad y observaciones sin habilitar edicion administrativa.
+
 ## v4.2.0 - Promocion de preview de plantas
 
 - Se promueve la preview multi-planta a release principal con mapa separado por planta, flujo supervisor sin guardado y rebrand BeltTrace.

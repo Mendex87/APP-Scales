@@ -149,7 +149,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.2.0'
+const APP_VERSION = 'v4.2.1'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -5159,6 +5159,32 @@ function App() {
                       <Metric label="Frecuencia" value={`${item.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
                       <Metric label="Ultimo error" value={lastEvent ? `${lastEvent.materialValidation.errorPct} %` : '-'} />
                       <Metric label="Estado" value={statusText} />
+                    </div>
+                    <div className="equipment-parameter-panel compact-top" aria-label={`Parametros de ${item.scaleName}`}>
+                      <div className="row wrap">
+                        <div>
+                          <span className="section-kicker">Datos tecnicos</span>
+                          <h4>Parametros cargados de la cinta</h4>
+                        </div>
+                        <span className="equipment-readonly-badge">Solo lectura</span>
+                      </div>
+                      <div className="grid four compact-top">
+                        <Metric label="Controlador" value={item.controllerModel || '-'} />
+                        <Metric label="Serie" value={item.controllerSerial || '-'} />
+                        <Metric label="Ancho cinta" value={measureText(item.beltWidthMm || 0, 'lengthMm')} />
+                        <Metric label="Largo cinta" value={measureText(item.beltLengthM || 0, 'lengthM')} />
+                        <Metric label="Capacidad nominal" value={measureText(item.nominalCapacityTph || 0, 'flowTph')} />
+                        <Metric label="Puente pesaje" value={measureText(item.bridgeLengthM || 0, 'lengthM')} />
+                        <Metric label="Velocidad nominal" value={measureText(item.nominalSpeedMs || 0, 'speedMs')} />
+                        <Metric label="Origen velocidad" value={item.speedSource || '-'} />
+                        <Metric label="Diametro RPM" value={measureText(item.rpmRollDiameterMm || 0, 'lengthMm')} />
+                        <Metric label="Factor calibracion" value={String(item.calibrationFactorCurrent || '-')} />
+                        <Metric label="Factor ajuste" value={String(item.adjustmentFactorCurrent || 1)} />
+                        <Metric label="Frecuencia control" value={`${item.checkIntervalDays || DEFAULT_CHECK_INTERVAL_DAYS} dias`} />
+                        <Metric label="Unidad totalizador" value={item.totalizerUnit || 'tn'} />
+                        <Metric label="Creada" value={formatDateTime(item.createdAt)} />
+                      </div>
+                      {item.notes.trim() && <p className="hint compact-top"><strong>Observaciones:</strong> {item.notes}</p>}
                     </div>
                   </div>
                 )
