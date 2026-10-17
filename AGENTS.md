@@ -18,7 +18,7 @@
 
 - Expected Vite env vars are `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, but `src/supabase.ts` currently includes project defaults so the app is effectively Supabase-configured by default.
 - Schema and RLS policies are in `supabase/schema.sql`; keep it re-runnable with `if not exists`, `add column if not exists`, and `drop policy if exists` patterns.
-- Roles are `admin`, `tecnico`, `supervisor`, and `viewer`; only `admin` can update/delete equipment and manage users, while `tecnico` can insert equipment/events/chains.
+- Roles are `admin`, `tecnico`, `supervisor`, and `viewer`; only `admin` can delete equipment and manage users. `tecnico` can insert equipment/events/chains and update existing equipment technical parameters plus `belt_code`, with confirmation. Administrative equipment fields stay admin-only, enforced by the database trigger in `supabase/schema.sql` and incremental migration `supabase/technician-equipment-edit.sql`.
 - Do not update `equipments` while saving a calibration event unless RLS is intentionally changed; this previously broke saves for `tecnico`.
 - Equipment photos use Supabase Storage bucket `equipment-photos` and DB field `photo_path`.
 - User management Edge Function is `supabase/functions/manage-users/index.ts`; its service role secret must be named `SERVICE_ROLE_KEY`, not `SUPABASE_SERVICE_ROLE_KEY`.

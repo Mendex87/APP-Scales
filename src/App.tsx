@@ -38,6 +38,7 @@ import {
   savePlantMapPointsRecord,
   toEventRow,
   updateCalibrationEventSync,
+  updateEquipmentTechnicalRecord,
 } from './repository'
 import { loadChains, loadEquipment, loadEvents, loadPlantMapObjects, loadPlantMapPoints, saveChains, saveEquipment, saveEvents } from './storage'
 import { isSupabaseConfigured, supabase, supabaseAnonKey, supabaseUrl } from './supabase'
@@ -149,7 +150,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.2.1'
+const APP_VERSION = 'v4.2.2'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1059,7 +1060,7 @@ function buildAdminManualHtml(user: AuthUser) {
         <thead><tr><th>Rol</th><th>Puede hacer</th><th>No debe hacer</th></tr></thead>
         <tbody>
           <tr><td>Admin</td><td>Gestiona usuarios, equipos, cadenas, eventos, eliminaciones y revisiones.</td><td>Compartir material admin o usar usuarios personales para tecnicos.</td></tr>
-          <tr><td>Tecnico</td><td>Realiza trabajo de campo: da de alta equipos nuevos cuando no existen, carga cadenas, registra calibraciones/controles, usa herramientas y consulta historial.</td><td>No puede eliminar datos, gestionar usuarios, editar equipos existentes ni dar de baja balanzas.</td></tr>
+          <tr><td>Tecnico</td><td>Da de alta equipos, edita parametros tecnicos e identificacion de cinta con confirmacion, carga cadenas, registra calibraciones/controles y consulta historial.</td><td>No elimina datos ni gestiona usuarios. En equipos existentes no modifica planta, linea, nombre de balanza, foto ni observaciones.</td></tr>
           <tr><td>Supervisor</td><td>Consulta balanzas, historial, reportes, herramientas y fotos. Puede recorrer el wizard de nueva calibracion para revision, pero no guardar eventos.</td><td>Crear, editar, borrar o sincronizar registros operativos.</td></tr>
           <tr><td>Consulta</td><td>Acceso basico de lectura segun configuracion.</td><td>Operar calibraciones o administrar datos.</td></tr>
         </tbody>
@@ -1103,7 +1104,7 @@ function buildAdminManualHtml(user: AuthUser) {
           <tr><td>Foto</td><td>Ayuda visual para evitar seleccionar equipo equivocado.</td></tr>
         </tbody>
       </table>
-      <div class="callout ok">Los tecnicos pueden crear equipos, pero la edicion administrativa de equipos existentes queda reservada a admin por permisos internos.</div>
+      <div class="callout ok">Los tecnicos pueden crear equipos y editar parametros tecnicos e identificacion de cinta desde Editar. Actualizar balanza abre un popup: Cancelar conserva el formulario sin guardar y Confirmar cambios guarda la modificacion. Planta, linea, nombre de balanza, foto, observaciones y bajas siguen reservados a admin en equipos existentes.</div>
     </section>
 
     <section>
@@ -1521,6 +1522,8 @@ function App() {
   const [eventSubmitAttempted, setEventSubmitAttempted] = useState(false)
   const [eventSaving, setEventSaving] = useState(false)
   const [editingEquipmentId, setEditingEquipmentId] = useState('')
+  const [equipmentSaving, setEquipmentSaving] = useState(false)
+  const equipmentSavingRef = useRef(false)
   const [equipmentPhotoFile, setEquipmentPhotoFile] = useState<File | null>(null)
   const [equipmentPhotoPreview, setEquipmentPhotoPreview] = useState('')
   const [eventPhotoDrafts, setEventPhotoDrafts] = useState<EventPhotoDraft[]>([])
@@ -1921,6 +1924,7 @@ function App() {
   const canReview = currentUser?.role === 'admin' || currentUser?.role === 'tecnico' || currentUser?.role === 'supervisor'
   const canDelete = currentUser?.role === 'admin'
   const canManageUsers = currentUser?.role === 'admin'
+  const technicalEquipmentEdit = Boolean(editingEquipmentId) && currentUser?.role === 'tecnico'
 
   useEffect(() => {
     if (screen === 'usuarios' && canManageUsers) {
@@ -3407,6 +3411,7 @@ function App() {
   }
 
   function primeEquipmentEdit(item: Equipment) {
+    if (!canOperate || equipmentSavingRef.current) return
     setEditingEquipmentId(item.id)
     setEquipmentPhotoFile(null)
     setEquipmentSubmitAttempted(false)
@@ -3628,57 +3633,85 @@ function App() {
     setScreen('nueva')
   }
 
-  async function handleEquipmentSubmit(event: FormEvent) {
+  function handleEquipmentSubmit(event: FormEvent) {
     event.preventDefault()
+    if (!canOperate || equipmentSavingRef.current || confirmDialog) return
     setEquipmentSubmitAttempted(true)
 
     if (equipmentBlockingIssues.length > 0) return
 
-    try {
-      const equipmentId = editingEquipmentId || generateId()
-      let photoPath = equipmentForm.photoPath
-      if (equipmentPhotoFile) {
-        photoPath = await uploadEquipmentPhoto(equipmentPhotoFile, equipmentId)
-      }
+    const existing = equipment.find((item) => item.id === editingEquipmentId)
+    if (editingEquipmentId && !existing) {
+      setSyncNotice('La balanza ya no existe. Actualiza el listado antes de editar.')
+      return
+    }
+    const equipmentId = editingEquipmentId || generateId()
+    const nextEquipment: Equipment = {
+      id: equipmentId,
+      plant: technicalEquipmentEdit && existing ? existing.plant : equipmentForm.plant.trim(),
+      line: technicalEquipmentEdit && existing ? existing.line : equipmentForm.line.trim(),
+      beltCode: equipmentForm.beltCode.trim(),
+      scaleName: technicalEquipmentEdit && existing ? existing.scaleName : equipmentForm.scaleName.trim(),
+      controllerModel: equipmentForm.controllerModel.trim(),
+      controllerSerial: equipmentForm.controllerSerial.trim(),
+      beltWidthMm: toNumber(equipmentForm.beltWidthMm) || 0,
+      beltLengthM: toNumber(equipmentForm.beltLengthM) || 0,
+      nominalCapacityTph: toNumber(equipmentForm.nominalCapacityTph) || 0,
+      bridgeLengthM: toNumber(equipmentForm.bridgeLengthM) || 0,
+      nominalSpeedMs: toNumber(equipmentForm.nominalSpeedMs) || 0,
+      speedSource: equipmentForm.speedSource,
+      rpmRollDiameterMm: toNumber(equipmentForm.rpmRollDiameterMm) || 0,
+      calibrationFactorCurrent: toNumber(equipmentForm.calibrationFactorCurrent) || 0,
+      adjustmentFactorCurrent: toNumber(equipmentForm.adjustmentFactorCurrent) || 1,
+      checkIntervalDays: Math.round(toNumber(equipmentForm.checkIntervalDays) || DEFAULT_CHECK_INTERVAL_DAYS),
+      totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
+      photoPath: technicalEquipmentEdit && existing ? existing.photoPath : equipmentForm.photoPath,
+      notes: technicalEquipmentEdit && existing ? existing.notes : equipmentForm.notes.trim(),
+      createdAt: existing?.createdAt || new Date().toISOString(),
+    }
 
-      const nextEquipment: Equipment = {
-        id: equipmentId,
-        plant: equipmentForm.plant.trim(),
-        line: equipmentForm.line.trim(),
-        beltCode: equipmentForm.beltCode.trim(),
-        scaleName: equipmentForm.scaleName.trim(),
-        controllerModel: equipmentForm.controllerModel.trim(),
-        controllerSerial: equipmentForm.controllerSerial.trim(),
-        beltWidthMm: toNumber(equipmentForm.beltWidthMm) || 0,
-        beltLengthM: toNumber(equipmentForm.beltLengthM) || 0,
-        nominalCapacityTph: toNumber(equipmentForm.nominalCapacityTph) || 0,
-        bridgeLengthM: toNumber(equipmentForm.bridgeLengthM) || 0,
-        nominalSpeedMs: toNumber(equipmentForm.nominalSpeedMs) || 0,
-        speedSource: equipmentForm.speedSource,
-        rpmRollDiameterMm: toNumber(equipmentForm.rpmRollDiameterMm) || 0,
-        calibrationFactorCurrent: toNumber(equipmentForm.calibrationFactorCurrent) || 0,
-        adjustmentFactorCurrent: toNumber(equipmentForm.adjustmentFactorCurrent) || 1,
-        checkIntervalDays: Math.round(toNumber(equipmentForm.checkIntervalDays) || DEFAULT_CHECK_INTERVAL_DAYS),
-        totalizerUnit: equipmentForm.totalizerUnit.trim() || 'tn',
-        photoPath,
-        notes: equipmentForm.notes.trim(),
-        createdAt: equipment.find((item) => item.id === equipmentId)?.createdAt || new Date().toISOString(),
+    async function persistEquipment() {
+      if (equipmentSavingRef.current) return
+      equipmentSavingRef.current = true
+      setEquipmentSaving(true)
+      try {
+        if (!technicalEquipmentEdit && equipmentPhotoFile) {
+          nextEquipment.photoPath = await uploadEquipmentPhoto(equipmentPhotoFile, equipmentId)
+        }
+        const result = technicalEquipmentEdit
+          ? await updateEquipmentTechnicalRecord(nextEquipment)
+          : { ...await saveEquipmentRecord(nextEquipment), equipment: nextEquipment }
+        const savedEquipment = result.equipment
+        setEquipment((current) => [savedEquipment, ...current.filter((item) => item.id !== savedEquipment.id)])
+        setSelectedEquipmentId(savedEquipment.id)
+        resetEquipmentForm()
+        setDataSource(result.source)
+        setSyncNotice(
+          result.source === 'supabase'
+            ? `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} en servidor online.`
+            : `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} solo localmente.`,
+        )
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'No se pudo guardar la balanza.'
+        setSyncNotice(`Error al guardar balanza: ${message}`)
+      } finally {
+        equipmentSavingRef.current = false
+        setEquipmentSaving(false)
       }
+    }
 
-      const result = await saveEquipmentRecord(nextEquipment)
-      setEquipment((current) => [nextEquipment, ...current.filter((item) => item.id !== nextEquipment.id)])
-      setSelectedEquipmentId(nextEquipment.id)
-      resetEquipmentForm()
-      setEquipmentSubmitAttempted(false)
-      setDataSource(result.source)
-      setSyncNotice(
-        result.source === 'supabase'
-          ? `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} en servidor online.`
-          : `Balanza ${editingEquipmentId ? 'actualizada' : 'guardada'} solo localmente.`,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'No se pudo guardar la balanza.'
-      setSyncNotice(`Error al guardar balanza: ${message}`)
+    if (existing) {
+      setConfirmDialog({
+        title: 'Confirmar cambios de balanza',
+        kicker: 'Modificacion de equipo',
+        tone: 'info',
+        message: `Vas a actualizar los datos de ${existing.scaleName} (${existing.beltCode}). ¿Confirmas los cambios?`,
+        detail: `${existing.beltCode !== nextEquipment.beltCode ? `Cinta: ${existing.beltCode} → ${nextEquipment.beltCode}. ` : ''}${technicalEquipmentEdit ? 'Se guardaran los parametros tecnicos y la identificacion de la cinta. Los datos administrativos y las calibraciones registradas se conservan.' : 'Se guardaran los datos del formulario. Las calibraciones registradas se conservan.'}`,
+        confirmLabel: 'Confirmar cambios',
+        onConfirm: persistEquipment,
+      })
+    } else {
+      void persistEquipment()
     }
   }
 
@@ -5005,7 +5038,7 @@ function App() {
                 <div className="row wrap">
                   <div>
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
-                    <p className="hint">{editingEquipmentId ? 'Actualizá datos tecnicos y foto del equipo.' : canOperate ? 'La app arranca mostrando equipos y su ultimo estado conocido.' : 'Altas y ediciones son solo para tecnicos. Como supervisor podes revisar el listado y recorrer una nueva calibracion sin guardar.'}</p>
+                    <p className="hint">{editingEquipmentId ? technicalEquipmentEdit ? 'Podes editar los parametros tecnicos y la identificacion de la cinta. Los demas datos estan reservados al administrador.' : 'Actualizá datos tecnicos y foto del equipo.' : canOperate ? 'La app arranca mostrando equipos y su ultimo estado conocido.' : 'Altas y ediciones son solo para tecnicos. Como supervisor podes revisar el listado y recorrer una nueva calibracion sin guardar.'}</p>
                   </div>
                   {canReview && <button className="secondary" onClick={() => setScreen('nueva')}>
                     <PlusCircle className="action-icon" aria-hidden="true" />
@@ -5014,10 +5047,10 @@ function App() {
               </div>
               {canOperate && <form className="stack" onSubmit={handleEquipmentSubmit}>
                 <div className="grid two">
-                  <Field label="Planta" value={equipmentForm.plant} onChange={(value) => setEquipmentForm((current) => ({ ...current, plant: value }))} />
-                  <Field label="Linea" value={equipmentForm.line} onChange={(value) => setEquipmentForm((current) => ({ ...current, line: value }))} />
+                  <Field label="Planta" disabled={technicalEquipmentEdit} value={equipmentForm.plant} onChange={(value) => setEquipmentForm((current) => ({ ...current, plant: value }))} />
+                  <Field label="Linea" disabled={technicalEquipmentEdit} value={equipmentForm.line} onChange={(value) => setEquipmentForm((current) => ({ ...current, line: value }))} />
                   <Field label="Cinta" value={equipmentForm.beltCode} onChange={(value) => setEquipmentForm((current) => ({ ...current, beltCode: value }))} />
-                  <Field label="Balanza" value={equipmentForm.scaleName} onChange={(value) => setEquipmentForm((current) => ({ ...current, scaleName: value }))} />
+                  <Field label="Balanza" disabled={technicalEquipmentEdit} value={equipmentForm.scaleName} onChange={(value) => setEquipmentForm((current) => ({ ...current, scaleName: value }))} />
                   <Field label="Modelo controlador" value={equipmentForm.controllerModel} onChange={(value) => setEquipmentForm((current) => ({ ...current, controllerModel: value }))} />
                   <Field label="Serie controlador" value={equipmentForm.controllerSerial} onChange={(value) => setEquipmentForm((current) => ({ ...current, controllerSerial: value }))} />
                   <Field label={measureLabel('Ancho cinta', 'lengthMm')} type="number" value={measureInput(equipmentForm.beltWidthMm, 'lengthMm')} onChange={(value) => setEquipmentForm((current) => ({ ...current, beltWidthMm: parseMeasure(value, 'lengthMm') }))} />
@@ -5041,6 +5074,7 @@ function App() {
                     <strong>{unitSystemName}</strong>
                   </div>
                   <Field label={measureLabel('Diametro rolo RPM', 'lengthMm')} type="number" value={measureInput(equipmentForm.rpmRollDiameterMm, 'lengthMm')} onChange={(value) => setEquipmentForm((current) => ({ ...current, rpmRollDiameterMm: parseMeasure(value, 'lengthMm') }))} />
+                  <Field label="Unidad totalizador" value={equipmentForm.totalizerUnit} onChange={(value) => setEquipmentForm((current) => ({ ...current, totalizerUnit: value }))} />
                 </div>
                 <div className="photo-field">
                   <div className="equipment-avatar">
@@ -5058,12 +5092,13 @@ function App() {
                       className="input"
                       type="file"
                       accept="image/*"
+                      disabled={technicalEquipmentEdit}
                       onChange={(event) => setEquipmentPhotoFile(event.target.files?.[0] || null)}
                     />
                     <p className="hint">Se comprime antes de subirla para mantener la app liviana.</p>
                   </div>
                 </div>
-                <TextArea label="Observaciones del equipo" value={equipmentForm.notes} onChange={(value) => setEquipmentForm((current) => ({ ...current, notes: value }))} />
+                <TextArea label="Observaciones del equipo" disabled={technicalEquipmentEdit} value={equipmentForm.notes} onChange={(value) => setEquipmentForm((current) => ({ ...current, notes: value }))} />
                 {equipmentSubmitAttempted && equipmentBlockingIssues.length > 0 && (
                   <div className="warning-panel">
                     <strong>Faltan datos para guardar la balanza</strong>
@@ -5075,8 +5110,8 @@ function App() {
                   </div>
                 )}
                 <div className="row compact-actions">
-                  <button className="primary" type="submit"><Save className="action-icon" aria-hidden="true" />{editingEquipmentId ? 'Actualizar balanza' : 'Guardar balanza'}</button>
-                  {editingEquipmentId && <button className="secondary" type="button" onClick={resetEquipmentForm}><XCircle className="action-icon" aria-hidden="true" />Cancelar edicion</button>}
+                  <button className="primary" type="submit" disabled={equipmentSaving}><Save className="action-icon" aria-hidden="true" />{equipmentSaving ? 'Guardando...' : editingEquipmentId ? 'Actualizar balanza' : 'Guardar balanza'}</button>
+                  {editingEquipmentId && <button className="secondary" type="button" disabled={equipmentSaving} onClick={resetEquipmentForm}><XCircle className="action-icon" aria-hidden="true" />Cancelar edicion</button>}
                 </div>
               </form>}
             </CollapsibleCard>
@@ -5146,7 +5181,7 @@ function App() {
                       </div>
                       <div className="equipment-card-actions row compact-actions">
                         {canReview && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
-                        {canDelete && <button className="secondary small" onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
+                        {canOperate && <button className="secondary small" disabled={equipmentSaving} onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
                         {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
                       </div>
                     </div>
@@ -5166,7 +5201,7 @@ function App() {
                           <span className="section-kicker">Datos tecnicos</span>
                           <h4>Parametros cargados de la cinta</h4>
                         </div>
-                        <span className="equipment-readonly-badge">Solo lectura</span>
+                        <span className="equipment-readonly-badge">{canOperate ? 'Edicion con confirmacion' : 'Solo lectura'}</span>
                       </div>
                       <div className="grid four compact-top">
                         <Metric label="Controlador" value={item.controllerModel || '-'} />
@@ -6162,12 +6197,12 @@ function SliderField({ label, value, min, max, onChange, disabled, step = 0.1, s
   )
 }
 
-function TextArea({ label, value, onChange, rows = 4, className = '' }: Omit<FieldProps, 'type'> & { rows?: number; className?: string }) {
+function TextArea({ label, value, onChange, disabled, rows = 4, className = '' }: Omit<FieldProps, 'type'> & { rows?: number; className?: string }) {
   const id = useId()
   return (
     <div className={`field-shell ${className}`.trim()}>
       <label className="label" htmlFor={id}>{label}</label>
-      <textarea id={id} className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={rows} />
+      <textarea id={id} className="input textarea" value={value} onChange={(event) => onChange(event.target.value)} rows={rows} disabled={disabled} />
     </div>
   )
 }

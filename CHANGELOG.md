@@ -1,5 +1,13 @@
 # Changelog
 
+## v4.2.2 - Edicion tecnica de balanzas con confirmacion
+
+- El tecnico puede editar parametros tecnicos y el nombre/identificacion de cinta en una balanza existente.
+- Planta, linea, nombre de balanza, foto y observaciones siguen reservados a admin al editar; la baja sigue siendo exclusiva de admin.
+- Actualizar una balanza abre un popup de confirmacion antes de guardar; cancelar conserva el formulario sin persistir cambios.
+- La actualizacion tecnica envia solo campos permitidos y recupera el registro guardado, sin modificar calibraciones historicas.
+- Se agrega `supabase/technician-equipment-edit.sql` para habilitar UPDATE tecnico con restriccion de columnas en servidor online. Requiere aplicacion en la base de la preview.
+
 ## v4.2.1 - Parametros visibles para tecnicos
 
 - El listado de balanzas muestra un panel de solo lectura con los parametros tecnicos cargados de cada cinta.

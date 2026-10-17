@@ -2,11 +2,12 @@
 
 Trazabilidad y calibracion para balanzas de cinta.
 
-Version actual: `v4.2.0`.
+Version actual: `v4.2.2`.
 
 ## Incluye
 
 - alta de balanzas
+- edicion tecnica e identificacion de cinta para tecnicos, con confirmacion antes de guardar y baja exclusiva de admin
 - eventos de calibracion
 - wizard de 8 pasos con inspeccion previa, cero simplificado, cadena, acumulado, material real y cierre
 - foto de parametros usados con factor de calibracion actual obligatorio
@@ -33,6 +34,7 @@ La funcionalidad `/mapa` ya forma parte del flujo documentado en `main`; las nue
 Documento interno de la preview:
 
 - `docs/plant-map-preview.md`
+- `docs/technician-equipment-edit.md`: alcance y activacion de edicion tecnica en `preview-technician-equipment-edit`.
 
 ## Desarrollo local
 

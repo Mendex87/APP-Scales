@@ -201,6 +201,40 @@ export async function saveEquipmentRecord(item: Equipment) {
   return { source: 'supabase' as const }
 }
 
+export async function updateEquipmentTechnicalRecord(item: Equipment) {
+  // Explicit allowlist: never resend administrative fields from a stale form.
+  const values = {
+    belt_code: item.beltCode,
+    controller_model: item.controllerModel,
+    controller_serial: item.controllerSerial,
+    belt_width_mm: item.beltWidthMm,
+    belt_length_m: item.beltLengthM,
+    nominal_capacity_tph: item.nominalCapacityTph,
+    bridge_length_m: item.bridgeLengthM,
+    nominal_speed_ms: item.nominalSpeedMs,
+    speed_source: item.speedSource,
+    rpm_roll_diameter_mm: item.rpmRollDiameterMm,
+    calibration_factor_current: item.calibrationFactorCurrent,
+    adjustment_factor_current: item.adjustmentFactorCurrent,
+    check_interval_days: item.checkIntervalDays,
+    totalizer_unit: item.totalizerUnit,
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    const equipment = loadEquipment()
+    const existing = equipment.find((current) => current.id === item.id)
+    if (!existing) throw new Error('La balanza ya no existe. Actualiza el listado.')
+    const updated = mapEquipmentRow({ ...toEquipmentRow(existing), ...values })
+    saveEquipment(equipment.map((current) => current.id === item.id ? updated : current))
+    return { source: 'local' as const, equipment: updated }
+  }
+
+  const result = await supabase.from('equipments').update(values).eq('id', item.id).select('*').single()
+  if (result.error) throw toError(result.error)
+
+  return { source: 'supabase' as const, equipment: mapEquipmentRow(result.data) }
+}
+
 const CHECK_INTERVAL_NOTE_PATTERN = /(?:\r?\n)?\[calibracinta:check_interval_days=(\d+)\]\s*/i
 
 export async function deleteEquipmentRecord(equipmentId: string) {

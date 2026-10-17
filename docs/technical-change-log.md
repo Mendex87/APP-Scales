@@ -2,6 +2,16 @@
 
 Registro de decisiones tecnicas relevantes, con foco en seguridad, despliegue y trazabilidad operativa.
 
+## 2026-10-17 - v4.2.2 - Edicion tecnica limitada
+
+- Contexto: se solicita permitir a tecnicos editar parametros y nombre/identificacion de cinta, sin baja, con popup antes de guardar.
+- Preview: `preview-technician-equipment-edit`, basada en `ed95ab0`.
+- Persistencia: UPDATE tecnico con allowlist explicita y SELECT del registro guardado; no envia columnas administrativas ni usa UPSERT para esta accion.
+- Seguridad: RLS de UPDATE admite admin/tecnico y trigger compara todos los campos no autorizados; DELETE sigue siendo admin-only.
+- Activacion: aplicar `supabase/technician-equipment-edit.sql` en la base de la preview. El archivo esta preparado, no aplicado al servidor desde esta sesion.
+- Documentacion: manuales HTML fuente/publico y manual admin interno actualizados; PDFs sin regenerar.
+- Verificacion local: build OK, esquema/migracion probados con RLS en PGlite y popup/edicion probados en Edge headless con servidor simulado. Detalle en `docs/technician-equipment-edit.md`.
+
 ## 2026-05-21 - v4.2.0 - Promocion de preview de plantas
 
 - Contexto: se aprueba promover a main la rama `preview-plant-map` con los cambios acumulados de plantas, supervisor, rebrand y documentacion.

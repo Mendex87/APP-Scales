@@ -43,6 +43,8 @@ Ese archivo ya quedó preparado para poder correrse más de una vez sin fallar p
 
 Nota de mantenimiento: el bloque SQL mostrado debajo es una referencia historica resumida. Para una base actualizada usar siempre `supabase/schema.sql`, que incluye tablas de mapa 3D (`plant_map_points`, `plant_map_objects`), `model_path` para modelos `.glb` y el trigger defensivo que normaliza `plant_map_points.object_id` a texto vacio.
 
+Para activar la edicion tecnica de balanzas de `v4.2.2` sobre una base existente, ejecutar `supabase/technician-equipment-edit.sql` en la base destinada a la preview. Habilita UPDATE para admin/tecnico y agrega un trigger que permite al tecnico modificar solo parametros tecnicos e identificacion de cinta; mantiene DELETE exclusivo de admin. Ver `docs/technician-equipment-edit.md`. Desplegar solo el frontend no habilita estos permisos del servidor.
+
 ```sql
 create table if not exists public.equipments (
   id text primary key,
