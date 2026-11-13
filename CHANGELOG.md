@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.2.4 - Resumen de calibración para BeltFlow
+
+- Desde BeltFlow se puede consultar el resumen de una balanza vinculada, usando una sesión de BeltTrace con acceso a su ficha.
+- La transferencia requiere confirmación y contiene el estado, las fechas de control, el error y los cambios de factor.
+
 ## v4.2.3 - Enlaces directos a balanzas
 
 - Cada ficha de Balanzas permite copiar un enlace estable para abrirla desde BeltFlow.
