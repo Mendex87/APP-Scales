@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.2.3 - Enlaces directos a balanzas
+
+- Cada ficha de Balanzas permite copiar un enlace estable para abrirla desde BeltFlow.
+- Al abrir un enlace, se enfoca la ficha después del ingreso y se respetan los permisos del perfil.
+
 ## v4.2.2 - Edicion tecnica de balanzas con confirmacion
 
 - El tecnico puede editar parametros tecnicos y el nombre/identificacion de cinta en una balanza existente.
