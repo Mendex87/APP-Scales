@@ -9,6 +9,7 @@ import {
   Gauge,
   History,
   Home,
+  Link2,
   Moon,
   Pencil,
   PlusCircle,
@@ -150,7 +151,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.2.2'
+const APP_VERSION = 'v4.2.3'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -319,8 +320,15 @@ function clearAccessHash() {
   window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
 }
 
+function getLinkedEquipmentId() {
+  return window.location.pathname === '/'
+    ? new URLSearchParams(window.location.search).get('balanza')
+    : null
+}
+
 function getScreenFromPath(): Screen {
-  return window.location.pathname === '/mapa' ? 'mapa' : 'dashboard'
+  if (window.location.pathname === '/mapa') return 'mapa'
+  return getLinkedEquipmentId() ? 'balanzas' : 'dashboard'
 }
 
 function getScreenPath(screen: Screen) {
@@ -1488,6 +1496,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
 
 function App() {
   const [screen, setScreen] = useState<Screen>(getScreenFromPath)
+  const [linkedEquipmentId, setLinkedEquipmentId] = useState(getLinkedEquipmentId)
+  const [equipmentLinkLoad, setEquipmentLinkLoad] = useState<{ userId: string; ok: boolean } | null>(null)
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
   const [chains, setChains] = useState<Chain[]>(() => loadChains())
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
@@ -1543,6 +1553,8 @@ function App() {
   const [unitSystem, setUnitSystem] = useState<UnitSystem>(getInitialUnitSystem)
   const [clockNow, setClockNow] = useState(() => new Date())
   const [toasts, setToasts] = useState<Toast[]>([])
+  const linkedEquipmentRef = useRef<HTMLDivElement>(null)
+  const focusedEquipmentRef = useRef<string | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [navPulseScreen, setNavPulseScreen] = useState<Screen | null>(null)
   const [loginTransitionPhase, setLoginTransitionPhase] = useState<LoginTransitionPhase>('idle')
@@ -1757,7 +1769,11 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser) {
+      setEquipmentLinkLoad(null)
+      return
+    }
+    const userId = currentUser.id
     let cancelled = false
 
     async function refreshAuthenticatedData() {
@@ -1771,9 +1787,11 @@ function App() {
         setPlantMapObjects(result.plantMapObjects)
         setPlantMapSource(result.plantMapSource)
         setDataSource(result.source)
+        setEquipmentLinkLoad({ userId, ok: true })
       } catch (error) {
         if (cancelled) return
         const message = error instanceof Error ? error.message : 'No se pudo cargar la base remota.'
+        setEquipmentLinkLoad({ userId, ok: false })
         setSyncNotice(`No se pudo cargar datos autenticados: ${message}`)
       }
     }
@@ -1877,12 +1895,18 @@ function App() {
       setScreen(currentUser.role === 'viewer' ? 'herramientas' : 'dashboard')
     }
     if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
+      if (screen === 'balanzas' && linkedEquipmentId) {
+        setSyncNotice('Tu perfil no tiene acceso a la ficha de la balanza.')
+      }
       setScreen('herramientas')
     }
-  }, [currentUser, screen])
+  }, [currentUser, screen, linkedEquipmentId])
 
   useEffect(() => {
-    const handlePopState = () => setScreen(getScreenFromPath())
+    const handlePopState = () => {
+      setLinkedEquipmentId(getLinkedEquipmentId())
+      setScreen(getScreenFromPath())
+    }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
@@ -1892,6 +1916,12 @@ function App() {
     const isPlantMapPath = window.location.pathname === '/mapa'
     if (window.location.pathname !== desiredPath && (screen === 'mapa' || isPlantMapPath)) {
       window.history.pushState(null, '', desiredPath)
+      setLinkedEquipmentId(null)
+    } else if (screen !== 'balanzas' && getLinkedEquipmentId()) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('balanza')
+      window.history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`)
+      setLinkedEquipmentId(null)
     }
   }, [screen])
 
@@ -1925,6 +1955,35 @@ function App() {
   const canDelete = currentUser?.role === 'admin'
   const canManageUsers = currentUser?.role === 'admin'
   const technicalEquipmentEdit = Boolean(editingEquipmentId) && currentUser?.role === 'tecnico'
+  const canResolveEquipmentLink = !loadingData && currentUser !== null && equipmentLinkLoad?.userId === currentUser.id
+  const linkedEquipment = canResolveEquipmentLink && equipmentLinkLoad.ok && linkedEquipmentId
+    ? equipment.find((item) => item.id === linkedEquipmentId)
+    : undefined
+
+  useEffect(() => {
+    if (screen !== 'balanzas' || !linkedEquipmentId || !canReview) {
+      focusedEquipmentRef.current = null
+      return
+    }
+    if (!linkedEquipment || focusedEquipmentRef.current === linkedEquipmentId) return
+    const card = linkedEquipmentRef.current
+    if (!card) return
+
+    focusedEquipmentRef.current = linkedEquipmentId
+    card.focus({ preventScroll: true })
+    card.scrollIntoView({ block: 'start', behavior: 'auto' })
+  }, [screen, canReview, linkedEquipmentId, linkedEquipment])
+
+  async function copyEquipmentLink(id: string) {
+    const url = new URL('/', window.location.origin)
+    url.searchParams.set('balanza', id)
+    try {
+      await navigator.clipboard.writeText(url.href)
+      setSyncNotice('Enlace de la balanza copiado.')
+    } catch {
+      setSyncNotice('No se pudo copiar el enlace. Revisá el permiso del portapapeles del navegador.')
+    }
+  }
 
   useEffect(() => {
     if (screen === 'usuarios' && canManageUsers) {
@@ -1943,14 +2002,14 @@ function App() {
       return
     }
     const isMobile = window.matchMedia('(max-width: 640px)').matches
-    if (!isMobile || screen === 'nueva') return
+    if (!isMobile || screen === 'nueva' || (screen === 'balanzas' && linkedEquipmentId)) return
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.requestAnimationFrame(() => {
       const target = document.querySelector('#main-content .screen-banner') || document.querySelector('#main-content .screen-shell')
       target?.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' })
     })
-  }, [screen, currentUser])
+  }, [screen, currentUser, linkedEquipmentId])
 
   useEffect(() => {
     if (screen !== 'nueva') return
@@ -5033,6 +5092,13 @@ function App() {
               <h2>Listado de balanzas y estado operativo</h2>
               <p>{canOperate ? 'Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.' : 'Consulta de equipos, último error, factor y estado general de cada instalación.'}</p>
             </div>
+            {linkedEquipmentId && !linkedEquipment && (
+              <div className="notice" role="status">
+                {!canResolveEquipmentLink ? 'Buscando la balanza del enlace…'
+                  : equipmentLinkLoad.ok ? 'La balanza del enlace ya no está disponible.'
+                  : 'No se pudo verificar la balanza del enlace con el servidor.'}
+              </div>
+            )}
             <div ref={equipmentFormRef} className="scroll-anchor">
             <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint={canOperate ? 'Alta de equipos y datos tecnicos principales.' : 'Altas y ediciones son solo para tecnicos. Supervisores pueden completar el wizard sin guardar.'} actionLabel={canOperate ? 'Crear una nueva' : 'Ver listado'} defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
@@ -5162,8 +5228,15 @@ function App() {
             <div className="stack">
               {equipmentWithLastEvent.map(({ item, lastEvent, maintenance }) => {
                 const statusText = maintenance.label
+                const isLinked = item.id === linkedEquipment?.id
                 return (
-                  <div className={`card equipment-card status-${maintenance.rowClass}`} key={item.id}>
+                  <div
+                    className={`card equipment-card status-${maintenance.rowClass}`}
+                    key={item.id}
+                    ref={isLinked ? linkedEquipmentRef : undefined}
+                    tabIndex={isLinked ? -1 : undefined}
+                    aria-labelledby={isLinked ? `equipment-title-${item.id}` : undefined}
+                  >
                     <div className="equipment-card-header">
                       <div className="equipment-card-head">
                         <EquipmentPhoto
@@ -5175,11 +5248,12 @@ function App() {
                         />
                         <div>
                           <span className="section-kicker">{statusText}</span>
-                          <h3>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
+                          <h3 id={isLinked ? `equipment-title-${item.id}` : undefined}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</h3>
                           <p className="hint">{item.controllerModel} {item.controllerSerial ? `| ${item.controllerSerial}` : ''}</p>
                         </div>
                       </div>
                       <div className="equipment-card-actions row compact-actions">
+                        <button className="secondary small" type="button" aria-label={`Copiar enlace de ${item.beltCode} / ${item.scaleName}`} onClick={() => void copyEquipmentLink(item.id)}><Link2 className="action-icon" aria-hidden="true" />Copiar enlace</button>
                         {canReview && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
                         {canOperate && <button className="secondary small" disabled={equipmentSaving} onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
                         {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
