@@ -151,7 +151,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.2.3'
+const APP_VERSION = 'v4.2.4'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -324,6 +324,19 @@ function getLinkedEquipmentId() {
   return window.location.pathname === '/'
     ? new URLSearchParams(window.location.search).get('balanza')
     : null
+}
+
+function getBeltFlowRequest() {
+  const params = new URLSearchParams(window.location.search)
+  const origin = params.get('beltflow_origin')
+  const request = params.get('beltflow_request')
+  if (!window.opener || !origin || !/^http:\/\/(127\.0\.0\.1|localhost)(:[1-9]\d{0,4})?$/.test(origin)
+    || !request || !/^[a-f0-9]{32}$/.test(request)) return null
+  try {
+    return new URL(origin).origin === origin ? { origin, request } : null
+  } catch {
+    return null
+  }
 }
 
 function getScreenFromPath(): Screen {
@@ -936,6 +949,30 @@ function getEquipmentMaintenance(item: Equipment, equipmentEvents: CalibrationEv
   }
 }
 
+function getBeltFlowCalibrationSummary(item: Equipment, events: CalibrationEvent[]) {
+  const history = events.filter((event) => event.equipmentId === item.id)
+    .sort((a, b) => Date.parse(b.eventDate) - Date.parse(a.eventDate))
+  const latest = history[0]
+  const valid = history.find((event) => statusClass(getEventMaterialOutcome(event).status) === 'success')
+  const maintenance = getEquipmentMaintenance(item, history)
+  const interval = item.checkIntervalDays > 0 ? Math.round(item.checkIntervalDays) : DEFAULT_CHECK_INTERVAL_DAYS
+  const adjustments = history.flatMap((event) => {
+    const { factorBefore: before, factorAfter: after } = event.finalAdjustment
+    const at = new Date(event.eventDate)
+    return event.materialValidation.adjustmentApplied === true && Number.isFinite(+at)
+      && Number.isFinite(before) && before > 0 && Number.isFinite(after) && after > 0 && before !== after
+      ? [{ at: at.toISOString(), before, after }] : []
+  }).slice(0, 1000)
+  return {
+    status: maintenance.status,
+    last_check: valid ? formatArgentinaDateKey(valid.eventDate) : null,
+    next_check: valid && maintenance.status !== 'out_of_tolerance' ? addArgentinaDays(valid.eventDate, interval) : null,
+    last_error: latest ? getEventMaterialOutcome(latest).errorPct : null,
+    factor: latest && latest.finalAdjustment.factorAfter > 0 ? latest.finalAdjustment.factorAfter : null,
+    adjustments,
+  }
+}
+
 function reportValue(value: unknown) {
   return String(value ?? '-')
     .replace(/&/g, '&amp;')
@@ -1497,6 +1534,8 @@ function buildCalibrationReportHtml(item: CalibrationEvent, equipmentItem: Equip
 function App() {
   const [screen, setScreen] = useState<Screen>(getScreenFromPath)
   const [linkedEquipmentId, setLinkedEquipmentId] = useState(getLinkedEquipmentId)
+  const [beltFlowRequest] = useState(getBeltFlowRequest)
+  const [beltFlowTransfer, setBeltFlowTransfer] = useState<'ready' | 'sending' | 'saved'>('ready')
   const [equipmentLinkLoad, setEquipmentLinkLoad] = useState<{ userId: string; ok: boolean } | null>(null)
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
   const [chains, setChains] = useState<Chain[]>(() => loadChains())
@@ -1807,6 +1846,10 @@ function App() {
     let cancelled = false
 
     async function initializeData() {
+      if (beltFlowRequest) {
+        setLoadingData(false)
+        return
+      }
       try {
         const result = await loadAppData()
         if (cancelled) return
@@ -1837,7 +1880,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [beltFlowRequest])
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return
@@ -1896,11 +1939,12 @@ function App() {
     }
     if (currentUser.role === 'viewer' && (screen === 'balanzas' || screen === 'nueva')) {
       if (screen === 'balanzas' && linkedEquipmentId) {
+        if (beltFlowRequest) return
         setSyncNotice('Tu perfil no tiene acceso a la ficha de la balanza.')
       }
       setScreen('herramientas')
     }
-  }, [currentUser, screen, linkedEquipmentId])
+  }, [currentUser, screen, linkedEquipmentId, beltFlowRequest])
 
   useEffect(() => {
     const handlePopState = () => {
@@ -1961,7 +2005,7 @@ function App() {
     : undefined
 
   useEffect(() => {
-    if (screen !== 'balanzas' || !linkedEquipmentId || !canReview) {
+    if (beltFlowRequest || screen !== 'balanzas' || !linkedEquipmentId || !canReview) {
       focusedEquipmentRef.current = null
       return
     }
@@ -1972,7 +2016,37 @@ function App() {
     focusedEquipmentRef.current = linkedEquipmentId
     card.focus({ preventScroll: true })
     card.scrollIntoView({ block: 'start', behavior: 'auto' })
-  }, [screen, canReview, linkedEquipmentId, linkedEquipment])
+  }, [screen, canReview, linkedEquipmentId, linkedEquipment, beltFlowRequest])
+
+  useEffect(() => {
+    if (!beltFlowRequest || beltFlowTransfer !== 'sending') return
+    const acknowledge = (event: MessageEvent) => {
+      if (event.source === window.opener && event.origin === beltFlowRequest.origin
+        && event.data?.type === 'beltflow.calibration.saved.v1'
+        && event.data.request === beltFlowRequest.request) setBeltFlowTransfer('saved')
+    }
+    window.addEventListener('message', acknowledge)
+    const timeout = window.setTimeout(() => {
+      setBeltFlowTransfer('ready')
+      setSyncNotice('BeltFlow no confirmó la recepción. Revisá el aviso en su ventana.')
+    }, 15000)
+    return () => {
+      window.removeEventListener('message', acknowledge)
+      window.clearTimeout(timeout)
+    }
+  }, [beltFlowRequest, beltFlowTransfer])
+
+  function sendBeltFlowCalibration() {
+    if (!beltFlowRequest || !linkedEquipment || !canReview || dataSource !== 'supabase'
+      || !window.opener || beltFlowTransfer !== 'ready') return
+    flushSync(() => setBeltFlowTransfer('sending'))
+    window.opener.postMessage({
+      type: 'belttrace.calibration.v1',
+      request: beltFlowRequest.request,
+      equipment: linkedEquipment.id,
+      summary: getBeltFlowCalibrationSummary(linkedEquipment, events),
+    }, beltFlowRequest.origin)
+  }
 
   async function copyEquipmentLink(id: string) {
     const url = new URL('/', window.location.origin)
@@ -4408,6 +4482,30 @@ function App() {
         </section>
         {renderToastStack()}
         {renderLoginTransition()}
+      </div>
+    )
+  }
+
+  if (beltFlowRequest && linkedEquipmentId) {
+    const item = canReview ? linkedEquipment : undefined
+    return (
+      <div className="app-shell auth-shell">
+        <section className="auth-card" aria-labelledby="beltflow-transfer-title">
+          <h1 id="beltflow-transfer-title">Resumen de calibración</h1>
+          {beltFlowTransfer === 'saved' ? <p role="status">BeltFlow guardó el resumen. Ya podés cerrar esta ventana.</p>
+            : !canReview ? <p role="status">Tu perfil no tiene acceso a la ficha de la balanza.</p>
+            : !canResolveEquipmentLink ? <p role="status">Consultando BeltTrace…</p>
+            : !item || dataSource !== 'supabase' ? <p role="status">La ficha no está disponible en el servidor.</p>
+            : <>
+              <p><strong>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</strong></p>
+              <p>BeltFlow guardará una copia local del estado, las fechas de control, el error y los cambios de factor de esta balanza.</p>
+              <button className="primary" type="button" onClick={sendBeltFlowCalibration} disabled={beltFlowTransfer === 'sending'}>
+                {beltFlowTransfer === 'sending' ? 'Esperando confirmación…' : 'Enviar resumen a BeltFlow'}
+              </button>
+            </>}
+          <button className="secondary" type="button" onClick={() => window.close()}>Cerrar ventana</button>
+        </section>
+        {renderToastStack()}
       </div>
     )
   }
