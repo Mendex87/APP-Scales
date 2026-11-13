@@ -674,7 +674,7 @@
         <li>Guardar balanza.</li>
       </ol>
       <h3>Edicion y baja</h3>
-      <p>Los tecnicos pueden abrir <strong>Editar</strong> para modificar la identificacion de la cinta, controlador y serie, dimensiones, capacidad, puente de pesaje, velocidad y origen, diametro RPM, factores, frecuencia de control y unidad del totalizador. Planta, linea, nombre de balanza, foto y observaciones siguen reservados al administrador en equipos existentes. Solo el administrador puede dar de baja balanzas.</p>
+      <p>Los tecnicos pueden abrir <strong>Editar</strong> para modificar la identificacion de la cinta, controlador y serie, dimensiones, capacidad, puente de pesaje, velocidad y origen, diametro RPM, factores, frecuencia de control y unidad del totalizador. Planta, linea, nombre de balanza, foto y observaciones siguen reservados al administrador en equipos existentes. Solo el administrador puede dar de baja o reactivar balanzas. Las calibraciones de una balanza dada de baja se pueden consultar desde Historial.</p>
       <p>Al tocar <strong>Actualizar balanza</strong>, se abre <strong>Confirmar cambios de balanza</strong>. <strong>Cancelar</strong> vuelve al formulario sin guardar; <strong>Confirmar cambios</strong> guarda la modificacion. El popup muestra el cambio de identificacion de cinta cuando corresponde. No se modifican las calibraciones registradas.</p>
     </section>
 
@@ -893,7 +893,7 @@
       <p>Los permisos del servidor online limitan acciones segun rol. Por ejemplo, el tecnico puede insertar eventos, pero la actualizacion administrativa de equipos queda reservada a administradores.</p>
       <h3>Reportes y respaldo operativo</h3>
       <p>Para compartir o archivar una calibracion, usar el reporte PDF/imprimible generado desde Historial. El servidor online sigue siendo la fuente principal de datos.</p>
-      <div class="callout"><strong>Borrados:</strong> cuando un admin elimina un evento o da de baja una balanza, el cambio se aplica sobre el servidor online y el cache local del navegador. Si se requiere respaldo externo, guardar el PDF antes de borrar.</div>
+      <div class="callout"><strong>Bajas y eliminaciones.</strong> Dar de baja una balanza la retira del listado activo y conserva sus calibraciones. El administrador puede reactivarla desde Balanzas dadas de baja. Para conservar una copia externa de un evento que se va a eliminar, guardar su PDF.</div>
       <div class="callout"><strong>Buenas practicas:</strong> si aparece un error de permisos, revisar rol del usuario, tabla afectada y accion intentada. No asumir que es un problema de conexion.</div>
     </section>
 
