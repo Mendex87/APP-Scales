@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.2.5 - Baja de balanzas con historial
+
+- Dar de baja una balanza la retira de las alertas y de la selección para nuevas calibraciones. Sus eventos y su ficha siguen disponibles en el historial.
+- El administrador puede consultar y reactivar las balanzas dadas de baja. En una base existente, aplicar `supabase/equipment-retirement.sql` para habilitar el cambio.
+
 ## v4.2.4 - Resumen de calibración para BeltFlow
 
 - Desde BeltFlow se puede consultar el resumen de una balanza vinculada, usando una sesión de BeltTrace con acceso a su ficha.

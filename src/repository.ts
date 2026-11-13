@@ -25,6 +25,7 @@ type EquipmentRow = {
   photo_path: string
   notes: string
   created_at: string
+  retired_at?: string | null
 }
 
 type EventRow = {
@@ -188,17 +189,19 @@ export async function testSupabaseConnection() {
 
 export async function saveEquipmentRecord(item: Equipment) {
   if (!isSupabaseConfigured || !supabase) {
-    const next = [item, ...loadEquipment().filter((current) => current.id !== item.id)]
-    saveEquipment(next)
-    return { source: 'local' as const }
+    const equipment = loadEquipment()
+    const existing = equipment.find((current) => current.id === item.id)
+    const saved = { ...item, retiredAt: existing?.retiredAt ?? null }
+    saveEquipment([saved, ...equipment.filter((current) => current.id !== item.id)])
+    return { source: 'local' as const, equipment: saved }
   }
 
-  const result = await supabase.from('equipments').upsert(toEquipmentRow(item))
+  const result = await supabase.from('equipments').upsert(toEquipmentRow(item)).select('*').single()
   if (result.error) {
     throw toError(result.error)
   }
 
-  return { source: 'supabase' as const }
+  return { source: 'supabase' as const, equipment: mapEquipmentRow(result.data) }
 }
 
 export async function updateEquipmentTechnicalRecord(item: Equipment) {
@@ -224,7 +227,7 @@ export async function updateEquipmentTechnicalRecord(item: Equipment) {
     const equipment = loadEquipment()
     const existing = equipment.find((current) => current.id === item.id)
     if (!existing) throw new Error('La balanza ya no existe. Actualiza el listado.')
-    const updated = mapEquipmentRow({ ...toEquipmentRow(existing), ...values })
+    const updated = mapEquipmentRow({ ...toEquipmentRow(existing), ...values, retired_at: existing.retiredAt })
     saveEquipment(equipment.map((current) => current.id === item.id ? updated : current))
     return { source: 'local' as const, equipment: updated }
   }
@@ -237,21 +240,29 @@ export async function updateEquipmentTechnicalRecord(item: Equipment) {
 
 const CHECK_INTERVAL_NOTE_PATTERN = /(?:\r?\n)?\[calibracinta:check_interval_days=(\d+)\]\s*/i
 
-export async function deleteEquipmentRecord(equipmentId: string) {
+export async function setEquipmentRetired(equipmentId: string, retired: boolean) {
   if (!isSupabaseConfigured || !supabase) {
-    saveEquipment(loadEquipment().filter((item) => item.id !== equipmentId))
-    saveEvents(loadEvents().filter((item) => item.equipmentId !== equipmentId))
-    return { source: 'local' as const }
+    const equipment = loadEquipment()
+    const existing = equipment.find((item) => item.id === equipmentId)
+    if (!existing) throw new Error('La balanza ya no existe.')
+    const updated = { ...existing, retiredAt: retired ? existing.retiredAt ?? new Date().toISOString() : null }
+    saveEquipment(equipment.map((item) => item.id === equipmentId ? updated : item))
+    return { source: 'local' as const, equipment: updated }
   }
 
-  const result = await supabase.from('equipments').delete().eq('id', equipmentId)
-  if (result.error) {
-    throw toError(result.error)
+  const { data, error } = await supabase.rpc('set_equipment_retired', {
+    p_equipment_id: equipmentId,
+    p_retired: retired,
+  })
+  if (error?.code === 'PGRST202' || error?.code === '42883') {
+    throw new Error('Falta aplicar la actualización de bajas en Supabase.')
   }
+  if (error) throw toError(error)
+  if (!data) throw new Error('No se pudo confirmar el estado de la balanza.')
 
-  saveEquipment(loadEquipment().filter((item) => item.id !== equipmentId))
-  saveEvents(loadEvents().filter((item) => item.equipmentId !== equipmentId))
-  return { source: 'supabase' as const }
+  const equipment = mapEquipmentRow(data)
+  saveEquipment([equipment, ...loadEquipment().filter((item) => item.id !== equipmentId)])
+  return { source: 'supabase' as const, equipment }
 }
 
 export async function saveChainRecord(item: Chain) {
@@ -375,6 +386,7 @@ export async function saveCalibrationEventRecord(item: CalibrationEvent) {
 
   const result = await supabase.from('calibration_events').insert(toEventRow(item))
   if (result.error) {
+    if (result.error.code === 'PT409') throw toError(result.error)
     const offlineEvent: CalibrationEvent = {
       ...item,
       syncStatus: 'pendiente',
@@ -485,6 +497,7 @@ function mapEquipmentRow(row: EquipmentRow): Equipment {
     photoPath: row.photo_path || '',
     notes: parsedNotes.notes,
     createdAt: row.created_at,
+    retiredAt: row.retired_at ?? null,
   }
 }
 
