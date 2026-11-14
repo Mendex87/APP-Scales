@@ -30,7 +30,7 @@ import type { PlantMapCameraView } from './components/Plant3DScene'
 import {
   deleteCalibrationEventRecord,
   deleteChainRecord,
-  deleteEquipmentRecord,
+  setEquipmentRetired,
   loadAppData,
   saveCalibrationEventRecord,
   saveChainRecord,
@@ -151,7 +151,7 @@ type SessionLog = {
   user_agent: string | null
 }
 
-const APP_VERSION = 'v4.2.4'
+const APP_VERSION = 'v4.2.5'
 const CALIBRATION_DRAFT_KEY = 'calibracinta:event-draft:v1'
 const THEME_STORAGE_KEY = 'calibracinta:theme'
 const UNIT_SYSTEM_STORAGE_KEY = 'calibracinta:unit-system'
@@ -1214,11 +1214,10 @@ function buildAdminManualHtml(user: AuthUser) {
     </section>
 
     <section>
-      <h2>11. Acciones destructivas</h2>
-      <p>Eliminar balanzas, cadenas o eventos es una accion administrativa. Confirmar siempre impacto operativo antes de avanzar.</p>
+      <h2>11. Bajas y eliminaciones</h2>
+      <p>Dar de baja una balanza la retira de la operación y conserva sus calibraciones en Historial. El administrador puede reactivarla desde Balanzas dadas de baja.</p>
       <ul>
-        <li>Eliminar una balanza puede afectar eventos asociados en el servidor online.</li>
-        <li>Si hace falta respaldo externo de una balanza o evento, guardar PDF antes de borrar.</li>
+        <li>Si hace falta respaldo externo de un evento, guardar PDF antes de borrarlo.</li>
         <li>Eliminar una cadena no modifica los datos historicos ya guardados en eventos.</li>
         <li>Eliminar eventos reduce la trazabilidad y debe quedar justificado por procedimiento interno.</li>
       </ul>
@@ -1538,6 +1537,8 @@ function App() {
   const [beltFlowTransfer, setBeltFlowTransfer] = useState<'ready' | 'sending' | 'saved'>('ready')
   const [equipmentLinkLoad, setEquipmentLinkLoad] = useState<{ userId: string; ok: boolean } | null>(null)
   const [equipment, setEquipment] = useState<Equipment[]>(() => loadEquipment())
+  const activeEquipment = useMemo(() => equipment.filter((item) => !item.retiredAt), [equipment])
+  const retiredEquipment = useMemo(() => equipment.filter((item) => item.retiredAt), [equipment])
   const [chains, setChains] = useState<Chain[]>(() => loadChains())
   const [events, setEvents] = useState<CalibrationEvent[]>(() => loadEvents())
   const [plantMapPoints, setPlantMapPoints] = useState<PlantMapPoint[]>(() => loadPlantMapPoints())
@@ -1917,10 +1918,10 @@ function App() {
   }, [events])
 
   useEffect(() => {
-    if (!selectedEquipmentId && equipment.length > 0) {
-      setSelectedEquipmentId(equipment[0].id)
+    if (!selectedEquipmentId && activeEquipment.length > 0) {
+      setSelectedEquipmentId(activeEquipment[0].id)
     }
-  }, [equipment, selectedEquipmentId])
+  }, [activeEquipment, selectedEquipmentId])
 
   useEffect(() => {
     if (!equipmentPhotoFile) {
@@ -1970,9 +1971,11 @@ function App() {
   }, [screen])
 
   const selectedEquipment = useMemo(
-    () => equipment.find((item) => item.id === selectedEquipmentId),
-    [equipment, selectedEquipmentId],
+    () => activeEquipment.find((item) => item.id === selectedEquipmentId),
+    [activeEquipment, selectedEquipmentId],
   )
+
+  const selectedEquipmentRetired = equipment.some((item) => item.id === selectedEquipmentId && item.retiredAt)
 
   const selectedEquipmentLastEvent = useMemo(() => {
     if (!selectedEquipment) return null
@@ -2009,7 +2012,7 @@ function App() {
       focusedEquipmentRef.current = null
       return
     }
-    if (!linkedEquipment || focusedEquipmentRef.current === linkedEquipmentId) return
+    if (!linkedEquipment || linkedEquipment.retiredAt || focusedEquipmentRef.current === linkedEquipmentId) return
     const card = linkedEquipmentRef.current
     if (!card) return
 
@@ -2165,13 +2168,13 @@ function App() {
   }
 
   const equipmentWithLastEvent = useMemo(() => {
-    return equipment.map((item) => {
+    return activeEquipment.map((item) => {
       const equipmentEvents = events.filter((eventItem) => eventItem.equipmentId === item.id)
       const lastEvent = equipmentEvents
         .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime())[0]
       return { item, lastEvent, maintenance: getEquipmentMaintenance(item, equipmentEvents) }
     })
-  }, [equipment, events])
+  }, [activeEquipment, events])
 
   const chainSpanBridgeLengthM = toNumber(eventForm.snapshotBridgeLengthM) || selectedEquipment?.bridgeLengthM || 0
   const chainExpectedControllerWeightKg = (toNumber(eventForm.chainLinearKgM) || 0) * chainSpanBridgeLengthM
@@ -2269,8 +2272,8 @@ function App() {
     return { withoutHistory, overdue, dueSoon, upToDate, conform, calibrated, monthEvents, nextAction }
   }, [equipmentWithLastEvent, events, outOfToleranceCount])
 
-  const fleetReadinessPercent = equipment.length
-    ? Math.max(0, Math.round((dashboardStats.upToDate / equipment.length) * 100))
+  const fleetReadinessPercent = activeEquipment.length
+    ? Math.max(0, Math.round((dashboardStats.upToDate / activeEquipment.length) * 100))
     : 0
 
   const latestEvent = useMemo(() => {
@@ -2390,6 +2393,19 @@ function App() {
         return
       }
 
+      if (linkedEquipment.retiredAt) {
+        statusById.set(point.id, {
+          label: 'Dada de baja',
+          rowClass: 'neutral',
+          detail: 'Las calibraciones de esta balanza están disponibles en Historial.',
+          lastValidDateText: '-',
+          nextDueDateText: '-',
+          daysText: '-',
+          equipment: linkedEquipment,
+        })
+        return
+      }
+
       const equipmentEvents = events.filter((item) => item.equipmentId === linkedEquipment.id)
       const maintenance = getEquipmentMaintenance(linkedEquipment, equipmentEvents, clockNow)
       statusById.set(point.id, {
@@ -2415,8 +2431,8 @@ function App() {
   const plantMapStatusCounts = useMemo(() => {
     return activePlantMapPoints.reduce(
       (summary, point) => {
-        const status = plantMapStatusById.get(point.id)?.rowClass || 'neutral'
-        summary[status] += 1
+        const pointStatus = plantMapStatusById.get(point.id)
+        if (!pointStatus?.equipment?.retiredAt) summary[pointStatus?.rowClass || 'neutral'] += 1
         return summary
       },
       { success: 0, warning: 0, danger: 0, neutral: 0 },
@@ -2793,7 +2809,7 @@ function App() {
     const tolerancePercent = toNumber(eventForm.tolerancePercent)
     const calibrationFactor = toNumber(eventForm.calibrationFactor)
     const finalFactor = toNumber(eventForm.finalFactor)
-    if (!selectedEquipment) addIssue('Seleccioná una balanza.', 0)
+    if (!selectedEquipment) addIssue(selectedEquipmentRetired ? 'La balanza está dada de baja. Elegí una balanza activa.' : 'Seleccioná una balanza.', 0)
     if (!(tolerancePercent > 0)) addIssue('La tolerancia debe ser mayor a 0.', 0)
     if (tolerancePercent > MAX_TOLERANCE_PERCENT) addIssue(`La tolerancia no puede superar ${MAX_TOLERANCE_PERCENT} %.`, 0)
     if (!precheckPassed) addIssue('Completá toda la inspeccion previa.', 1)
@@ -2828,7 +2844,7 @@ function App() {
     if (!(finalFactor > 0)) addIssue('Falta el factor de calibracion final.', 7)
     if (finalFactor > MAX_FACTOR_VALUE) addIssue('El factor de calibracion final es demasiado alto; revisá el valor cargado.', 7)
     return issues
-  }, [chainControllerReadingWeightKg, chainSpanBridgeLengthM, completeMaterialPasses, currentUser, eventForm, eventPhotoDrafts.length, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment])
+  }, [chainControllerReadingWeightKg, chainSpanBridgeLengthM, completeMaterialPasses, currentUser, eventForm, eventPhotoDrafts.length, finalMaterialPass, materialAdjustmentApplied, materialPasses, precheckPassed, requiresFullCalibration, selectedEquipment, selectedEquipmentRetired])
 
   const firstBlockingIssue = eventBlockingIssues[0]
 
@@ -3104,6 +3120,10 @@ function App() {
 
     try {
       const draft = JSON.parse(rawDraft) as EventDraft
+      if (equipment.some((item) => item.id === draft.selectedEquipmentId && item.retiredAt)) {
+        setSyncNotice('El borrador corresponde a una balanza dada de baja.')
+        return
+      }
       setEventForm({ ...defaultEventForm, ...draft.eventForm })
       setSelectedEquipmentId(draft.selectedEquipmentId || '')
       setSelectedChainId(draft.selectedChainId || '')
@@ -3524,6 +3544,11 @@ function App() {
   }, [currentUser?.id])
 
   function primeEventForm(item: Equipment) {
+    if (selectedEquipmentRetired) {
+      clearEventPhotoDrafts()
+      setMaterialPassCount(1)
+      setEventSubmitAttempted(false)
+    }
     const plantChain = chains.find((chain) => chain.plant.trim().toLowerCase() === item.plant.trim().toLowerCase())
     if (plantChain) {
       setSelectedChainId(plantChain.id)
@@ -3774,8 +3799,8 @@ function App() {
     if (equipmentBlockingIssues.length > 0) return
 
     const existing = equipment.find((item) => item.id === editingEquipmentId)
-    if (editingEquipmentId && !existing) {
-      setSyncNotice('La balanza ya no existe. Actualiza el listado antes de editar.')
+    if (editingEquipmentId && (!existing || existing.retiredAt)) {
+      setSyncNotice('Elegí una balanza activa para editar.')
       return
     }
     const equipmentId = editingEquipmentId || generateId()
@@ -3813,10 +3838,10 @@ function App() {
         }
         const result = technicalEquipmentEdit
           ? await updateEquipmentTechnicalRecord(nextEquipment)
-          : { ...await saveEquipmentRecord(nextEquipment), equipment: nextEquipment }
+          : await saveEquipmentRecord(nextEquipment)
         const savedEquipment = result.equipment
         setEquipment((current) => [savedEquipment, ...current.filter((item) => item.id !== savedEquipment.id)])
-        setSelectedEquipmentId(savedEquipment.id)
+        if (!savedEquipment.retiredAt) setSelectedEquipmentId(savedEquipment.id)
         resetEquipmentForm()
         setDataSource(result.source)
         setSyncNotice(
@@ -4106,26 +4131,31 @@ function App() {
     })
   }
 
-  async function handleDeleteEquipment(item: Equipment) {
-    const relatedEvents = events.filter((eventItem) => eventItem.equipmentId === item.id).length
+  function handleEquipmentRetirement(item: Equipment, retired: boolean) {
+    if (!canDelete || equipmentSavingRef.current) return
     setConfirmDialog({
-      title: 'Dar de baja balanza',
+      title: retired ? 'Dar de baja balanza' : 'Reactivar balanza',
       message: `${item.plant} / ${item.line} / ${item.beltCode} / ${item.scaleName}`,
-      detail: `${relatedEvents > 0 ? `Tambien se eliminaran ${relatedEvents} eventos asociados. ` : ''}Esta accion no se puede deshacer.`,
-      confirmLabel: 'Dar de baja',
+      detail: retired
+        ? 'La balanza sale del listado activo y conserva sus calibraciones en Historial.'
+        : 'La balanza vuelve al listado activo y a la selección de calibraciones.',
+      confirmLabel: retired ? 'Dar de baja' : 'Reactivar',
       onConfirm: async () => {
+        if (equipmentSavingRef.current) return
+        equipmentSavingRef.current = true
+        setEquipmentSaving(true)
         try {
-          const result = await deleteEquipmentRecord(item.id)
-          setEquipment((current) => current.filter((currentItem) => currentItem.id !== item.id))
-          setEvents((current) => current.filter((eventItem) => eventItem.equipmentId !== item.id))
-          if (selectedEquipmentId === item.id) {
-            setSelectedEquipmentId('')
-          }
+          const result = await setEquipmentRetired(item.id, retired)
+          setEquipment((current) => current.map((row) => row.id === item.id ? result.equipment : row))
+          if (retired && editingEquipmentId === item.id) resetEquipmentForm()
           setDataSource(result.source)
-          setSyncNotice(`Balanza ${item.scaleName} dada de baja.`)
+          setSyncNotice(`Balanza ${item.scaleName} ${retired ? 'dada de baja' : 'reactivada'}.`)
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'No se pudo dar de baja la balanza.'
-          setSyncNotice(`Error al dar de baja balanza: ${message}`)
+          const message = error instanceof Error ? error.message : 'No se pudo cambiar el estado de la balanza.'
+          setSyncNotice(`Error al ${retired ? 'dar de baja' : 'reactivar'} la balanza: ${message}`)
+        } finally {
+          equipmentSavingRef.current = false
+          setEquipmentSaving(false)
         }
       },
     })
@@ -4776,7 +4806,7 @@ function App() {
         </div>
         <div className="hero-panel">
           <span>Balanzas</span>
-          <strong>{equipment.length}</strong>
+          <strong>{activeEquipment.length}</strong>
           <p>Equipos listos para medición y trazabilidad.</p>
         </div>
         <div className="hero-panel">
@@ -4837,7 +4867,7 @@ function App() {
                 <strong>{dashboardStats.nextAction}</strong>
                 <p>{outOfToleranceCount > 0 ? 'Hay eventos que requieren seguimiento.' : 'Las plantas no muestran desvíos abiertos según el historial cargado.'}</p>
               </div>
-              <Metric label="Balanzas" value={String(equipment.length)} />
+              <Metric label="Balanzas" value={String(activeEquipment.length)} />
               <Metric label="Vencidos" value={String(dashboardStats.overdue)} />
               <Metric label="Vencen pronto" value={String(dashboardStats.dueSoon)} />
               <Metric label="Sin historial" value={String(dashboardStats.withoutHistory)} />
@@ -5106,7 +5136,10 @@ function App() {
                           disabled={!plantMapEditing || currentUser.role !== 'admin'}
                         >
                           <option value="">Sin vincular</option>
-                          {equipment.map((item) => (
+                          {selectedPlantPointStatus?.equipment?.retiredAt && (
+                            <option value={selectedPlantPoint.equipmentId} disabled>{selectedPlantPointStatus.equipment.scaleName} (dada de baja)</option>
+                          )}
+                          {activeEquipment.map((item) => (
                             <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
                           ))}
                         </select>
@@ -5190,6 +5223,12 @@ function App() {
               <h2>Listado de balanzas y estado operativo</h2>
               <p>{canOperate ? 'Alta de equipos, lectura rápida de último error, factor y estado general de cada instalación.' : 'Consulta de equipos, último error, factor y estado general de cada instalación.'}</p>
             </div>
+            {linkedEquipment?.retiredAt && (
+              <div className="card row wrap">
+                <span>{linkedEquipment.beltCode} / {linkedEquipment.scaleName} está dada de baja.</span>
+                <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(linkedEquipment.id); setScreen('historial') }}>Ver historial</button>
+              </div>
+            )}
             {linkedEquipmentId && !linkedEquipment && (
               <div className="notice" role="status">
                 {!canResolveEquipmentLink ? 'Buscando la balanza del enlace…'
@@ -5198,7 +5237,7 @@ function App() {
               </div>
             )}
             <div ref={equipmentFormRef} className="scroll-anchor">
-            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint={canOperate ? 'Alta de equipos y datos tecnicos principales.' : 'Altas y ediciones son solo para tecnicos. Supervisores pueden completar el wizard sin guardar.'} actionLabel={canOperate ? 'Crear una nueva' : 'Ver listado'} defaultOpen={equipment.length === 0 || Boolean(editingEquipmentId)}>
+            <CollapsibleCard key={editingEquipmentId || 'equipment-list'} title="Listado de balanzas" hint={canOperate ? 'Alta de equipos y datos tecnicos principales.' : 'Altas y ediciones son solo para tecnicos. Supervisores pueden completar el wizard sin guardar.'} actionLabel={canOperate ? 'Crear una nueva' : 'Ver listado'} defaultOpen={activeEquipment.length === 0 || Boolean(editingEquipmentId)}>
                 <div className="row wrap">
                   <div>
                     <h2>{editingEquipmentId ? 'Editar balanza' : 'Listado de balanzas'}</h2>
@@ -5354,7 +5393,7 @@ function App() {
                         <button className="secondary small" type="button" aria-label={`Copiar enlace de ${item.beltCode} / ${item.scaleName}`} onClick={() => void copyEquipmentLink(item.id)}><Link2 className="action-icon" aria-hidden="true" />Copiar enlace</button>
                         {canReview && <button className="secondary small" onClick={() => primeEventForm(item)}><PlusCircle className="action-icon" aria-hidden="true" />Nueva calibracion</button>}
                         {canOperate && <button className="secondary small" disabled={equipmentSaving} onClick={() => primeEquipmentEdit(item)}><Pencil className="action-icon" aria-hidden="true" />Editar</button>}
-                        {canDelete && <button className="secondary small danger" onClick={() => handleDeleteEquipment(item)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
+                        {canDelete && <button className="secondary small danger" type="button" disabled={equipmentSaving} onClick={() => handleEquipmentRetirement(item, true)}><Trash2 className="action-icon" aria-hidden="true" />Dar de baja</button>}
                       </div>
                     </div>
                     <div className="grid four compact-top">
@@ -5396,8 +5435,23 @@ function App() {
                   </div>
                 )
               })}
-              {equipment.length === 0 && <div className="card">Todavia no hay balanzas cargadas.</div>}
+              {activeEquipment.length === 0 && <div className="card">No hay balanzas activas.</div>}
             </div>
+            {retiredEquipment.length > 0 && (
+              <CollapsibleCard title="Balanzas dadas de baja" actionLabel="Ver listado">
+                <div className="result-list">
+                  {retiredEquipment.map((item) => (
+                    <div className="result-row" key={item.id}>
+                      <span>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</span>
+                      <div className="row wrap compact-actions">
+                        <button className="secondary small" type="button" onClick={() => { setHistoryEquipmentId(item.id); setScreen('historial') }}>Historial</button>
+                        {canDelete && <button className="secondary small" type="button" disabled={equipmentSaving} onClick={() => handleEquipmentRetirement(item, false)}>Reactivar</button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleCard>
+            )}
           </section>
         )}
 
@@ -5479,13 +5533,17 @@ function App() {
                       <strong>{selectedEquipment ? `${selectedEquipment.beltCode} / ${selectedEquipment.scaleName}` : 'Seleccionar balanza'}</strong>
                     </div>
                     <label className="label">Balanza</label>
-                    <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)} disabled={eventSaving}>
+                    <select className="input" value={selectedEquipment?.id ?? ''} onChange={(e) => {
+                      const next = activeEquipment.find((item) => item.id === e.target.value)
+                      if (selectedEquipmentRetired && next) primeEventForm(next)
+                      else setSelectedEquipmentId(e.target.value)
+                    }} disabled={eventSaving}>
                       <option value="">Seleccionar balanza</option>
-                      {equipment.map((item) => (
+                      {activeEquipment.map((item) => (
                         <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
                       ))}
                     </select>
-                    <small>{selectedEquipment ? `${selectedEquipment.plant} / ${selectedEquipment.line}` : 'Base del evento'}</small>
+                    <small>{selectedEquipmentRetired ? 'La balanza seleccionada está dada de baja.' : selectedEquipment ? `${selectedEquipment.plant} / ${selectedEquipment.line}` : 'Base del evento'}</small>
                   </div>
                   <div className={`context-select-card ${selectedChain ? 'selected' : ''}`}>
                     <div className="context-select-heading">
@@ -5905,7 +5963,8 @@ function App() {
               <label className="label">Balanza</label>
               <select className="input" value={selectedEquipmentId} onChange={(e) => setSelectedEquipmentId(e.target.value)}>
                 <option value="">Seleccionar balanza</option>
-                {equipment.map((item) => (
+                {selectedEquipmentRetired && <option value={selectedEquipmentId} disabled>Balanza dada de baja</option>}
+                {activeEquipment.map((item) => (
                   <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
                 ))}
               </select>
@@ -6076,7 +6135,7 @@ function App() {
                   <select className="input" value={historyEquipmentId} onChange={(e) => setHistoryEquipmentId(e.target.value)}>
                     <option value="todos">Todas</option>
                     {equipment.map((item) => (
-                      <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}</option>
+                      <option key={item.id} value={item.id}>{item.plant} / {item.line} / {item.beltCode} / {item.scaleName}{item.retiredAt ? ' (dada de baja)' : ''}</option>
                     ))}
                   </select>
                 </div>

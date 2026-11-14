@@ -47,6 +47,7 @@ export type Equipment = {
   photoPath: string
   notes: string
   createdAt: string
+  retiredAt?: string | null
 }
 
 export type Chain = {
